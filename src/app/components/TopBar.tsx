@@ -1,6 +1,6 @@
 import { Bell, Search } from "lucide-react";
 import { Input } from "./ui/input";
-import { Avatar, AvatarFallback } from "./ui/avatar";
+import imgAvatar from "../../imports/SốHoaTaiLiệu-1/420fce61b2448c9eab5d25435a5e458a011f53b7.png";
 
 export function TopBar({ breadcrumb }: { breadcrumb: string[] }) {
   return (
@@ -19,15 +19,13 @@ export function TopBar({ breadcrumb }: { breadcrumb: string[] }) {
       <div className="flex items-center gap-4">
         <div className="relative w-72">
           <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
-          <Input placeholder="Tìm kiếm" className="bg-input-background pl-9" />
+          <Input placeholder="Tìm kiếm" className="bg-input-background pl-9 h-9 text-xs" />
         </div>
         <button className="relative rounded-full p-2 hover:bg-slate-100">
           <Bell className="size-5 text-slate-500" />
-          <span className="absolute right-1.5 top-1.5 size-2 rounded-full bg-brand" />
+          <span className="absolute right-1.5 top-1.5 size-2 rounded-full bg-[#ff4c51]" />
         </button>
-        <Avatar className="size-9">
-          <AvatarFallback className="bg-brand-soft text-brand">A</AvatarFallback>
-        </Avatar>
+        <img src={imgAvatar} alt="Profile" className="size-9 rounded-full object-cover" />
       </div>
     </header>
   );

@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   FileText,
   Loader2,
@@ -16,13 +16,12 @@ import {
   Clock,
 } from "lucide-react";
 import {
-  DOCUMENTS,
   DOC_TYPE_LABELS,
   STATUS_LABELS,
   DocType,
-  DocStatus,
   DigitizedDoc,
 } from "../data/mock";
+import { docApi } from "../services/api";
 import { StatusBadge, ConfidencePill } from "./StatusBadge";
 import { Card } from "./ui/card";
 import { Input } from "./ui/input";
@@ -50,8 +49,17 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "./ui/dropdown-menu";
+import { toast } from "sonner";
 
-export function DocumentListPage({ onOpen }: { onOpen: (doc: DigitizedDoc) => void }) {
+export function DocumentListPage({
+  onOpen,
+  onUploadClick,
+}: {
+  onOpen: (doc: DigitizedDoc) => void;
+  onUploadClick?: () => void;
+}) {
+  const [documents, setDocuments] = useState<DigitizedDoc[]>([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [type, setType] = useState<string>("all");
   const [status, setStatus] = useState<string>("all");
@@ -59,21 +67,32 @@ export function DocumentListPage({ onOpen }: { onOpen: (doc: DigitizedDoc) => vo
   const [assignee, setAssignee] = useState<string>("all");
   const [lowConfOnly, setLowConfOnly] = useState(false);
 
-  const uploaders = useMemo(() => [...new Set(DOCUMENTS.map((d) => d.uploadedBy))], []);
+  const loadData = async () => {
+    setLoading(true);
+    const data = await docApi.getDocuments();
+    setDocuments(data);
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  const uploaders = useMemo(() => [...new Set(documents.map((d) => d.uploadedBy))], [documents]);
   const assignees = useMemo(
-    () => [...new Set(DOCUMENTS.map((d) => d.assignedTo).filter((a) => a !== "—"))],
-    []
+    () => [...new Set(documents.map((d) => d.assignedTo).filter((a) => a !== "—"))],
+    [documents]
   );
 
   // Compute stats from actual data
   const stats = useMemo(() => {
-    const mine = DOCUMENTS.filter((d) => d.uploadedBy === "Nguyễn Văn A").length;
-    const ocr = DOCUMENTS.filter((d) => d.status === "ocr" || d.status === "pending").length;
-    const review = DOCUMENTS.filter((d) => d.status === "review").length;
-    const confirmed = DOCUMENTS.filter((d) => d.status === "confirmed").length;
-    const failed = DOCUMENTS.filter((d) => d.status === "failed").length;
+    const mine = documents.filter((d) => d.uploadedBy === "Nguyễn Văn A").length;
+    const ocr = documents.filter((d) => d.status === "ocr" || d.status === "pending").length;
+    const review = documents.filter((d) => d.status === "review").length;
+    const confirmed = documents.filter((d) => d.status === "confirmed").length;
+    const failed = documents.filter((d) => d.status === "failed").length;
     return { mine, ocr, review, confirmed, failed };
-  }, []);
+  }, [documents]);
 
   const STAT_CARDS = [
     { key: "mine", label: "Tài liệu của tôi", value: stats.mine, icon: FileText, color: "text-slate-600", bar: "border-t-slate-400" },
@@ -83,7 +102,7 @@ export function DocumentListPage({ onOpen }: { onOpen: (doc: DigitizedDoc) => vo
     { key: "failed", label: "Lỗi xử lý", value: stats.failed, icon: FileWarning, color: "text-[#ea5455]", bar: "border-t-[#ea5455]" },
   ];
 
-  const filtered = DOCUMENTS.filter((d) => {
+  const filtered = documents.filter((d) => {
     if (search && !d.fileName.toLowerCase().includes(search.toLowerCase()) && !d.id.toLowerCase().includes(search.toLowerCase())) return false;
     if (type !== "all" && d.type !== type) return false;
     if (status !== "all" && d.status !== status) return false;
@@ -137,11 +156,14 @@ export function DocumentListPage({ onOpen }: { onOpen: (doc: DigitizedDoc) => vo
           <div className="space-y-0.5">
             <p className="text-[14px] font-medium text-slate-800">
               Kéo thả tài liệu vào đây, hoặc{" "}
-              <span className="text-brand cursor-pointer hover:underline">tải lên từ máy tính</span>
+              <span onClick={onUploadClick} className="text-brand cursor-pointer hover:underline">tải lên từ máy tính</span>
             </p>
             <p className="text-[12px] text-slate-400">Hỗ trợ PDF, DOCX, XLSX, JPG, PNG · Tối đa 10 MB/tệp</p>
           </div>
-          <Button className="mt-1 h-8 bg-white border border-brand/30 text-brand hover:bg-brand-soft hover:border-brand text-[13px] shadow-none px-4">
+          <Button
+            onClick={onUploadClick}
+            className="mt-1 h-8 bg-white border border-brand/30 text-brand hover:bg-brand-soft hover:border-brand text-[13px] shadow-none px-4"
+          >
             <UploadCloud className="size-3.5 mr-1.5" />
             Chọn tệp tải lên
           </Button>
@@ -163,8 +185,8 @@ export function DocumentListPage({ onOpen }: { onOpen: (doc: DigitizedDoc) => vo
                 className="bg-slate-50 pl-8 h-9 text-[13px] border-slate-200"
               />
             </div>
-            <Button variant="outline" size="icon" className="h-9 w-9 border-slate-200" title="Làm mới">
-              <RefreshCw className="size-4 text-slate-500" />
+            <Button variant="outline" size="icon" className="h-9 w-9 border-slate-200" title="Làm mới" onClick={loadData}>
+              <RefreshCw className={`size-4 text-slate-500 ${loading ? "animate-spin" : ""}`} />
             </Button>
           </div>
         </div>
@@ -238,7 +260,7 @@ export function DocumentListPage({ onOpen }: { onOpen: (doc: DigitizedDoc) => vo
                     {d.assignedTo === "—" ? <span className="text-slate-300">—</span> : d.assignedTo}
                   </TableCell>
                   <TableCell className="py-2.5 text-right" onClick={(e) => e.stopPropagation()}>
-                    <RowActions doc={d} onOpen={onOpen} />
+                    <RowActions doc={d} onOpen={onOpen} onRefresh={loadData} />
                   </TableCell>
                 </TableRow>
               ))}
@@ -255,7 +277,7 @@ export function DocumentListPage({ onOpen }: { onOpen: (doc: DigitizedDoc) => vo
 
         {/* Pagination */}
         <div className="mt-4 flex items-center justify-between text-[13px] text-muted-foreground">
-          <span>Hiển thị <span className="font-medium text-slate-700">{filtered.length}</span> / {DOCUMENTS.length} tài liệu</span>
+          <span>Hiển thị <span className="font-medium text-slate-700">{filtered.length}</span> / {documents.length} tài liệu</span>
           <div className="flex items-center gap-1">
             <Button variant="outline" size="sm" className="h-8 px-3 text-[12px]">Trước</Button>
             <Button size="sm" className="h-8 w-8 bg-brand text-white hover:bg-brand-dark text-[12px]">1</Button>
@@ -295,7 +317,13 @@ function FilterSelect({
   );
 }
 
-function RowActions({ doc, onOpen }: { doc: DigitizedDoc; onOpen: (d: DigitizedDoc) => void }) {
+function RowActions({ doc, onOpen, onRefresh }: { doc: DigitizedDoc; onOpen: (d: DigitizedDoc) => void; onRefresh: () => void }) {
+  async function handleRerunOCR() {
+    await docApi.rerunOCR(doc.id);
+    toast.success(`Đã phát lệnh chạy lại OCR cho tài liệu ${doc.id}`);
+    onRefresh();
+  }
+
   return (
     <div className="flex items-center justify-end gap-0.5">
       <Button variant="ghost" size="icon" title="Xem chi tiết" className="h-8 w-8" onClick={() => onOpen(doc)}>
@@ -309,10 +337,10 @@ function RowActions({ doc, onOpen }: { doc: DigitizedDoc; onOpen: (d: DigitizedD
           <MoreHorizontal className="size-3.5 text-slate-400" />
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
-          <DropdownMenuItem className="gap-2 text-[13px]">
+          <DropdownMenuItem className="gap-2 text-[13px] cursor-pointer" onClick={handleRerunOCR}>
             <ScanLine className="size-4" /> Chạy lại OCR
           </DropdownMenuItem>
-          <DropdownMenuItem className="gap-2 text-[13px]">
+          <DropdownMenuItem className="gap-2 text-[13px] cursor-pointer" onClick={() => onOpen(doc)}>
             <FileText className="size-4" /> Xem tệp gốc
           </DropdownMenuItem>
         </DropdownMenuContent>

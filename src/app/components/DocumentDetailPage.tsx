@@ -54,6 +54,7 @@ import {
 import { toast } from "sonner";
 import { DocumentCanvas } from "./DocumentCanvas";
 import { useFieldEditor } from "../hooks/useFieldEditor";
+import { docApi } from "../services/api";
 
 export function DocumentDetailPage({
   doc,
@@ -119,7 +120,8 @@ export function DocumentDetailPage({
           <Button
             size="sm"
             className="gap-1.5 bg-brand text-white hover:bg-brand-dark text-[13px] h-8"
-            onClick={() => {
+            onClick={async () => {
+              await docApi.confirmDocument(doc.id);
               setConfirmed(true);
               toast.success("Đã xác nhận hoàn tất tài liệu");
             }}

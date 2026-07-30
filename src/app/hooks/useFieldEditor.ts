@@ -29,22 +29,15 @@ export function useFieldEditor({
     setDraft(f.value);
   }
 
-  function applyEdit(f: ExtractedField, next: string, editReason?: string) {
-    onFieldsChange((prev) =>
-      prev.map((x) => (x.id === f.id ? { ...x, value: next, confidence: Math.max(x.confidence, 100) } : x))
-    );
-    const entry: EditLogEntry = {
-      id: `e${Date.now()}`,
-      field: f.label,
-      aiValue: doc.fields.find((o) => o.id === f.id)?.value ?? f.value,
-      before: f.value,
-      after: next,
-      editor: "Nguyễn Văn A",
-      time: new Date().toLocaleString("vi-VN"),
-      reason: editReason,
-    };
-    onLogChange((prev) => [entry, ...prev]);
-    toast.success(`Đã cập nhật trường "${f.label}"`);
+  async function applyEdit(f: ExtractedField, next: string, editReason?: string) {
+    try {
+      const updatedDoc = await docApi.updateDocumentField(doc.id, f.id, next, editReason);
+      onFieldsChange(() => updatedDoc.fields);
+      onLogChange(() => updatedDoc.editLog);
+      toast.success(`Đã cập nhật trường "${f.label}"`);
+    } catch (err) {
+      toast.error("Lỗi khi cập nhật trường dữ liệu.");
+    }
   }
 
   function commitEdit(f: ExtractedField) {

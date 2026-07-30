@@ -1,4 +1,4 @@
-import { useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import {
   Search,
   Sparkles,
@@ -12,13 +12,12 @@ import {
   Package,
 } from "lucide-react";
 import {
-  PRODUCTS,
-  DOCUMENTS,
   AI_KEYWORDS,
   Product,
   DOC_TYPE_LABELS,
   DigitizedDoc,
 } from "../data/mock";
+import { docApi } from "../services/api";
 import { Card } from "./ui/card";
 import { Input } from "./ui/input";
 import { Button } from "./ui/button";
@@ -32,13 +31,24 @@ import {
   TableRow,
 } from "./ui/table";
 
-// Build a lookup: sourceDocId → DigitizedDoc
-const DOC_MAP = Object.fromEntries(DOCUMENTS.map((d) => [d.id, d]));
-
 export function ProductLookupPage({ onOpenDoc }: { onOpenDoc: (doc: DigitizedDoc) => void }) {
+  const [products, setProducts] = useState<Product[]>([]);
+  const [documents, setDocuments] = useState<DigitizedDoc[]>([]);
   const [search, setSearch] = useState("");
   const [activeKeywords, setActiveKeywords] = useState<string[]>([]);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+
+  useEffect(() => {
+    async function loadData() {
+      const p = await docApi.getProducts();
+      const d = await docApi.getDocuments();
+      setProducts(p);
+      setDocuments(d);
+    }
+    loadData();
+  }, []);
+
+  const docMap = useMemo(() => Object.fromEntries(documents.map((d) => [d.id, d])), [documents]);
 
   function toggleKeyword(kw: string) {
     setActiveKeywords((prev) =>
@@ -52,7 +62,7 @@ export function ProductLookupPage({ onOpenDoc }: { onOpenDoc: (doc: DigitizedDoc
   }
 
   const filtered = useMemo(() => {
-    return PRODUCTS.filter((p) => {
+    return products.filter((p) => {
       const q = search.toLowerCase();
       if (q && !p.name.toLowerCase().includes(q) && !p.code.toLowerCase().includes(q) && !p.description.toLowerCase().includes(q)) {
         return false;
@@ -67,7 +77,7 @@ export function ProductLookupPage({ onOpenDoc }: { onOpenDoc: (doc: DigitizedDoc
       }
       return true;
     });
-  }, [search, activeKeywords]);
+  }, [products, search, activeKeywords]);
 
   const confirmedCount = filtered.filter((p) => p.confirmed).length;
   const tempCount = filtered.filter((p) => !p.confirmed).length;
@@ -174,7 +184,7 @@ export function ProductLookupPage({ onOpenDoc }: { onOpenDoc: (doc: DigitizedDoc
             <TableBody>
               {filtered.map((p) => {
                 const isExpanded = expandedId === p.id;
-                const sourceDoc = DOC_MAP[p.sourceDocId];
+                const sourceDoc = docMap[p.sourceDocId];
                 return (
                   <>
                     <TableRow
@@ -232,7 +242,7 @@ export function ProductLookupPage({ onOpenDoc }: { onOpenDoc: (doc: DigitizedDoc
                     {isExpanded && (
                       <TableRow key={`${p.id}-expand`} className="bg-slate-50/60 hover:bg-slate-50/60">
                         <TableCell colSpan={9} className="py-0">
-                          <PurchaseHistory product={p} onOpenDoc={(d) => onOpenDoc(d)} />
+                          <PurchaseHistory product={p} documents={documents} onOpenDoc={(d) => onOpenDoc(d)} />
                         </TableCell>
                       </TableRow>
                     )}
@@ -255,11 +265,19 @@ export function ProductLookupPage({ onOpenDoc }: { onOpenDoc: (doc: DigitizedDoc
 }
 
 /** Inline purchase history panel shown when a product row is expanded */
-function PurchaseHistory({ product, onOpenDoc }: { product: Product; onOpenDoc: (d: DigitizedDoc) => void }) {
+function PurchaseHistory({
+  product,
+  documents,
+  onOpenDoc,
+}: {
+  product: Product;
+  documents: DigitizedDoc[];
+  onOpenDoc: (d: DigitizedDoc) => void;
+}) {
   // Find all line items from all documents that match this product name or code
   const history = useMemo(() => {
     const results: { doc: DigitizedDoc; qty: string; unitPrice: string; total: string; page: number }[] = [];
-    for (const doc of DOCUMENTS) {
+    for (const doc of documents) {
       for (const li of doc.lineItems) {
         if (
           li.name.toLowerCase().includes(product.name.split(" ").slice(0, 3).join(" ").toLowerCase()) ||
@@ -270,7 +288,7 @@ function PurchaseHistory({ product, onOpenDoc }: { product: Product; onOpenDoc: 
       }
     }
     return results;
-  }, [product]);
+  }, [product, documents]);
 
   return (
     <div className="px-4 py-3 border-t border-slate-100">

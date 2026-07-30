@@ -13,7 +13,6 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "./ui/collapsible";
-import { Avatar, AvatarFallback } from "./ui/avatar";
 import {
   IconBaoCaoTongQuan,
   IconQuanTriDuLieu,
@@ -21,6 +20,8 @@ import {
   IconBaoCaoTongHop,
   IconTaiKhoanCaiDat,
 } from "./icons";
+import imgImage2 from "../../imports/SốHoaTaiLiệu-1/01342b2bb964441edcb3fd61de43edf5fdb34da6.png";
+import imgAvatar from "../../imports/SốHoaTaiLiệu-1/420fce61b2448c9eab5d25435a5e458a011f53b7.png";
 
 export type PageKey = "list" | "product";
 
@@ -90,20 +91,24 @@ const SECTIONS: NavSection[] = [
 export function Sidebar({
   active,
   onNavigate,
+  onUploadClick,
 }: {
   active: PageKey;
   onNavigate: (p: PageKey) => void;
+  onUploadClick?: () => void;
 }) {
   return (
     <aside className="flex h-full w-64 shrink-0 flex-col border-r border-border bg-white">
-      {/* Brand */}
-      <div className="flex flex-col gap-0.5 px-6 py-5">
-        <span className="text-2xl font-bold tracking-tight text-brand">viettel</span>
-        <span className="text-xs text-muted-foreground">cyber security</span>
+      {/* Brand Logo from Figma */}
+      <div className="flex items-center justify-center px-6 py-4 border-b border-slate-100">
+        <img src={imgImage2} alt="Viettel Cyber Security" className="h-[52px] object-contain" />
       </div>
 
-      <div className="px-4 pb-2">
-        <Button className="w-full justify-center gap-2 border border-brand bg-white text-brand hover:bg-brand-soft">
+      <div className="px-4 pt-3 pb-2">
+        <Button
+          onClick={onUploadClick}
+          className="w-full justify-center gap-2 border border-[#ff4c51] bg-white text-[#ff4c51] hover:bg-[#fff5f5]"
+        >
           <Upload className="size-4" />
           Tải Lên Tài Liệu
         </Button>
@@ -176,12 +181,10 @@ export function Sidebar({
       </nav>
 
       <div className="flex items-center gap-3 border-t border-border px-4 py-3">
-        <Avatar className="size-9">
-          <AvatarFallback className="bg-brand-soft text-brand">A</AvatarFallback>
-        </Avatar>
+        <img src={imgAvatar} alt="Avatar" className="size-10 rounded-full object-cover shrink-0" />
         <div className="min-w-0">
-          <p className="truncate text-sm font-medium">Nguyễn Văn A</p>
-          <p className="truncate text-xs text-muted-foreground">Cán bộ Đầu tư</p>
+          <p className="truncate text-sm font-medium text-slate-800">Nguyễn Văn A</p>
+          <p className="truncate text-xs text-slate-400">Cán bộ Đầu tư</p>
         </div>
       </div>
     </aside>
