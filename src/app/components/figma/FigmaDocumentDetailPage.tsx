@@ -7,9 +7,6 @@ import {
   IconAlertTriangle,
   IconPencil,
   IconCheck,
-  IconLayoutBoardSplit,
-  IconCheckbox,
-  IconFileX,
 } from "../icons";
 
 interface FigmaDocumentDetailPageProps {
@@ -94,89 +91,111 @@ export function FigmaDocumentDetailPage({ doc, onBack }: FigmaDocumentDetailPage
   }
 
   return (
-    <div className="flex h-full flex-col bg-[#f8f7fa] text-slate-800">
-      {/* Top Header Bar matching Figma Node 26186:77512 */}
-      <div className="flex items-center gap-3 border-b border-slate-200 bg-white px-6 py-3 shrink-0 shadow-2xs">
+    <div className="min-h-screen bg-[#f8f7fa] text-slate-800 flex flex-col p-6 font-sans">
+      {/* Top Header Title */}
+      <div className="flex items-center gap-3 mb-5">
         <button
           onClick={onBack}
-          className="size-8 rounded-[6px] hover:bg-slate-100 flex items-center justify-center text-slate-600 transition-colors"
+          className="p-1 hover:bg-slate-200 rounded-[6px] text-[#393740] transition-colors"
           title="Quay lại"
         >
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-            <path d="M19 12H5M5 12L12 19M5 12L12 5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+            <path d="M19 12H5M5 12L12 19M5 12L12 5" stroke="#2F2B3D" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         </button>
-        <h1 className="text-[18px] font-bold text-[#393740]">Chi tiết số hóa tài liệu</h1>
+        <h1 className="text-[22px] font-bold text-[#2F2B3D]">Chi tiết số hóa tài liệu</h1>
       </div>
 
-      {/* Main Container */}
-      <div className="flex flex-1 flex-col p-4 gap-3 overflow-hidden">
-        {/* Table Sub Header Toolbar matching Figma */}
-        <div className="flex items-center justify-between bg-white rounded-[6px] border border-slate-200 px-5 py-2.5 shadow-2xs shrink-0 flex-wrap gap-2">
-          {/* File Name Info */}
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-semibold text-slate-700">Đang xem:</span>
-            <span className="text-xs font-bold text-[#3f81ea]">{doc.fileName}</span>
-          </div>
-
-          {/* Badges / Indicators */}
-          <div className="flex items-center gap-4 text-xs">
-            <div className="flex items-center gap-1.5 text-[#28c76f] font-medium">
-              <IconCheck className="size-4 text-[#28c76f] shrink-0" />
-              <span>Đã xác nhận {confirmedFieldCount}/{fields.length} trường</span>
-            </div>
-
-            {lowConfidenceCount > 0 && (
-              <div className="flex items-center gap-1.5 text-[#ff9f43] font-medium">
-                <IconAlertTriangle className="size-4 shrink-0" />
-                <span>Còn {lowConfidenceCount} trường cảnh báo độ tin cậy thấp</span>
-              </div>
-            )}
-          </div>
-
-          {/* Action Buttons */}
-          <div className="flex items-center gap-2.5">
-            <button className="px-4 py-1.5 rounded-[6px] border border-[#3f81ea] bg-white text-xs font-semibold text-[#3f81ea] hover:bg-blue-50 transition-colors shadow-2xs">
-              Lưu tạm
-            </button>
-            <button
-              onClick={handleConfirmDocument}
-              disabled={confirmed}
-              className="px-4 py-1.5 rounded-[6px] bg-[#3f81ea] text-white text-xs font-semibold hover:bg-[#2b6bd8] disabled:opacity-50 transition-colors shadow-2xs"
-            >
-              {confirmed ? "Đã xác nhận" : "Xác nhận"}
-            </button>
-          </div>
+      {/* Sub-Header Toolbar Bar matching Figma */}
+      <div className="flex items-center justify-between bg-white rounded-[8px] border border-slate-200 px-6 py-3 shadow-2xs mb-5 flex-wrap gap-4">
+        {/* File Name Info */}
+        <div className="flex items-center gap-2 text-xs">
+          <span className="text-slate-500">Đang xem:</span>
+          <span className="font-bold text-[#393740]">{doc.fileName}</span>
         </div>
 
-        {/* Split 2-Column Main View matching Figma Frame 11 */}
-        <div className="grid flex-1 grid-cols-1 lg:grid-cols-2 gap-4 min-h-0 overflow-hidden">
-          {/* LEFT COLUMN — Document Canvas Viewer */}
-          <div className="bg-white rounded-[6px] border border-slate-200 flex flex-col overflow-hidden shadow-2xs">
-            {/* Viewer Header Controls */}
+        {/* Status Indicators */}
+        <div className="flex items-center gap-6 text-xs">
+          <div className="flex items-center gap-2 text-[#28c76f] font-medium">
+            <IconCheck className="size-4 text-[#28c76f] shrink-0" />
+            <span>
+              Đã xác nhận <strong className="font-bold text-[#28c76f]">{confirmedFieldCount}</strong>/{fields.length} trường
+            </span>
+          </div>
+
+          {lowConfidenceCount > 0 && (
+            <div className="flex items-center gap-2 text-[#393740] font-medium">
+              <IconAlertTriangle className="size-4 text-[#ff9f43] shrink-0" />
+              <span>Còn {lowConfidenceCount} trường cảnh báo độ tin cậy thấp</span>
+            </div>
+          )}
+        </div>
+
+        {/* Action Buttons */}
+        <div className="flex items-center gap-3">
+          <button className="px-4 py-1.5 rounded-[6px] border border-slate-300 bg-white text-xs font-medium text-[#393740] hover:bg-slate-50 transition-colors shadow-2xs">
+            Lưu tạm
+          </button>
+          <button
+            onClick={handleConfirmDocument}
+            disabled={confirmed}
+            className="px-4 py-1.5 rounded-[6px] bg-[#ff4c51] text-white text-xs font-semibold hover:bg-[#ea5455] disabled:opacity-50 transition-colors shadow-2xs"
+          >
+            {confirmed ? "Đã xác nhận" : "Xác nhận và lưu"}
+          </button>
+        </div>
+      </div>
+
+      {/* Main Content 2-Column Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 flex-1 items-start">
+        {/* LEFT PANEL — Document Canvas Viewer */}
+        <div className="flex flex-col">
+          <h2 className="text-[16px] font-bold text-[#393740] mb-2.5">Bản gốc</h2>
+          
+          <div className="bg-white rounded-[8px] border border-slate-200 flex flex-col overflow-hidden shadow-2xs">
+            {/* Viewer Header Controls Toolbar */}
             <div className="flex items-center justify-between border-b border-slate-200 px-4 py-2.5 bg-slate-50/60">
-              <span className="text-xs font-bold text-[#393740]">Bản gốc tài liệu</span>
-              <div className="flex items-center gap-2 text-xs text-slate-700">
+              <div className="flex items-center gap-3 text-xs text-slate-700">
+                {/* Rotate */}
+                <button className="p-1 hover:bg-slate-200 rounded text-slate-600" title="Xoay">
+                  ↻
+                </button>
+                {/* Zoom Out */}
                 <button onClick={() => setZoom((z) => Math.max(50, z - 10))} className="p-1 hover:bg-slate-200 rounded font-bold text-slate-600">
                   -
                 </button>
-                <span className="w-12 text-center font-semibold">{zoom}%</span>
+                {/* Zoom Select */}
+                <select
+                  value={zoom}
+                  onChange={(e) => setZoom(Number(e.target.value))}
+                  className="h-7 border border-slate-200 rounded px-1 text-xs bg-white text-slate-700 outline-none"
+                >
+                  <option value={50}>50%</option>
+                  <option value={75}>75%</option>
+                  <option value={100}>100%</option>
+                  <option value={125}>125%</option>
+                  <option value={150}>150%</option>
+                </select>
+                {/* Zoom In */}
                 <button onClick={() => setZoom((z) => Math.min(200, z + 10))} className="p-1 hover:bg-slate-200 rounded font-bold text-slate-600">
                   +
                 </button>
-                <div className="h-4 w-px bg-slate-300 mx-1" />
-                <button disabled={page <= 1} onClick={() => setPage((p) => p - 1)} className="p-1 hover:bg-slate-200 rounded disabled:opacity-30">
-                  &lt;
+              </div>
+
+              <div className="flex items-center gap-3 text-xs text-slate-700">
+                {/* Fullscreen */}
+                <button className="p-1 hover:bg-slate-200 rounded text-slate-600" title="Toàn màn hình">
+                  ⛶
                 </button>
-                <span className="font-medium text-slate-600">Trang {page}/{doc.pageCount}</span>
-                <button disabled={page >= doc.pageCount} onClick={() => setPage((p) => p + 1)} className="p-1 hover:bg-slate-200 rounded disabled:opacity-30">
-                  &gt;
+                {/* Download */}
+                <button className="p-1 hover:bg-slate-200 rounded text-slate-600" title="Tải xuống">
+                  ⤓
                 </button>
               </div>
             </div>
 
             {/* Document Canvas Display */}
-            <div className="flex-1 overflow-auto bg-slate-100 p-4 flex justify-center items-start">
+            <div className="min-h-[580px] max-h-[680px] overflow-auto bg-slate-100 p-6 flex justify-center items-start">
               <DocumentCanvas
                 zoom={zoom}
                 page={page}
@@ -184,22 +203,22 @@ export function FigmaDocumentDetailPage({ doc, onBack }: FigmaDocumentDetailPage
               />
             </div>
           </div>
+        </div>
 
-          {/* RIGHT COLUMN — Extracted OCR Data Panel matching user's exact Figma screenshot */}
-          <div className="bg-white rounded-[8px] border border-slate-200 flex flex-col overflow-hidden shadow-[0px_3px_12px_0px_rgba(47,43,61,0.14)] p-4 space-y-3">
-            {/* Panel Title Header */}
-            <div className="pb-1">
-              <h3 className="text-[17px] font-bold text-[#393740]">Dữ liệu đã bóc tách</h3>
-            </div>
+        {/* RIGHT PANEL — Extracted Data + Collapsible Log Card */}
+        <div className="flex flex-col space-y-4">
+          {/* Upper Extracted OCR Data Panel */}
+          <div className="bg-white rounded-[8px] border border-slate-200 shadow-[0px_3px_12px_0px_rgba(47,43,61,0.14)] p-5 space-y-3">
+            <h3 className="text-[17px] font-bold text-[#393740] pb-1">Dữ liệu đã bóc tách</h3>
 
-            {/* Extracted Fields List Container */}
-            <div className="flex-1 overflow-y-auto space-y-2.5 pr-1.5 custom-scrollbar">
+            {/* Extracted Fields List */}
+            <div className="space-y-2.5 max-h-[580px] overflow-y-auto pr-1 custom-scrollbar">
               {fields.map((f) => {
                 const isSelected = f.id === selectedId;
                 const isEditing = f.id === editingId;
                 const isLow = f.confidence < 70;
                 const isMedium = f.confidence >= 70 && f.confidence < 85;
-                const isEdited = f.id === "f5" || f.id === "f7"; // Mock edited indicator like Figma screenshot
+                const isEdited = f.id === "f5" || f.id === "f7";
 
                 if (isLow) {
                   // Low confidence red warning box (e.g. Thông số kỹ thuật 68%)
@@ -379,8 +398,8 @@ export function FigmaDocumentDetailPage({ doc, onBack }: FigmaDocumentDetailPage
               })}
             </div>
 
-            {/* Confidence Legend Footer matching Figma screenshot */}
-            <div className="flex items-center gap-6 text-xs text-slate-600 pt-2 border-t border-slate-100 flex-wrap">
+            {/* Confidence Legend Footer */}
+            <div className="flex items-center gap-6 text-xs text-slate-600 pt-3 border-t border-slate-100 flex-wrap">
               <div className="flex items-center gap-2">
                 <span className="size-2.5 rounded-full bg-[#ff9f43] shrink-0" />
                 <span className="text-[11.5px]">Độ tin cậy trung bình (70% - 84%)</span>
@@ -390,45 +409,50 @@ export function FigmaDocumentDetailPage({ doc, onBack }: FigmaDocumentDetailPage
                 <span className="text-[11.5px]">Độ tin cậy thấp (&lt; 70%)</span>
               </div>
             </div>
+          </div>
 
-            {/* Collapsible Edit Log Bar matching Figma Container (514x64) */}
-            <div className="border-t border-slate-200 bg-slate-50/80 px-4 py-2.5 rounded-b-[8px]">
-              <button
-                onClick={() => setLogExpanded(!logExpanded)}
-                className="flex items-center justify-between w-full text-xs font-bold text-[#393740] hover:text-[#3f81ea] transition-colors"
+          {/* Standalone Lower Card — "Nhật ký gần đây" */}
+          <div className="bg-white rounded-[8px] border border-slate-200 p-4 shadow-2xs">
+            <button
+              onClick={() => setLogExpanded(!logExpanded)}
+              className="flex items-center justify-between w-full text-[15px] font-bold text-[#393740] hover:text-[#3f81ea] transition-colors"
+            >
+              <span>Nhật ký gần đây ({editLog.length})</span>
+              <svg
+                className={`size-5 text-slate-500 transform transition-transform ${logExpanded ? "rotate-90" : ""}`}
+                viewBox="0 0 24 24"
+                fill="none"
               >
-                <span>Nhật ký gần đây ({editLog.length})</span>
-                <svg
-                  className={`size-4 transform transition-transform ${logExpanded ? "rotate-180" : ""}`}
-                  viewBox="0 0 24 24"
-                  fill="none"
-                >
-                  <path d="M6 9L12 15L18 9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-              </button>
+                <path d="M9 18L15 12L9 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </button>
 
-              {logExpanded && (
-                <div className="mt-3 space-y-2 max-h-[140px] overflow-y-auto pr-1">
-                  {editLog.map((log) => (
-                    <div key={log.id} className="bg-white border border-slate-200 rounded-[4px] p-2 text-[11px] space-y-1">
-                      <div className="flex items-center justify-between font-semibold text-slate-800">
-                        <span>{log.field}</span>
-                        <span className="text-[10px] text-slate-400">{log.time}</span>
-                      </div>
-                      <div className="grid grid-cols-2 gap-1 text-slate-600">
-                        <div>Sửa từ: <span className="line-through text-red-500">{log.before}</span></div>
-                        <div>Thành: <span className="font-semibold text-emerald-600">{log.after}</span></div>
-                      </div>
+            {logExpanded && (
+              <div className="mt-3 space-y-2 max-h-[160px] overflow-y-auto pr-1">
+                {editLog.map((log) => (
+                  <div key={log.id} className="bg-slate-50 border border-slate-200 rounded-[6px] p-2.5 text-xs space-y-1">
+                    <div className="flex items-center justify-between font-semibold text-slate-800">
+                      <span>{log.field}</span>
+                      <span className="text-[11px] text-slate-400">{log.time}</span>
                     </div>
-                  ))}
-                  {editLog.length === 0 && (
-                    <p className="text-[11px] text-slate-400 text-center py-2">Chưa có nhật ký chỉnh sửa.</p>
-                  )}
-                </div>
-              )}
-            </div>
+                    <div className="grid grid-cols-2 gap-1 text-[11px] text-slate-600">
+                      <div>Sửa từ: <span className="line-through text-red-500">{log.before}</span></div>
+                      <div>Thành: <span className="font-semibold text-emerald-600">{log.after}</span></div>
+                    </div>
+                  </div>
+                ))}
+                {editLog.length === 0 && (
+                  <p className="text-xs text-slate-400 text-center py-2">Chưa có nhật ký chỉnh sửa.</p>
+                )}
+              </div>
+            )}
           </div>
         </div>
+      </div>
+
+      {/* Page Footer */}
+      <div className="mt-8 text-center text-xs text-slate-400">
+        LoogIX © 2026
       </div>
 
       {/* Edit Reason Modal */}
