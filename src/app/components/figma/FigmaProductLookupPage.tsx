@@ -58,7 +58,7 @@ export function FigmaProductLookupPage({ onOpenDoc }: FigmaProductLookupPageProp
   const tempCount = filtered.filter((p) => !p.confirmed).length;
 
   return (
-    <div className="space-y-6 p-6 max-w-[1440px] mx-auto bg-[#f8f7fa]">
+    <div className="w-full space-y-4 px-6 py-4 bg-[#f8f7fa]">
       {/* Page Header */}
       <div>
         <h1 className="text-[18px] font-medium text-[rgba(47,43,61,0.9)]">Tra cứu sản phẩm &amp; Lịch sử mua sắm</h1>

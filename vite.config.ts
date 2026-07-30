@@ -31,6 +31,10 @@ export default defineConfig({
     },
   },
 
+  server: {
+    allowedHosts: true, // Cho phép tất cả domain tunnel (Cloudflare, Ngrok,...) truy cập
+  },
+
   // File types to support raw imports. Never add .css, .tsx, or .ts files to this.
   assetsInclude: ['**/*.svg', '**/*.csv'],
 })
