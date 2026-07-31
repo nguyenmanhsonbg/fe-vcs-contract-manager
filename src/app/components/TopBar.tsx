@@ -23,7 +23,7 @@ export function TopBar({ breadcrumb }: { breadcrumb: string[] }) {
           ))}
         </div>
 
-        {/* Right Action Icons /* Right Action Icons & Profile matching Figma */ Profile */}
+        {/* Right Action Icons & Profile */}
         <div className="flex items-center gap-4">
           {/* Search bar */}
           <div className="relative flex items-center">

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { DigitizedDoc } from "../../data/mock";
 import { DocumentCanvas } from "../DocumentCanvas";
-
+import { RotateCw, Minus, Plus, ChevronDown, Maximize2 } from "lucide-react";
 
 interface OriginalDocViewProps {
   doc: DigitizedDoc;
@@ -35,28 +35,28 @@ export function OriginalDocView({ doc, onBack }: OriginalDocViewProps) {
         <div className="flex items-center justify-between px-2 py-1 text-xs text-slate-700 shrink-0">
           {/* Left: Rotate + Zoom Out + Zoom Select + Zoom In */}
           <div className="flex items-center gap-2">
-            <button className="p-1 hover:bg-slate-100 rounded text-slate-600" title="Xoay">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                <path d="M21 12A9 9 0 1 1 12 3C15.5 3 18.5 5 20 8" stroke="#5d586c" strokeWidth="1.75" strokeLinecap="round" />
-                <path d="M20 4V8H16" stroke="#5d586c" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
+            <button className="p-1.5 hover:bg-slate-100 rounded text-slate-600 transition-colors" title="Xoay">
+              <RotateCw className="size-4 text-[#5d586c]" />
             </button>
-            <button onClick={() => setZoom((z) => Math.max(50, z - 10))} className="p-1 hover:bg-slate-100 rounded font-bold text-slate-600 text-base leading-none">
-              -
+            <button onClick={() => setZoom((z) => Math.max(50, z - 10))} className="p-1.5 hover:bg-slate-100 rounded text-slate-600 transition-colors" title="Thu nhỏ">
+              <Minus className="size-4 text-[#5d586c]" />
             </button>
-            <select
-              value={zoom}
-              onChange={(e) => setZoom(Number(e.target.value))}
-              className="h-7 border border-slate-200 rounded px-1.5 text-xs bg-white text-slate-700 outline-none"
-            >
-              <option value={50}>50%</option>
-              <option value={75}>75%</option>
-              <option value={100}>100%</option>
-              <option value={125}>125%</option>
-              <option value={150}>150%</option>
-            </select>
-            <button onClick={() => setZoom((z) => Math.min(200, z + 10))} className="p-1 hover:bg-slate-100 rounded font-bold text-slate-600 text-base leading-none">
-              +
+            <div className="relative">
+              <select
+                value={zoom}
+                onChange={(e) => setZoom(Number(e.target.value))}
+                className="h-7 border border-slate-200 rounded px-2 text-xs bg-white text-slate-700 outline-none appearance-none pr-6 font-medium cursor-pointer"
+              >
+                <option value={50}>50%</option>
+                <option value={75}>75%</option>
+                <option value={100}>100%</option>
+                <option value={125}>125%</option>
+                <option value={150}>150%</option>
+              </select>
+              <ChevronDown className="size-3.5 text-slate-500 absolute right-1.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+            </div>
+            <button onClick={() => setZoom((z) => Math.min(200, z + 10))} className="p-1.5 hover:bg-slate-100 rounded text-slate-600 transition-colors" title="Phóng to">
+              <Plus className="size-4 text-[#5d586c]" />
             </button>
           </div>
 
@@ -82,9 +82,9 @@ export function OriginalDocView({ doc, onBack }: OriginalDocViewProps) {
         </div>
 
         {/* Fit Desktop Canvas Display Area matching screenshot */}
-        <div className="flex-1 min-h-0 bg-slate-50/60 rounded-[6px] border border-slate-200/80 p-4 flex justify-center items-start overflow-y-auto">
-          <div className="flex justify-center max-w-full">
-            <DocumentCanvas zoom={zoom} page={page} region={null} />
+        <div className="flex-1 min-h-0 bg-slate-50/60 rounded-[6px] border border-slate-200/80 p-4 flex justify-center items-start overflow-auto w-full">
+          <div className="flex justify-center w-full max-w-full">
+            <DocumentCanvas zoom={zoom} page={page} region={null} docId={doc.id} />
           </div>
         </div>
       </div>

@@ -11,6 +11,8 @@ interface DocumentListPageProps {
 
 export function DocumentListPage({ onOpenDoc, onUploadClick, onViewOriginalDoc }: DocumentListPageProps) {
   const [documents, setDocuments] = useState<DigitizedDoc[]>([]);
+  const [totalElements, setTotalElements] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [type, setType] = useState<string>("all");
@@ -18,17 +20,35 @@ export function DocumentListPage({ onOpenDoc, onUploadClick, onViewOriginalDoc }
   const [uploader, setUploader] = useState<string>("all");
   const [assignee, setAssignee] = useState<string>("all");
   const [lowConfOnly, setLowConfOnly] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
 
   const loadData = async () => {
     setLoading(true);
-    const data = await docApi.getDocuments();
-    setDocuments(data);
-    setLoading(false);
+    try {
+      const res = await docApi.getDocuments({
+        search,
+        type,
+        status: statusFilter,
+        uploadedBy: uploader,
+        assignedTo: assignee,
+        lowConfidenceOnly: lowConfOnly,
+        page: currentPage,
+        size: pageSize,
+      });
+      setDocuments(res.content || []);
+      setTotalElements(res.totalElements || (res.content ? res.content.length : 0));
+      setTotalPages(res.totalPages || 1);
+    } catch (err) {
+      console.error("Lỗi khi tải danh sách từ backend:", err);
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
     loadData();
-  }, []);
+  }, [search, type, statusFilter, uploader, assignee, lowConfOnly, currentPage, pageSize]);
 
   const stats = useMemo(() => {
     const mine = documents.filter((d) => d.uploadedBy === "Nguyễn Văn A").length;
@@ -39,17 +59,8 @@ export function DocumentListPage({ onOpenDoc, onUploadClick, onViewOriginalDoc }
     return { mine, ocr, review, confirmed, failed };
   }, [documents]);
 
-  const filtered = useMemo(() => {
-    return documents.filter((d) => {
-      if (search && !d.fileName.toLowerCase().includes(search.toLowerCase()) && !d.id.toLowerCase().includes(search.toLowerCase())) return false;
-      if (type !== "all" && d.type !== type) return false;
-      if (statusFilter !== "all" && d.status !== statusFilter) return false;
-      if (uploader !== "all" && d.uploadedBy !== uploader) return false;
-      if (assignee !== "all" && d.assignedTo !== assignee) return false;
-      if (lowConfOnly && d.avgConfidence >= 85) return false;
-      return true;
-    });
-  }, [documents, search, type, statusFilter, uploader, assignee, lowConfOnly]);
+  const startIndex = (currentPage - 1) * pageSize;
+  const endIndex = Math.min(startIndex + documents.length, totalElements);
 
   return (
     <div className="w-full space-y-6 p-6 bg-[#f8f7fa]">
@@ -244,7 +255,7 @@ export function DocumentListPage({ onOpenDoc, onUploadClick, onViewOriginalDoc }
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100/80">
-              {filtered.map((d) => (
+              {documents.map((d) => (
                 <tr
                   key={d.id}
                   onClick={() => onOpenDoc(d)}
@@ -253,7 +264,7 @@ export function DocumentListPage({ onOpenDoc, onUploadClick, onViewOriginalDoc }
                   <td className="py-2.5 px-3">
                     <p className="font-normal text-[#393740] truncate max-w-[280px] text-[12px] leading-[17px]" title={d.fileName}>{d.fileName}</p>
                   </td>
-                  <td className="py-2.5 px-3 text-[#393740] font-normal whitespace-nowrap text-[12px] leading-[17px]">{DOC_TYPE_LABELS[d.type as DocType]}</td>
+                  <td className="py-2.5 px-3 text-[#393740] font-normal whitespace-nowrap text-[12px] leading-[17px]">{DOC_TYPE_LABELS[d.type as DocType] || d.type}</td>
                   <td className="py-2.5 px-3 text-[#393740] font-normal whitespace-nowrap text-[12px] leading-[17px]">{d.uploadedBy}</td>
                   <td className="py-2.5 px-3 text-[#393740] font-normal whitespace-nowrap text-[12px] leading-[17px]">{d.uploadTime}</td>
                   <td className="py-2.5 px-3 whitespace-nowrap">
@@ -291,7 +302,7 @@ export function DocumentListPage({ onOpenDoc, onUploadClick, onViewOriginalDoc }
                   </td>
                 </tr>
               ))}
-              {filtered.length === 0 && (
+              {documents.length === 0 && (
                 <tr>
                   <td colSpan={6} className="py-8 text-center text-slate-400 text-[12px]">
                     Không tìm thấy tài liệu nào phù hợp.
@@ -303,22 +314,66 @@ export function DocumentListPage({ onOpenDoc, onUploadClick, onViewOriginalDoc }
         </div>
 
         {/* Pagination bar */}
-        <div className="flex items-center justify-between h-[43px] text-[14px] text-[#393740] leading-[20px] pt-1">
-          <p className="text-[#393740]">Hiển thị <span className="font-semibold text-slate-800">1 - {Math.min(5, filtered.length)}</span> của 28 kết quả</p>
+        <div className="flex items-center justify-between min-h-[43px] text-[13px] text-[#393740] leading-[20px] pt-1 flex-wrap gap-3">
+          <div className="flex items-center gap-4">
+            <p className="text-[#393740]">
+              {totalElements > 0 ? (
+                <>
+                  Hiển thị <span className="font-semibold text-slate-800">{startIndex + 1} - {endIndex}</span> của <span className="font-semibold text-slate-800">{totalElements}</span> kết quả
+                </>
+              ) : (
+                "Hiển thị 0 kết quả"
+              )}
+            </p>
+            <div className="flex items-center gap-1.5 text-xs text-slate-500">
+              <span>Hiển thị:</span>
+              <select
+                value={pageSize}
+                onChange={(e) => setPageSize(Number(e.target.value))}
+                className="h-7 border border-slate-200 rounded px-2 text-xs bg-white text-slate-700 outline-none cursor-pointer font-medium"
+              >
+                <option value={5}>5 / trang</option>
+                <option value={10}>10 / trang</option>
+                <option value={20}>20 / trang</option>
+                <option value={50}>50 / trang</option>
+              </select>
+            </div>
+          </div>
+
           <div className="flex items-center gap-1">
-            <button disabled className="size-[30px] rounded-[6px] bg-slate-100/80 text-slate-400 flex items-center justify-center text-[12px] font-normal cursor-not-allowed">
+            <button
+              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+              disabled={currentPage === 1}
+              className={`size-[30px] rounded-[6px] flex items-center justify-center text-[12px] font-medium transition-colors ${
+                currentPage === 1
+                  ? "bg-slate-100/80 text-slate-400 cursor-not-allowed"
+                  : "bg-white border border-slate-200 text-slate-600 hover:bg-slate-50"
+              }`}
+            >
               &lt;
             </button>
-            <button className="size-[30px] rounded-[6px] bg-white border border-[#3f81ea] text-[#3f81ea] font-medium flex items-center justify-center text-[12px] shadow-2xs">
-              1
-            </button>
-            <button className="size-[30px] rounded-[6px] bg-slate-100/80 text-slate-600 font-normal hover:bg-slate-200/80 flex items-center justify-center text-[12px] transition-colors">
-              2
-            </button>
-            <button className="size-[30px] rounded-[6px] bg-slate-100/80 text-slate-600 font-normal hover:bg-slate-200/80 flex items-center justify-center text-[12px] transition-colors">
-              3
-            </button>
-            <button className="size-[30px] rounded-[6px] bg-slate-100/80 text-slate-600 hover:bg-slate-200/80 flex items-center justify-center text-[12px] transition-colors">
+            {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+              <button
+                key={p}
+                onClick={() => setCurrentPage(p)}
+                className={`size-[30px] rounded-[6px] font-medium flex items-center justify-center text-[12px] transition-colors ${
+                  currentPage === p
+                    ? "bg-[#3f81ea] text-white shadow-2xs"
+                    : "bg-white border border-slate-200 text-slate-600 hover:bg-slate-50"
+                }`}
+              >
+                {p}
+              </button>
+            ))}
+            <button
+              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+              disabled={currentPage === totalPages || totalElements === 0}
+              className={`size-[30px] rounded-[6px] flex items-center justify-center text-[12px] font-medium transition-colors ${
+                currentPage === totalPages || totalElements === 0
+                  ? "bg-slate-100/80 text-slate-400 cursor-not-allowed"
+                  : "bg-white border border-slate-200 text-slate-600 hover:bg-slate-50"
+              }`}
+            >
               &gt;
             </button>
           </div>

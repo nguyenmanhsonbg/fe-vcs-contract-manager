@@ -16,9 +16,9 @@ export function ProductLookupPage({ onOpenDoc }: ProductLookupPageProps) {
   useEffect(() => {
     async function loadData() {
       const p = await docApi.getProducts();
-      const d = await docApi.getDocuments();
+      const d = await docApi.getDocuments({ size: 100 });
       setProducts(p);
-      setDocuments(d);
+      setDocuments(d.content || []);
     }
     loadData();
   }, []);

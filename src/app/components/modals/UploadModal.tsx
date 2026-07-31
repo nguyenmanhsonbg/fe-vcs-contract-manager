@@ -18,32 +18,8 @@ interface UploadedFileItem {
   type: "pdf" | "xlsx" | "docx";
 }
 
-const DEFAULT_FILES: UploadedFileItem[] = [
-  {
-    id: "f1",
-    name: "Tờ_trình_mua_ccdc.pdf",
-    size: "2.5MB",
-    date: "18/04/2025",
-    type: "pdf",
-  },
-  {
-    id: "f2",
-    name: "Hợp đồng mua ccdc.pdf",
-    size: "2.5MB",
-    date: "18/04/2025",
-    type: "pdf",
-  },
-  {
-    id: "f3",
-    name: "Bảng giá chi tiết.xlsx",
-    size: "2.5MB",
-    date: "18/04/2025",
-    type: "xlsx",
-  },
-];
-
 export function UploadModal({ open, onOpenChange, onSuccess }: UploadModalProps) {
-  const [uploadedFiles, setUploadedFiles] = useState<UploadedFileItem[]>(DEFAULT_FILES);
+  const [uploadedFiles, setUploadedFiles] = useState<UploadedFileItem[]>([]);
   const [docType] = useState<DocType>("proposal");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
@@ -58,18 +34,26 @@ export function UploadModal({ open, onOpenChange, onSuccess }: UploadModalProps)
         id: Date.now().toString(),
         name: file.name,
         size: `${(file.size / (1024 * 1024)).toFixed(1)}MB`,
-        date: "18/04/2025",
+        date: new Date().toLocaleDateString("vi-VN"),
         type: ext,
       };
-      setUploadedFiles((prev) => [newItem, ...prev]);
+      setUploadedFiles([newItem]);
     }
   }
 
   function handleRemoveFile(id: string) {
     setUploadedFiles((prev) => prev.filter((f) => f.id !== id));
+    if (uploadedFiles.length <= 1) {
+      setSelectedFile(null);
+    }
   }
 
   async function handleStartUpload() {
+    if (!selectedFile) {
+      toast.warning("Vui lòng chọn file tài liệu để tải lên.");
+      return;
+    }
+
     setIsUploading(true);
     setProgress(10);
 
@@ -84,8 +68,7 @@ export function UploadModal({ open, onOpenChange, onSuccess }: UploadModalProps)
     }, 150);
 
     try {
-      const fileToUpload = selectedFile || new File(["dummy"], "To_trinh_mua_ccdc.pdf", { type: "application/pdf" });
-      const newDoc = await docApi.uploadDocument(fileToUpload, docType);
+      const newDoc = await docApi.uploadDocument(selectedFile, docType);
       clearInterval(timer);
       setProgress(100);
 

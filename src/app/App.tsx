@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { Component, ErrorInfo, ReactNode, useState } from "react";
 import { Sidebar, PageKey } from "./components/Sidebar";
 import { TopBar } from "./components/TopBar";
 import { DocumentListPage } from "./components/pages/DocumentListPage";
@@ -8,6 +8,54 @@ import { ProductLookupPage } from "./components/pages/ProductLookupPage";
 import { UploadModal } from "./components/modals/UploadModal";
 import { DigitizedDoc } from "./data/mock";
 import { Toaster } from "./components/ui/sonner";
+
+interface ErrorBoundaryProps {
+  children: ReactNode;
+}
+
+interface ErrorBoundaryState {
+  hasError: boolean;
+  error: Error | null;
+}
+
+class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
+  public state: ErrorBoundaryState = {
+    hasError: false,
+    error: null,
+  };
+
+  public static getDerivedStateFromError(error: Error): ErrorBoundaryState {
+    return { hasError: true, error };
+  }
+
+  public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    console.error("React Error Boundary Caught:", error, errorInfo);
+  }
+
+  public render() {
+    if (this.state.hasError) {
+      return (
+        <div className="p-6 bg-red-50 border border-red-200 text-red-700 m-6 rounded-[6px] shadow-md">
+          <h2 className="text-base font-bold mb-2 text-red-800">⚠️ Đã xảy ra lỗi khi hiển thị chi tiết</h2>
+          <p className="text-xs mb-3 text-red-600">Chi tiết lỗi runtime:</p>
+          <pre className="text-xs bg-red-100 p-3 rounded overflow-auto font-mono max-h-60 text-red-900 border border-red-200">
+            {this.state.error?.toString()}
+            {"\n\n"}
+            {this.state.error?.stack}
+          </pre>
+          <button
+            onClick={() => this.setState({ hasError: false, error: null })}
+            className="mt-4 px-4 py-2 bg-red-600 text-white rounded text-xs font-semibold hover:bg-red-700 transition-colors shadow-2xs"
+          >
+            Tải lại trang
+          </button>
+        </div>
+      );
+    }
+
+    return this.props.children;
+  }
+}
 
 export default function App() {
   const [page, setPage] = useState<PageKey>("list");
@@ -39,28 +87,30 @@ export default function App() {
         <TopBar breadcrumb={breadcrumb} />
 
         <main className="min-h-0 flex-1 overflow-y-auto">
-          {originalDoc ? (
-            <OriginalDocView doc={originalDoc} onBack={() => setOriginalDoc(null)} />
-          ) : openDoc ? (
-            <DocumentDetailPage
-              doc={openDoc}
-              onBack={() => setOpenDoc(null)}
-              onViewOriginalDoc={(d) => setOriginalDoc(d)}
-            />
-          ) : page === "list" ? (
-            <DocumentListPage
-              onOpenDoc={setOpenDoc}
-              onUploadClick={() => setUploadModalOpen(true)}
-              onViewOriginalDoc={(d) => setOriginalDoc(d)}
-            />
-          ) : (
-            <ProductLookupPage
-              onOpenDoc={(doc) => {
-                setPage("list");
-                setOpenDoc(doc);
-              }}
-            />
-          )}
+          <ErrorBoundary>
+            {originalDoc ? (
+              <OriginalDocView doc={originalDoc} onBack={() => setOriginalDoc(null)} />
+            ) : openDoc ? (
+              <DocumentDetailPage
+                doc={openDoc}
+                onBack={() => setOpenDoc(null)}
+                onViewOriginalDoc={(d) => setOriginalDoc(d)}
+              />
+            ) : page === "list" ? (
+              <DocumentListPage
+                onOpenDoc={setOpenDoc}
+                onUploadClick={() => setUploadModalOpen(true)}
+                onViewOriginalDoc={(d) => setOriginalDoc(d)}
+              />
+            ) : (
+              <ProductLookupPage
+                onOpenDoc={(doc) => {
+                  setPage("list");
+                  setOpenDoc(doc);
+                }}
+              />
+            )}
+          </ErrorBoundary>
         </main>
       </div>
 

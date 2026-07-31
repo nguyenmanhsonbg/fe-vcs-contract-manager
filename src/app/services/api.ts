@@ -1,17 +1,19 @@
 import {
-  DOCUMENTS as initialDocuments,
-  PRODUCTS as initialProducts,
   DigitizedDoc,
-  DocStatus,
   DocType,
-  ExtractedField,
-  EditLogEntry,
   Product,
 } from "../data/mock";
 
-// In-memory data store for state management before real backend endpoint wiring
-let documentsStore: DigitizedDoc[] = [...initialDocuments];
-let productsStore: Product[] = [...initialProducts];
+// ponytail: Base API URL với fallback /api/v1 cho local dev proxy
+const API_BASE = import.meta.env.VITE_API_BASE_URL || "/api/v1";
+
+export interface PageResponse<T> {
+  content: T[];
+  page: number;
+  size: number;
+  totalElements: number;
+  totalPages: number;
+}
 
 export interface DocumentFilterOptions {
   search?: string;
@@ -20,182 +22,93 @@ export interface DocumentFilterOptions {
   uploadedBy?: string;
   assignedTo?: string;
   lowConfidenceOnly?: boolean;
+  page?: number;
+  size?: number;
 }
 
-/**
- * Service API Abstraction Layer.
- * To integrate with a real REST Backend, replace the internal promise logic
- * with standard `fetch('/api/...')` calls.
- */
+/** Fetcher chuẩn REST API - Kết nối trực tiếp Backend Spring Boot */
+async function apiFetch<T>(endpoint: string, options?: RequestInit): Promise<T> {
+  const res = await fetch(`${API_BASE}${endpoint}`, {
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    ...options,
+  });
+  if (!res.ok) {
+    throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+  }
+  return await res.json();
+}
+
 export const docApi = {
-  /** Fetch all digitized documents with optional filtering */
-  async getDocuments(filters?: DocumentFilterOptions): Promise<DigitizedDoc[]> {
-    let result = [...documentsStore];
-    if (!filters) return result;
+  /** Lấy danh sách tài liệu phân trang từ Spring Boot REST API /api/v1/documents */
+  async getDocuments(filters?: DocumentFilterOptions): Promise<PageResponse<DigitizedDoc>> {
+    const query = new URLSearchParams();
+    if (filters?.search) query.append("search", filters.search);
+    if (filters?.type && filters.type !== "all") query.append("type", filters.type);
+    if (filters?.status && filters.status !== "all") query.append("status", filters.status);
+    if (filters?.uploadedBy && filters.uploadedBy !== "all") query.append("uploadedBy", filters.uploadedBy);
+    if (filters?.assignedTo && filters.assignedTo !== "all") query.append("assignedTo", filters.assignedTo);
+    if (filters?.lowConfidenceOnly) query.append("lowConfidenceOnly", "true");
+    if (filters?.page) query.append("page", filters.page.toString());
+    if (filters?.size) query.append("size", filters.size.toString());
 
-    const { search, type, status, uploadedBy, assignedTo, lowConfidenceOnly } = filters;
-
-    if (search) {
-      const q = search.toLowerCase();
-      result = result.filter(
-        (d) => d.fileName.toLowerCase().includes(q) || d.id.toLowerCase().includes(q)
-      );
-    }
-    if (type && type !== "all") {
-      result = result.filter((d) => d.type === type);
-    }
-    if (status && status !== "all") {
-      result = result.filter((d) => d.status === status);
-    }
-    if (uploadedBy && uploadedBy !== "all") {
-      result = result.filter((d) => d.uploadedBy === uploadedBy);
-    }
-    if (assignedTo && assignedTo !== "all") {
-      result = result.filter((d) => d.assignedTo === assignedTo);
-    }
-    if (lowConfidenceOnly) {
-      result = result.filter((d) => d.avgConfidence < 85);
-    }
-
-    return result;
+    const url = `/documents${query.toString() ? `?${query.toString()}` : ""}`;
+    return apiFetch<PageResponse<DigitizedDoc>>(url);
   },
 
-  /** Get detail of a single document by ID */
+  /** Lấy chi tiết tài liệu theo ID từ Spring Boot REST API /api/v1/documents/{id} */
   async getDocumentById(id: string): Promise<DigitizedDoc | null> {
-    const doc = documentsStore.find((d) => d.id === id);
-    return doc ? { ...doc } : null;
+    try {
+      return await apiFetch<DigitizedDoc>(`/documents/${id}`);
+    } catch {
+      return null;
+    }
   },
 
-  /** Upload a new document file */
+  /** Tải file lên Spring Boot Backend qua POST /api/v1/documents/upload (Multipart Form Data) */
   async uploadDocument(file: File, type: DocType = "proposal"): Promise<DigitizedDoc> {
-    const newId = `TT-2025-0${Math.floor(40 + Math.random() * 50)}`;
-    const nowStr = new Date().toLocaleDateString("vi-VN") + " " + new Date().toLocaleTimeString("vi-VN", { hour: '2-digit', minute: '2-digit' });
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("documentType", type);
 
-    const newDoc: DigitizedDoc = {
-      id: newId,
-      fileName: file.name,
-      type: type,
-      uploadedBy: "Nguyễn Văn A",
-      uploadTime: nowStr,
-      pageCount: Math.floor(1 + Math.random() * 5),
-      status: "review",
-      progress: 100,
-      avgConfidence: 85,
-      fieldsToReview: 1,
-      assignedTo: "Nguyễn Văn A",
-      lastUpdated: nowStr,
-      fields: [
-        { id: "f1", label: "Loại tài liệu", value: type === "quotation" ? "Báo giá" : "Tờ trình", confidence: 95, region: { page: 1, x: 30, y: 15, w: 30, h: 5 } },
-        { id: "f2", label: "Mã tài liệu", value: newId, confidence: 96, region: { page: 1, x: 8, y: 12, w: 22, h: 4 } },
-        { id: "f3", label: "Ngày lập", value: new Date().toLocaleDateString("vi-VN"), confidence: 90, region: { page: 1, x: 60, y: 15, w: 25, h: 4 } },
-        { id: "f4", label: "Đơn vị cung cấp", value: "Công ty Cổ phần Công nghệ Mới", confidence: 80, region: { page: 1, x: 12, y: 45, w: 40, h: 4 } },
-      ],
-      lineItems: [
-        { id: `li_${Date.now()}`, no: 1, name: "Thiết bị số hoá thử nghiệm", code: "TB-01", qty: "1", unitPrice: "15.000.000", total: "15.000.000", confidence: 90, region: { page: 1, x: 8, y: 45, w: 80, h: 5 } }
-      ],
-      editLog: [],
-    };
-
-    documentsStore = [newDoc, ...documentsStore];
-    return newDoc;
+    const res = await fetch(`${API_BASE}/documents/upload`, {
+      method: "POST",
+      body: formData,
+    });
+    if (!res.ok) {
+      throw new Error(`Upload failed: ${res.statusText}`);
+    }
+    return await res.json();
   },
 
-  /** Update an extracted field value & record edit log entry */
-  async updateDocumentField(
-    docId: string,
-    fieldId: string,
-    newValue: string,
-    reason?: string
-  ): Promise<DigitizedDoc> {
-    const index = documentsStore.findIndex((d) => d.id === docId);
-    if (index === -1) throw new Error("Document not found");
-
-    const doc = documentsStore[index];
-    const targetField = doc.fields.find((f) => f.id === fieldId);
-    if (!targetField) throw new Error("Field not found");
-
-    const updatedFields = doc.fields.map((f) =>
-      f.id === fieldId ? { ...f, value: newValue, confidence: 100 } : f
-    );
-
-    const logEntry: EditLogEntry = {
-      id: `e_${Date.now()}`,
-      field: targetField.label,
-      aiValue: targetField.value,
-      before: targetField.value,
-      after: newValue,
-      editor: "Nguyễn Văn A",
-      time: new Date().toLocaleString("vi-VN"),
-      reason: reason,
-    };
-
-    const updatedDoc: DigitizedDoc = {
-      ...doc,
-      fields: updatedFields,
-      lastUpdated: new Date().toLocaleString("vi-VN"),
-      editLog: [logEntry, ...doc.editLog],
-    };
-
-    documentsStore[index] = updatedDoc;
-    return updatedDoc;
+  /** Cập nhật thông tin trường bóc tách via PATCH /api/v1/documents/{docId}/fields/{fieldId} */
+  async updateDocumentField(docId: string, fieldId: string, newValue: string, reason?: string): Promise<DigitizedDoc> {
+    return apiFetch<DigitizedDoc>(`/documents/${docId}/fields/${fieldId}`, {
+      method: "PATCH",
+      body: JSON.stringify({ value: newValue, reason }),
+    });
   },
 
-  /** Mark document processing as confirmed */
+  /** Xác nhận dữ liệu số hóa via POST /api/v1/documents/{docId}/confirm */
   async confirmDocument(docId: string): Promise<DigitizedDoc> {
-    const index = documentsStore.findIndex((d) => d.id === docId);
-    if (index === -1) throw new Error("Document not found");
-
-    const updatedDoc: DigitizedDoc = {
-      ...documentsStore[index],
-      status: "confirmed",
-      lastUpdated: new Date().toLocaleString("vi-VN"),
-    };
-
-    documentsStore[index] = updatedDoc;
-    return updatedDoc;
+    return apiFetch<DigitizedDoc>(`/documents/${docId}/confirm`, {
+      method: "POST",
+    });
   },
 
-  /** Trigger OCR re-processing */
+  /** Chạy lại tiến trình OCR AI via POST /api/v1/documents/{docId}/rerun-ocr */
   async rerunOCR(docId: string): Promise<DigitizedDoc> {
-    const index = documentsStore.findIndex((d) => d.id === docId);
-    if (index === -1) throw new Error("Document not found");
-
-    const updatedDoc: DigitizedDoc = {
-      ...documentsStore[index],
-      status: "ocr",
-      progress: 0,
-      lastUpdated: new Date().toLocaleString("vi-VN"),
-    };
-
-    documentsStore[index] = updatedDoc;
-    return updatedDoc;
+    return apiFetch<DigitizedDoc>(`/documents/${docId}/rerun-ocr`, {
+      method: "POST",
+    });
   },
 
-  /** Get list of products with optional search and keyword filters */
+  /** Tra cứu sản phẩm từ Spring Boot REST API /api/v1/products */
   async getProducts(search?: string, keywords: string[] = []): Promise<Product[]> {
-    let results = [...productsStore];
+    const params = new URLSearchParams();
+    if (search) params.append("search", search);
+    if (keywords.length > 0) params.append("keywords", keywords.join(","));
 
-    if (search) {
-      const q = search.toLowerCase();
-      results = results.filter(
-        (p) =>
-          p.name.toLowerCase().includes(q) ||
-          p.code.toLowerCase().includes(q) ||
-          p.description.toLowerCase().includes(q) ||
-          p.supplier.toLowerCase().includes(q)
-      );
-    }
-
-    if (keywords.length > 0) {
-      results = results.filter((p) =>
-        keywords.some(
-          (kw) =>
-            p.name.toLowerCase().includes(kw.toLowerCase()) ||
-            p.description.toLowerCase().includes(kw.toLowerCase())
-        )
-      );
-    }
-
-    return results;
+    const url = `/products${params.toString() ? `?${params.toString()}` : ""}`;
+    return apiFetch<Product[]>(url);
   },
 };

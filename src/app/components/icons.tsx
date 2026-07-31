@@ -115,4 +115,27 @@ export const IconFileX = ({ className }: { className?: string }) => (
     <path d="M12.1971 13.4697C11.9042 13.1768 11.4293 13.1768 11.1364 13.4697C10.8435 13.7626 10.8435 14.2374 11.1364 14.5303L11.6667 14L12.1971 13.4697ZM15.8031 19.197C16.096 19.4899 16.5709 19.4899 16.8637 19.197C17.1566 18.9041 17.1566 18.4292 16.8637 18.1363L16.3334 18.6667L15.8031 19.197ZM16.8637 14.5303C17.1566 14.2374 17.1566 13.7626 16.8637 13.4697C16.5709 13.1768 16.096 13.1768 15.8031 13.4697L16.3334 14L16.8637 14.5303ZM11.1364 18.1363C10.8435 18.4292 10.8435 18.9041 11.1364 19.197C11.4293 19.4899 11.9042 19.4899 12.1971 19.197L11.6667 18.6667L11.1364 18.1363ZM11.6667 14L11.1364 14.5303L15.8031 19.197L16.3334 18.6667L16.8637 18.1363L12.1971 13.4697L11.6667 14ZM16.3334 14L15.8031 13.4697L11.1364 18.1363L11.6667 18.6667L12.1971 19.197L16.8637 14.5303L16.3334 14Z" fill="#FF4C51"/>
   </svg>
 );
+
+export const IconScan = ({ className = "size-4" }: { className?: string }) => (
+  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" className={className} xmlns="http://www.w3.org/2000/svg">
+    <path d="M2.6665 4.66666V3.99999C2.6665 3.26361 3.26346 2.66666 3.99984 2.66666H5.33317" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M2.6665 11.3333V12C2.6665 12.7364 3.26346 13.3333 3.99984 13.3333H5.33317" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M10.6665 2.66666H11.9998C12.7362 2.66666 13.3332 3.26361 13.3332 3.99999V4.66666" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M10.6665 13.3333H11.9998C12.7362 13.3333 13.3332 12.7364 13.3332 12V11.3333" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M3.3335 7.99999H12.6668" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+);
+
+export const IconArrowsMaximize = ({ className = "size-4" }: { className?: string }) => (
+  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" className={className} xmlns="http://www.w3.org/2000/svg">
+    <path d="M10.6665 2.66666H13.3332V5.33332" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M9.3335 6.66666L13.3335 2.66666" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M5.33317 13.3333H2.6665V10.6667" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M2.6665 13.3333L6.6665 9.33334" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M10.6665 13.3333H13.3332V10.6667" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M9.3335 9.33334L13.3335 13.3333" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M5.33317 2.66666H2.6665V5.33332" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M2.6665 2.66666L6.6665 6.66666" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+);
   

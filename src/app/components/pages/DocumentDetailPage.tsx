@@ -3,11 +3,8 @@ import { DigitizedDoc, DOC_TYPE_LABELS, ExtractedField } from "../../data/mock";
 import { docApi } from "../../services/api";
 import { toast } from "sonner";
 import { DocumentCanvas } from "../DocumentCanvas";
-import {
-  IconAlertTriangle,
-  IconPencil,
-  IconCheck,
-} from "../icons";
+import { IconAlertTriangle, IconPencil, IconCheck, IconScan, IconArrowsMaximize } from "../icons";
+import { RotateCw, Minus, Plus, Download, ChevronDown } from "lucide-react";
 
 interface DocumentDetailPageProps {
   doc: DigitizedDoc;
@@ -16,13 +13,15 @@ interface DocumentDetailPageProps {
 }
 
 export function DocumentDetailPage({ doc, onBack, onViewOriginalDoc }: DocumentDetailPageProps) {
-  const [fields, setFields] = useState<ExtractedField[]>(doc.fields);
-  const [editLog, setEditLog] = useState(doc.editLog);
-  const [selectedId, setSelectedId] = useState<string | null>(fields[0]?.id || null);
+  const initialFields = doc?.fields || [];
+  const [fields, setFields] = useState<ExtractedField[]>(initialFields);
+  const [editLog, setEditLog] = useState(doc?.editLog || []);
+  const [selectedId, setSelectedId] = useState<string | null>(initialFields[0]?.id || null);
   const [page, setPage] = useState(1);
   const [zoom, setZoom] = useState(100);
-  const [confirmed, setConfirmed] = useState(doc.status === "confirmed");
+  const [confirmed, setConfirmed] = useState(doc?.status === "confirmed");
   const [logExpanded, setLogExpanded] = useState(false);
+  const [scanning, setScanning] = useState(false);
 
   // Field Edit State
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -33,15 +32,19 @@ export function DocumentDetailPage({ doc, onBack, onViewOriginalDoc }: DocumentD
   const [reasonText, setReasonText] = useState("");
   const [pendingEdit, setPendingEdit] = useState<{ field: ExtractedField; nextValue: string } | null>(null);
 
-  const selectedField = fields.find((f) => f.id === selectedId) || null;
-  const activeRegion = selectedField ? selectedField.region : null;
+  const selectedField = (fields || []).find((f) => f && f.id === selectedId) || null;
+  const activeRegion = selectedField && selectedField.region ? selectedField.region : null;
+  const ocrPage = doc.ocr?.pages.find((item) => item.pageNumber === page);
 
-  const lowConfidenceCount = fields.filter((f) => f.confidence < 85).length;
-  const confirmedFieldCount = fields.filter((f) => f.confidence >= 85).length;
+  const lowConfidenceCount = (fields || []).filter((f) => f && f.confidence < 85).length;
+  const confirmedFieldCount = (fields || []).filter((f) => f && f.confidence >= 85).length;
 
   function handleSelectField(f: ExtractedField) {
+    if (!f) return;
     setSelectedId(f.id);
-    setPage(f.region.page);
+    if (f.region && typeof f.region.page === "number") {
+      setPage(f.region.page);
+    }
   }
 
   function startEditing(f: ExtractedField) {
@@ -89,6 +92,25 @@ export function DocumentDetailPage({ doc, onBack, onViewOriginalDoc }: DocumentD
     await docApi.confirmDocument(doc.id);
     setConfirmed(true);
     toast.success("Đã xác nhận hoàn tất tài liệu!");
+  }
+
+  async function handleScan() {
+    setScanning(true);
+    try {
+      await docApi.rerunOCR(doc.id);
+      toast.success("Đã đưa tài liệu vào hàng đợi OCR.");
+      window.setTimeout(async () => {
+        const updated = await docApi.getDocumentById(doc.id);
+        if (updated) {
+          setFields(updated.fields || []);
+          setEditLog(updated.editLog || []);
+        }
+        setScanning(false);
+      }, 3000);
+    } catch {
+      setScanning(false);
+      toast.error("Không thể quét lại tài liệu.");
+    }
   }
 
   return (
@@ -152,25 +174,26 @@ export function DocumentDetailPage({ doc, onBack, onViewOriginalDoc }: DocumentD
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
           {/* LEFT PANEL — Document Canvas Viewer */}
           <div className="flex flex-col">
-            <h2 className="text-[16px] font-bold text-[#393740] mb-2.5">Bản gốc</h2>
-            
-            <div className="bg-white rounded-[8px] border border-slate-200 flex flex-col overflow-hidden shadow-2xs">
-              {/* Viewer Header Controls Toolbar */}
-              <div className="flex items-center justify-between px-4 py-2.5 bg-slate-50/60">
-                <div className="flex items-center gap-3 text-xs text-slate-700">
-                  {/* Rotate */}
-                  <button className="p-1 hover:bg-slate-200 rounded text-slate-600" title="Xoay">
-                    ↻
-                  </button>
-                  {/* Zoom Out */}
-                  <button onClick={() => setZoom((z) => Math.max(50, z - 10))} className="p-1 hover:bg-slate-200 rounded font-bold text-slate-600">
-                    -
-                  </button>
-                  {/* Zoom Select */}
+            <h2 className="text-[18px] font-bold text-[#2F2B3D] mb-3">Bản gốc</h2>
+
+            {/* Toolbar Controls Row — Positioned OUTSIDE above the white canvas card (Figma node 26186:77775) */}
+            <div className="flex items-center justify-between mb-3 px-0.5 text-xs text-slate-700">
+              {/* Left Group: Rotate, Minus, Zoom Select, Plus */}
+              <div className="flex items-center gap-2">
+                {/* Rotate */}
+                <button className="p-2 bg-[#f0eff4] hover:bg-[#e4e3e8] rounded-[6px] text-[#5d586c] transition-colors" title="Xoay">
+                  <RotateCw className="size-4" />
+                </button>
+                {/* Zoom Out */}
+                <button onClick={() => setZoom((z) => Math.max(50, z - 10))} className="p-2 bg-[#f0eff4] hover:bg-[#e4e3e8] rounded-[6px] text-[#5d586c] transition-colors" title="Thu nhỏ">
+                  <Minus className="size-4" />
+                </button>
+                {/* Zoom Select */}
+                <div className="relative">
                   <select
                     value={zoom}
                     onChange={(e) => setZoom(Number(e.target.value))}
-                    className="h-7 border border-slate-200 rounded px-1 text-xs bg-white text-slate-700 outline-none"
+                    className="h-8 border-none bg-[#f0eff4] hover:bg-[#e4e3e8] rounded-[6px] px-3 text-xs text-[#5d586c] outline-none appearance-none pr-7 font-semibold cursor-pointer transition-colors"
                   >
                     <option value={50}>50%</option>
                     <option value={75}>75%</option>
@@ -178,35 +201,47 @@ export function DocumentDetailPage({ doc, onBack, onViewOriginalDoc }: DocumentD
                     <option value={125}>125%</option>
                     <option value={150}>150%</option>
                   </select>
-                  {/* Zoom In */}
-                  <button onClick={() => setZoom((z) => Math.min(200, z + 10))} className="p-1 hover:bg-slate-200 rounded font-bold text-slate-600">
-                    +
-                  </button>
+                  <ChevronDown className="size-4 text-[#5d586c] absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" />
                 </div>
-
-                <div className="flex items-center gap-3 text-xs text-slate-700">
-                  {/* Fullscreen / View Original Doc */}
-                  <button
-                    onClick={() => onViewOriginalDoc?.(doc)}
-                    className="p-1 hover:bg-slate-200 rounded text-slate-600 flex items-center gap-1 transition-colors"
-                    title="Xem chi tiết tài liệu gốc"
-                  >
-                    <span className="text-sm font-bold">⛶</span>
-                    <span className="text-[11px] font-medium hidden sm:inline">Xem bản gốc</span>
-                  </button>
-                  {/* Download */}
-                  <button className="p-1 hover:bg-slate-200 rounded text-slate-600" title="Tải xuống">
-                    ⤓
-                  </button>
-                </div>
+                {/* Zoom In */}
+                <button onClick={() => setZoom((z) => Math.min(200, z + 10))} className="p-2 bg-[#f0eff4] hover:bg-[#e4e3e8] rounded-[6px] text-[#5d586c] transition-colors" title="Phóng to">
+                  <Plus className="size-4" />
+                </button>
               </div>
 
-              {/* Document Canvas Display */}
-              <div className="min-h-[580px] max-h-[680px] overflow-auto bg-slate-100 p-6 flex justify-center items-start">
+              {/* Right Group: IconScan next to Download */}
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={handleScan}
+                  disabled={scanning}
+                  className="p-1.5 hover:bg-slate-100 rounded-[6px] text-[#5d586c] transition-colors"
+                  title="Quét số hóa tài liệu"
+                >
+                  <IconScan className={`size-4 text-[#5d586c] ${scanning ? "animate-pulse" : ""}`} />
+                </button>
+                <button className="p-1.5 hover:bg-slate-100 rounded-[6px] text-[#5d586c] transition-colors" title="Tải xuống">
+                  <Download className="size-4 text-[#5d586c]" />
+                </button>
+              </div>
+            </div>
+
+            {/* Document Canvas Display Container Box */}
+            <div className="bg-white rounded-[8px] border border-slate-200 flex flex-col overflow-hidden shadow-2xs relative">
+              {/* Floating top-right Expand button inside canvas card using IconArrowsMaximize (chỉ 1 chỗ duy nhất) */}
+              <button
+                onClick={() => onViewOriginalDoc?.(doc)}
+                className="absolute top-3 right-3 z-10 p-2 bg-[#f0eff4] hover:bg-[#e4e3e8] rounded-[6px] text-[#5d586c] transition-colors shadow-2xs"
+                title="Mở rộng xem bản gốc"
+              >
+                <IconArrowsMaximize className="size-4 text-[#5d586c]" />
+              </button>
+
+              <div className="min-h-[580px] max-h-[680px] overflow-auto bg-slate-100/50 p-6 flex justify-center items-start">
                 <DocumentCanvas
                   zoom={zoom}
                   page={page}
                   region={activeRegion && activeRegion.page === page ? activeRegion : null}
+                  docId={doc?.id}
                 />
               </div>
             </div>
@@ -217,6 +252,21 @@ export function DocumentDetailPage({ doc, onBack, onViewOriginalDoc }: DocumentD
             {/* Upper Extracted OCR Data Panel */}
             <div className="bg-white rounded-[8px] border border-slate-200 p-5 space-y-3">
               <h3 className="text-[17px] font-bold text-[#393740] pb-1">Dữ liệu đã bóc tách</h3>
+
+              {ocrPage && (
+                <div className="rounded-[6px] border border-slate-200 bg-slate-50 p-3 space-y-2">
+                  <div className="flex items-center justify-between text-xs font-semibold text-slate-600">
+                    <span>OCR trang {ocrPage.pageNumber}</span>
+                    <span>{Math.round(ocrPage.averageConfidence * 100)}%</span>
+                  </div>
+                  <p className="max-h-24 overflow-y-auto whitespace-pre-wrap text-[11px] leading-relaxed text-slate-600">
+                    {ocrPage.text || "Không có text OCR"}
+                  </p>
+                  {ocrPage.blocks.length > 0 && (
+                    <p className="text-[10px] text-slate-400">{ocrPage.blocks.length} text block</p>
+                  )}
+                </div>
+              )}
 
               {/* Extracted Fields List */}
               <div className="space-y-2.5 max-h-[580px] overflow-y-auto pr-1 custom-scrollbar">
@@ -456,9 +506,9 @@ export function DocumentDetailPage({ doc, onBack, onViewOriginalDoc }: DocumentD
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
                             <div className="size-6 rounded-full bg-[#7367f0]/15 overflow-hidden flex items-center justify-center text-[10px] font-bold text-[#7367f0]">
-                              {log.editor.slice(0, 2).toUpperCase()}
+                              {(log.editor || "AD").slice(0, 2).toUpperCase()}
                             </div>
-                            <span className="text-[13px] font-semibold text-[#393740]">{log.editor}</span>
+                            <span className="text-[13px] font-semibold text-[#393740]">{log.editor || "Người dùng"}</span>
                           </div>
                           <span className="text-xs text-slate-400 font-normal">{log.time}</span>
                         </div>
