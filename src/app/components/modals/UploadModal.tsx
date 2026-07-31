@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Dialog, DialogContent } from "../ui/dialog";
-import { DocType, DigitizedDoc } from "../../data/mock";
+import { DOC_TYPE_LABELS, DocType, DigitizedDoc } from "../../data/mock";
 import { docApi } from "../../services/api";
 import { toast } from "sonner";
 
@@ -20,7 +20,7 @@ interface UploadedFileItem {
 
 export function UploadModal({ open, onOpenChange, onSuccess }: UploadModalProps) {
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFileItem[]>([]);
-  const [docType] = useState<DocType>("proposal");
+  const [docType, setDocType] = useState<DocType>("goods_contract");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -122,6 +122,19 @@ export function UploadModal({ open, onOpenChange, onSuccess }: UploadModalProps)
               <input type="file" className="hidden" onChange={handleFileChange} accept=".pdf,.docx,.xlsx,.png,.jpg,.jpeg" />
             </label>
           </div>
+
+          <label className="w-full space-y-1.5 text-xs font-semibold text-[#393740]">
+            <span>Loại tài liệu</span>
+            <select
+              value={docType}
+              onChange={(e) => setDocType(e.target.value as DocType)}
+              className="h-9 w-full rounded-[6px] border border-slate-200 bg-white px-3 font-normal outline-none focus:border-[#ff4c51]"
+            >
+              {Object.entries(DOC_TYPE_LABELS).map(([value, label]) => (
+                <option key={value} value={value}>{label}</option>
+              ))}
+            </select>
+          </label>
 
           {/* Progress Bar during upload */}
           {isUploading && (

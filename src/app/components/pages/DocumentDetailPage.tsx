@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { DigitizedDoc, DOC_TYPE_LABELS, ExtractedField } from "../../data/mock";
 import { docApi } from "../../services/api";
 import { toast } from "sonner";
@@ -16,6 +16,7 @@ export function DocumentDetailPage({ doc, onBack, onViewOriginalDoc }: DocumentD
   const initialFields = doc?.fields || [];
   const [fields, setFields] = useState<ExtractedField[]>(initialFields);
   const [editLog, setEditLog] = useState(doc?.editLog || []);
+  const [ocr, setOcr] = useState(doc?.ocr || null);
   const [selectedId, setSelectedId] = useState<string | null>(initialFields[0]?.id || null);
   const [page, setPage] = useState(1);
   const [zoom, setZoom] = useState(100);
@@ -34,10 +35,32 @@ export function DocumentDetailPage({ doc, onBack, onViewOriginalDoc }: DocumentD
 
   const selectedField = (fields || []).find((f) => f && f.id === selectedId) || null;
   const activeRegion = selectedField && selectedField.region ? selectedField.region : null;
-  const ocrPage = doc.ocr?.pages.find((item) => item.pageNumber === page);
+  const ocrPage = ocr?.pages.find((item) => item.pageNumber === page);
 
   const lowConfidenceCount = (fields || []).filter((f) => f && f.confidence < 85).length;
   const confirmedFieldCount = (fields || []).filter((f) => f && f.confidence >= 85).length;
+
+  useEffect(() => {
+    let timer: number | undefined;
+    let active = true;
+
+    async function refresh() {
+      const latest = await docApi.getDocumentById(doc.id);
+      if (!active || !latest) return;
+      setFields(latest.fields || []);
+      setEditLog(latest.editLog || []);
+      setOcr(latest.ocr || null);
+      if (latest.status === "stored" || latest.status === "ocr") {
+        timer = window.setTimeout(refresh, 1500);
+      }
+    }
+
+    refresh();
+    return () => {
+      active = false;
+      if (timer) window.clearTimeout(timer);
+    };
+  }, [doc.id]);
 
   function handleSelectField(f: ExtractedField) {
     if (!f) return;
@@ -104,6 +127,7 @@ export function DocumentDetailPage({ doc, onBack, onViewOriginalDoc }: DocumentD
         if (updated) {
           setFields(updated.fields || []);
           setEditLog(updated.editLog || []);
+          setOcr(updated.ocr || null);
         }
         setScanning(false);
       }, 3000);
@@ -275,7 +299,7 @@ export function DocumentDetailPage({ doc, onBack, onViewOriginalDoc }: DocumentD
                   const isEditing = f.id === editingId;
                   const isLow = f.confidence < 70;
                   const isMedium = f.confidence >= 70 && f.confidence < 85;
-                  const isEdited = f.id === "f5" || f.id === "f7";
+                  const isEdited = editLog.some((log) => log.field === f.label || log.id === f.id);
 
                   if (isLow) {
                     // Low confidence red warning box (e.g. Thông số kỹ thuật 68%)

@@ -31,6 +31,7 @@ function SinglePageCanvas({
   region: Region | null;
 }) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const containerRef = useRef<HTMLDivElement | null>(null);
   const [rendered, setRendered] = useState(false);
 
   useEffect(() => {
@@ -71,20 +72,31 @@ function SinglePageCanvas({
     };
   }, [url, pageNumber]);
 
+  useEffect(() => {
+    if (region && containerRef.current) {
+      containerRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  }, [region]);
+
   return (
-    <div className="relative bg-white shadow-md rounded overflow-hidden flex flex-col items-center border border-slate-200 w-full">
-      <canvas ref={canvasRef} className="w-full h-auto rounded object-contain" />
-      {region && (
-        <div
-          className="pointer-events-none absolute rounded-sm border-2 border-[#ff4c51] bg-[#ff4c51]/20 transition-all z-10"
-          style={{
-            left: `${region.x}%`,
-            top: `${region.y}%`,
-            width: `${region.w}%`,
-            height: `${region.h}%`,
-          }}
-        />
-      )}
+    <div
+      ref={containerRef}
+      className="relative bg-white shadow-md rounded overflow-hidden flex flex-col items-center border border-slate-200 w-full"
+    >
+      <div className="relative w-full flex justify-center">
+        <canvas ref={canvasRef} className="w-full h-auto rounded object-contain" />
+        {region && (
+          <div
+            className="pointer-events-none absolute rounded-sm border-2 border-[#ff4c51] bg-[#ff4c51]/25 shadow-[0_0_8px_rgba(255,76,81,0.5)] transition-all z-10 animate-pulse"
+            style={{
+              left: `${region.x}%`,
+              top: `${region.y}%`,
+              width: `${region.w}%`,
+              height: `${region.h}%`,
+            }}
+          />
+        )}
+      </div>
       <div className="py-1 text-[11px] font-medium text-slate-400 border-t border-slate-100 w-full text-center bg-slate-50/50">
         Trang {pageNumber}
       </div>
@@ -188,7 +200,20 @@ export function DocumentCanvas({
         style={{ width: widthPercentage, maxWidth: zoom <= 100 ? "100%" : `${zoom}%` }}
       >
         {isImg ? (
-          <img src={streamUrl} alt="Document" className="w-full h-full object-contain" />
+          <div className="relative w-full flex justify-center">
+            <img src={streamUrl} alt="Document" className="w-full h-auto object-contain rounded" />
+            {region && (
+              <div
+                className="pointer-events-none absolute rounded-sm border-2 border-[#ff4c51] bg-[#ff4c51]/25 shadow-[0_0_8px_rgba(255,76,81,0.5)] transition-all z-10 animate-pulse"
+                style={{
+                  left: `${region.x}%`,
+                  top: `${region.y}%`,
+                  width: `${region.w}%`,
+                  height: `${region.h}%`,
+                }}
+              />
+            )}
+          </div>
         ) : (
           <PdfMultiPageViewer url={streamUrl} activeRegion={region} />
         )}
