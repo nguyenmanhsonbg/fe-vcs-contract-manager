@@ -4,7 +4,7 @@ import { DocType, DigitizedDoc } from "../../data/mock";
 import { docApi } from "../../services/api";
 import { toast } from "sonner";
 
-interface FigmaUploadModalProps {
+interface UploadModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSuccess?: (doc: DigitizedDoc) => void;
@@ -42,7 +42,7 @@ const DEFAULT_FILES: UploadedFileItem[] = [
   },
 ];
 
-export function FigmaUploadModal({ open, onOpenChange, onSuccess }: FigmaUploadModalProps) {
+export function UploadModal({ open, onOpenChange, onSuccess }: UploadModalProps) {
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFileItem[]>(DEFAULT_FILES);
   const [docType] = useState<DocType>("proposal");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -121,7 +121,7 @@ export function FigmaUploadModal({ open, onOpenChange, onSuccess }: FigmaUploadM
             </button>
           </div>
 
-          {/* Upload Dropzone Box matching Figma Modal screenshot */}
+          {/* Upload Dropzone Box */}
           <div className="w-full border border-dashed border-[#cccdd3] rounded-[6px] bg-white p-7 text-center relative hover:bg-slate-50/50 transition-colors">
             <label className="flex flex-col items-center cursor-pointer">
               <div className="size-12 rounded-[10px] bg-[#ffdbdc] flex items-center justify-center text-[#ff4c51] mb-3 shadow-2xs">
@@ -160,7 +160,7 @@ export function FigmaUploadModal({ open, onOpenChange, onSuccess }: FigmaUploadM
               <span className="text-[#3f81ea] font-medium">Đã tải lên {uploadedFiles.length}/10 file</span>
             </div>
 
-            {/* List of Files with Figma style Scrollbar */}
+            {/* List of Files */}
             <div className="max-h-[160px] overflow-y-auto pr-1.5 space-y-2.5 custom-scrollbar">
               {uploadedFiles.map((file) => (
                 <div

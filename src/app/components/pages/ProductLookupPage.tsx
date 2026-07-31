@@ -2,11 +2,11 @@ import { useEffect, useMemo, useState } from "react";
 import { AI_KEYWORDS, Product, DOC_TYPE_LABELS, DigitizedDoc } from "../../data/mock";
 import { docApi } from "../../services/api";
 
-interface FigmaProductLookupPageProps {
+interface ProductLookupPageProps {
   onOpenDoc: (doc: DigitizedDoc) => void;
 }
 
-export function FigmaProductLookupPage({ onOpenDoc }: FigmaProductLookupPageProps) {
+export function ProductLookupPage({ onOpenDoc }: ProductLookupPageProps) {
   const [products, setProducts] = useState<Product[]>([]);
   const [documents, setDocuments] = useState<DigitizedDoc[]>([]);
   const [search, setSearch] = useState("");

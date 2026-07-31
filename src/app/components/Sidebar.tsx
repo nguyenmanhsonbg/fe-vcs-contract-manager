@@ -98,7 +98,7 @@ export function Sidebar({
 }) {
   return (
     <aside className="flex h-full w-64 shrink-0 flex-col bg-white z-20 shadow-[2px_0px_12px_0px_rgba(47,43,61,0.12)] border-r border-slate-100/60">
-      {/* Brand Logo from Figma */}
+      {/* Brand Logo */}
       <div className="flex items-center justify-center px-6 py-4 border-b border-slate-100">
         <img src={imgImage2} alt="Viettel Cyber Security" className="h-[52px] object-contain" />
       </div>

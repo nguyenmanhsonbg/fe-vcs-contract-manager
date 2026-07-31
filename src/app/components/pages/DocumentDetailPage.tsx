@@ -9,12 +9,13 @@ import {
   IconCheck,
 } from "../icons";
 
-interface FigmaDocumentDetailPageProps {
+interface DocumentDetailPageProps {
   doc: DigitizedDoc;
   onBack: () => void;
+  onViewOriginalDoc?: (doc: DigitizedDoc) => void;
 }
 
-export function FigmaDocumentDetailPage({ doc, onBack }: FigmaDocumentDetailPageProps) {
+export function DocumentDetailPage({ doc, onBack, onViewOriginalDoc }: DocumentDetailPageProps) {
   const [fields, setFields] = useState<ExtractedField[]>(doc.fields);
   const [editLog, setEditLog] = useState(doc.editLog);
   const [selectedId, setSelectedId] = useState<string | null>(fields[0]?.id || null);
@@ -92,24 +93,23 @@ export function FigmaDocumentDetailPage({ doc, onBack }: FigmaDocumentDetailPage
 
   return (
     <div className="min-h-screen bg-[#f8f7fa] text-slate-800 flex flex-col p-6 font-sans">
-      {/* Top Header Title */}
-      <div className="flex items-center gap-3 mb-5">
-        <button
-          onClick={onBack}
-          className="p-1 hover:bg-slate-200 rounded-[6px] text-[#393740] transition-colors"
-          title="Quay lại"
-        >
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-            <path d="M19 12H5M5 12L12 19M5 12L12 5" stroke="#2F2B3D" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-        </button>
-        <h1 className="text-[22px] font-bold text-[#2F2B3D]">Chi tiết số hóa tài liệu</h1>
-      </div>
-
-      {/* Single Main White Container Box matching Figma Table/Container */}
-      <div className="bg-white rounded-[8px] border border-slate-200 p-6 shadow-2xs space-y-6 flex-1">
+      {/* Main White Container Card */}
+      <div className="bg-white rounded-[6px] border border-slate-200 p-4 shadow-[0px_4px_18px_0px_rgba(75,70,92,0.10)] space-y-4 flex-1">
+        {/* Top Header Title */}
+        <div className="flex items-center gap-3 mb-5">
+          <button
+            onClick={onBack}
+            className="p-1 hover:bg-slate-200 rounded-[6px] text-[#393740] transition-colors"
+            title="Quay lại"
+          >
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+              <path d="M19 12H5M5 12L12 19M5 12L12 5" stroke="#2F2B3D" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </button>
+          <h1 className="text-[22px] font-bold text-[#2F2B3D]">Chi tiết số hóa tài liệu</h1>
+        </div>
         {/* Sub-Header Toolbar Bar */}
-        <div className="flex items-center justify-between border-b border-slate-100 pb-4 flex-wrap gap-4">
+        <div className="flex items-center justify-between pb-1 flex-wrap gap-4">
           {/* File Name Info */}
           <div className="flex items-center gap-2 text-xs">
             <span className="text-slate-500">Đang xem:</span>
@@ -156,7 +156,7 @@ export function FigmaDocumentDetailPage({ doc, onBack }: FigmaDocumentDetailPage
             
             <div className="bg-white rounded-[8px] border border-slate-200 flex flex-col overflow-hidden shadow-2xs">
               {/* Viewer Header Controls Toolbar */}
-              <div className="flex items-center justify-between border-b border-slate-200 px-4 py-2.5 bg-slate-50/60">
+              <div className="flex items-center justify-between px-4 py-2.5 bg-slate-50/60">
                 <div className="flex items-center gap-3 text-xs text-slate-700">
                   {/* Rotate */}
                   <button className="p-1 hover:bg-slate-200 rounded text-slate-600" title="Xoay">
@@ -185,9 +185,14 @@ export function FigmaDocumentDetailPage({ doc, onBack }: FigmaDocumentDetailPage
                 </div>
 
                 <div className="flex items-center gap-3 text-xs text-slate-700">
-                  {/* Fullscreen */}
-                  <button className="p-1 hover:bg-slate-200 rounded text-slate-600" title="Toàn màn hình">
-                    ⛶
+                  {/* Fullscreen / View Original Doc */}
+                  <button
+                    onClick={() => onViewOriginalDoc?.(doc)}
+                    className="p-1 hover:bg-slate-200 rounded text-slate-600 flex items-center gap-1 transition-colors"
+                    title="Xem chi tiết tài liệu gốc"
+                  >
+                    <span className="text-sm font-bold">⛶</span>
+                    <span className="text-[11px] font-medium hidden sm:inline">Xem bản gốc</span>
                   </button>
                   {/* Download */}
                   <button className="p-1 hover:bg-slate-200 rounded text-slate-600" title="Tải xuống">
@@ -210,7 +215,7 @@ export function FigmaDocumentDetailPage({ doc, onBack }: FigmaDocumentDetailPage
           {/* RIGHT PANEL — Extracted Data + Collapsible Log Card */}
           <div className="flex flex-col space-y-4">
             {/* Upper Extracted OCR Data Panel */}
-            <div className="bg-white rounded-[8px] border border-slate-200 shadow-[0px_3px_12px_0px_rgba(47,43,61,0.14)] p-5 space-y-3">
+            <div className="bg-white rounded-[8px] border border-slate-200 p-5 space-y-3">
               <h3 className="text-[17px] font-bold text-[#393740] pb-1">Dữ liệu đã bóc tách</h3>
 
               {/* Extracted Fields List */}
@@ -401,7 +406,7 @@ export function FigmaDocumentDetailPage({ doc, onBack }: FigmaDocumentDetailPage
               </div>
 
               {/* Confidence Legend Footer */}
-              <div className="flex items-center gap-6 text-xs text-slate-600 pt-3 border-t border-slate-100 flex-wrap">
+              <div className="flex items-center gap-6 text-xs text-slate-600 pt-2 flex-wrap">
                 <div className="flex items-center gap-2">
                   <span className="size-2.5 rounded-full bg-[#ff9f43] shrink-0" />
                   <span className="text-[11.5px]">Độ tin cậy trung bình (70% - 84%)</span>
@@ -413,36 +418,70 @@ export function FigmaDocumentDetailPage({ doc, onBack }: FigmaDocumentDetailPage
               </div>
             </div>
 
-            {/* Standalone Lower Card — "Nhật ký gần đây" */}
-            <div className="bg-white rounded-[8px] border border-slate-200 p-4 shadow-2xs">
-              <button
+            {/* Standalone Lower Card — Nhật ký gần đây */}
+            <div className="bg-white rounded-[8px] border border-slate-200 p-5 shadow-[0px_3px_12px_0px_rgba(47,43,61,0.14)] space-y-4">
+              <div
                 onClick={() => setLogExpanded(!logExpanded)}
-                className="flex items-center justify-between w-full text-[15px] font-bold text-[#393740] hover:text-[#3f81ea] transition-colors"
+                className="flex items-center justify-between cursor-pointer"
               >
-                <span>Nhật ký gần đây ({editLog.length})</span>
-                <svg
-                  className={`size-5 text-slate-500 transform transition-transform ${logExpanded ? "rotate-90" : ""}`}
-                  viewBox="0 0 24 24"
-                  fill="none"
-                >
-                  <path d="M9 18L15 12L9 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-              </button>
+                <h3 className="text-[18px] font-bold text-[#2F2B3D]">Nhật ký gần đây</h3>
+                <button className="p-1 text-slate-500 hover:text-slate-700 transition-transform">
+                  <svg
+                    className={`size-5 transform transition-transform ${logExpanded ? "rotate-180" : ""}`}
+                    viewBox="0 0 24 24"
+                    fill="none"
+                  >
+                    <path d="M6 9L12 15L18 9" stroke="#393740" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </button>
+              </div>
 
-              {logExpanded && (
-                <div className="mt-3 space-y-2 max-h-[160px] overflow-y-auto pr-1">
-                  {editLog.map((log) => (
-                    <div key={log.id} className="bg-slate-50 border border-slate-200 rounded-[6px] p-2.5 text-xs space-y-1">
-                      <div className="flex items-center justify-between font-semibold text-slate-800">
-                        <span>{log.field}</span>
-                        <span className="text-[11px] text-slate-400">{log.time}</span>
+              {!logExpanded && (
+                <div className="space-y-4 pt-1">
+                  {editLog.map((log, idx) => (
+                    <div key={log.id} className="flex items-start gap-4 relative">
+                      {/* Timeline Dot + Line */}
+                      <div className="flex flex-col items-center shrink-0">
+                        <div className="size-9 rounded-full bg-[#e8f0fe] flex items-center justify-center text-[#3f81ea] shadow-2xs">
+                          <IconPencil className="size-4 text-[#3f81ea]" />
+                        </div>
+                        {idx < editLog.length - 1 && (
+                          <div className="w-px bg-slate-200 h-full min-h-[40px] mt-1" />
+                        )}
                       </div>
-                      <div className="grid grid-cols-2 gap-1 text-[11px] text-slate-600">
-                        <div>Sửa từ: <span className="line-through text-red-500">{log.before}</span></div>
-                        <div>Thành: <span className="font-semibold text-emerald-600">{log.after}</span></div>
+
+                      {/* Timeline Content */}
+                      <div className="flex-1 space-y-2">
+                        {/* Editor Header */}
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <div className="size-6 rounded-full bg-[#7367f0]/15 overflow-hidden flex items-center justify-center text-[10px] font-bold text-[#7367f0]">
+                              {log.editor.slice(0, 2).toUpperCase()}
+                            </div>
+                            <span className="text-[13px] font-semibold text-[#393740]">{log.editor}</span>
+                          </div>
+                          <span className="text-xs text-slate-400 font-normal">{log.time}</span>
+                        </div>
+
+                        {/* 3-Column Table Details */}
+                        <div className="grid grid-cols-3 gap-2 text-xs bg-slate-50/50 p-2.5 rounded-[6px] border border-slate-100">
+                          <div>
+                            <p className="text-[11px] font-semibold text-[#5d586c] mb-1">Trường dữ liệu</p>
+                            <p className="font-medium text-[#393740]">{log.field}</p>
+                          </div>
+                          <div>
+                            <p className="text-[11px] font-semibold text-[#5d586c] mb-1">Giá trị cũ</p>
+                            <p className="font-medium text-[#ff4c51] leading-relaxed">{log.before}</p>
+                          </div>
+                          <div>
+                            <p className="text-[11px] font-semibold text-[#5d586c] mb-1">Giá trị mới</p>
+                            <p className="font-medium text-[#28c76f] leading-relaxed">{log.after}</p>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   ))}
+
                   {editLog.length === 0 && (
                     <p className="text-xs text-slate-400 text-center py-2">Chưa có nhật ký chỉnh sửa.</p>
                   )}
@@ -453,10 +492,7 @@ export function FigmaDocumentDetailPage({ doc, onBack }: FigmaDocumentDetailPage
         </div>
       </div>
 
-      {/* Page Footer */}
-      <div className="mt-8 text-center text-xs text-slate-400">
-        LoogIX © 2026
-      </div>
+
 
       {/* Edit Reason Modal */}
       {reasonModalOpen && (

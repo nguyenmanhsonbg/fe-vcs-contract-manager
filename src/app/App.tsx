@@ -1,25 +1,30 @@
 import { useState } from "react";
 import { Sidebar, PageKey } from "./components/Sidebar";
 import { TopBar } from "./components/TopBar";
-import { FigmaDocumentListPage } from "./components/figma/FigmaDocumentListPage";
-import { FigmaDocumentDetailPage } from "./components/figma/FigmaDocumentDetailPage";
-import { FigmaProductLookupPage } from "./components/figma/FigmaProductLookupPage";
-import { FigmaUploadModal } from "./components/figma/FigmaUploadModal";
+import { DocumentListPage } from "./components/pages/DocumentListPage";
+import { DocumentDetailPage } from "./components/pages/DocumentDetailPage";
+import { OriginalDocView } from "./components/pages/OriginalDocView";
+import { ProductLookupPage } from "./components/pages/ProductLookupPage";
+import { UploadModal } from "./components/modals/UploadModal";
 import { DigitizedDoc } from "./data/mock";
 import { Toaster } from "./components/ui/sonner";
 
 export default function App() {
   const [page, setPage] = useState<PageKey>("list");
   const [openDoc, setOpenDoc] = useState<DigitizedDoc | null>(null);
+  const [originalDoc, setOriginalDoc] = useState<DigitizedDoc | null>(null);
   const [uploadModalOpen, setUploadModalOpen] = useState(false);
 
   function navigate(p: PageKey) {
     setOpenDoc(null);
+    setOriginalDoc(null);
     setPage(p);
   }
 
-  const breadcrumb = openDoc
-    ? ["Trang chủ", "Số hoá tài liệu", "Chi tiết"]
+  const breadcrumb = originalDoc
+    ? ["Trang chủ", "Số hoá tài liệu", "Chi tiết tài liệu"]
+    : openDoc
+    ? ["Trang chủ", "Số hoá tài liệu", "Chi tiết số hóa"]
     : page === "list"
     ? ["Trang chủ", "Số hoá tài liệu"]
     : ["Trang chủ", "Tìm kiếm sản phẩm"];
@@ -34,15 +39,22 @@ export default function App() {
         <TopBar breadcrumb={breadcrumb} />
 
         <main className="min-h-0 flex-1 overflow-y-auto">
-          {openDoc ? (
-            <FigmaDocumentDetailPage doc={openDoc} onBack={() => setOpenDoc(null)} />
+          {originalDoc ? (
+            <OriginalDocView doc={originalDoc} onBack={() => setOriginalDoc(null)} />
+          ) : openDoc ? (
+            <DocumentDetailPage
+              doc={openDoc}
+              onBack={() => setOpenDoc(null)}
+              onViewOriginalDoc={(d) => setOriginalDoc(d)}
+            />
           ) : page === "list" ? (
-            <FigmaDocumentListPage
+            <DocumentListPage
               onOpenDoc={setOpenDoc}
               onUploadClick={() => setUploadModalOpen(true)}
+              onViewOriginalDoc={(d) => setOriginalDoc(d)}
             />
           ) : (
-            <FigmaProductLookupPage
+            <ProductLookupPage
               onOpenDoc={(doc) => {
                 setPage("list");
                 setOpenDoc(doc);
@@ -52,8 +64,8 @@ export default function App() {
         </main>
       </div>
 
-      {/* 100% Figma-matching Upload Modal */}
-      <FigmaUploadModal
+      {/* Upload Modal */}
+      <UploadModal
         open={uploadModalOpen}
         onOpenChange={setUploadModalOpen}
         onSuccess={(doc) => {

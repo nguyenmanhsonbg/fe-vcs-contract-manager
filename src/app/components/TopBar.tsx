@@ -5,7 +5,7 @@ export function TopBar({ breadcrumb }: { breadcrumb: string[] }) {
   return (
     <header className="px-6 pt-4 pb-2 shrink-0">
       <div className="flex h-14 items-center justify-between rounded-[10px] bg-white/95 backdrop-blur-[10px] shadow-[0px_4px_12px_-2px_rgba(47,43,61,0.16)] border border-slate-100/80 px-6 transition-all">
-        {/* Breadcrumb matching Figma */}
+        {/* Breadcrumb */}
         <div className="flex items-center gap-2 text-[13px] font-medium text-[rgba(47,43,61,0.7)]">
           {breadcrumb.map((crumb, i) => (
             <span key={crumb} className="flex items-center gap-2">
@@ -23,7 +23,7 @@ export function TopBar({ breadcrumb }: { breadcrumb: string[] }) {
           ))}
         </div>
 
-        {/* Right Action Icons & Profile matching Figma */}
+        {/* Right Action Icons /* Right Action Icons & Profile matching Figma */ Profile */}
         <div className="flex items-center gap-4">
           {/* Search bar */}
           <div className="relative flex items-center">
