@@ -1,6 +1,5 @@
 import {
   DigitizedDoc,
-  DocType,
   Product,
 } from "../data/mock";
 
@@ -22,6 +21,11 @@ export interface DocumentFilterOptions {
   uploadedBy?: string;
   assignedTo?: string;
   lowConfidenceOnly?: boolean;
+  from?: string;
+  to?: string;
+  quickFilter?: string;
+  sortBy?: "uploadTime" | "fileName" | "status" | "confidence" | "lastUpdated";
+  sortDirection?: "asc" | "desc";
   page?: number;
   size?: number;
 }
@@ -39,20 +43,12 @@ async function apiFetch<T>(endpoint: string, options?: RequestInit): Promise<T> 
 }
 
 export const docApi = {
-  /** Lấy danh sách tài liệu phân trang từ Spring Boot REST API /api/v1/documents */
+  /** Search all documents and apply filters/widgets/date range/sort. */
   async getDocuments(filters?: DocumentFilterOptions): Promise<PageResponse<DigitizedDoc>> {
-    const query = new URLSearchParams();
-    if (filters?.search) query.append("search", filters.search);
-    if (filters?.type && filters.type !== "all") query.append("type", filters.type);
-    if (filters?.status && filters.status !== "all") query.append("status", filters.status);
-    if (filters?.uploadedBy && filters.uploadedBy !== "all") query.append("uploadedBy", filters.uploadedBy);
-    if (filters?.assignedTo && filters.assignedTo !== "all") query.append("assignedTo", filters.assignedTo);
-    if (filters?.lowConfidenceOnly) query.append("lowConfidenceOnly", "true");
-    if (filters?.page) query.append("page", filters.page.toString());
-    if (filters?.size) query.append("size", filters.size.toString());
-
-    const url = `/documents${query.toString() ? `?${query.toString()}` : ""}`;
-    return apiFetch<PageResponse<DigitizedDoc>>(url);
+    return apiFetch<PageResponse<DigitizedDoc>>("/documents/search", {
+      method: "POST",
+      body: JSON.stringify(filters || {}),
+    });
   },
 
   /** Lấy chi tiết tài liệu theo ID từ Spring Boot REST API /api/v1/documents/{id} */
@@ -65,10 +61,9 @@ export const docApi = {
   },
 
   /** Tải file lên Spring Boot Backend qua POST /api/v1/documents/upload (Multipart Form Data) */
-  async uploadDocument(file: File, type: DocType = "proposal"): Promise<DigitizedDoc> {
+  async uploadDocument(file: File): Promise<DigitizedDoc> {
     const formData = new FormData();
     formData.append("file", file);
-    formData.append("documentType", type);
 
     const res = await fetch(`${API_BASE}/documents/upload`, {
       method: "POST",

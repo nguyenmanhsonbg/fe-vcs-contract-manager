@@ -107,9 +107,11 @@ function SinglePageCanvas({
 function PdfMultiPageViewer({
   url,
   activeRegion,
+  onError,
 }: {
   url: string;
   activeRegion: Region | null;
+  onError?: () => void;
 }) {
   const [numPages, setNumPages] = useState<number>(0);
   const [loading, setLoading] = useState(true);
@@ -122,6 +124,7 @@ function PdfMultiPageViewer({
       if (!url) {
         setLoading(false);
         setHasError(true);
+        onError?.();
         return;
       }
       try {
@@ -132,10 +135,11 @@ function PdfMultiPageViewer({
         setNumPages(pdf.numPages || 1);
         setLoading(false);
       } catch (err) {
-        console.warn("PDF load notice:", err);
+        console.warn("PDF stream not available, switching to canvas fallback:", err);
         if (active) {
           setHasError(true);
           setLoading(false);
+          onError?.();
         }
       }
     }
@@ -150,17 +154,13 @@ function PdfMultiPageViewer({
   if (loading) {
     return (
       <div className="py-12 flex items-center justify-center text-xs text-slate-500 font-medium">
-        Đang tải toàn bộ các trang tài liệu...
+        Đang tải các trang tài liệu...
       </div>
     );
   }
 
   if (hasError || numPages === 0) {
-    return (
-      <div className="py-12 text-center text-xs text-slate-400">
-        Đang hiển thị bản xem trước tài liệu.
-      </div>
-    );
+    return null;
   }
 
   return (
@@ -189,9 +189,14 @@ export function DocumentCanvas({
   docId,
 }: DocumentCanvasProps) {
   const streamUrl = pdfUrl || (docId ? `/api/v1/documents/${docId}/preview` : null);
+  const [pdfError, setPdfError] = useState(false);
   const widthPercentage = zoom === 100 ? "100%" : `${zoom}%`;
 
-  if (streamUrl) {
+  useEffect(() => {
+    setPdfError(false);
+  }, [streamUrl]);
+
+  if (streamUrl && !pdfError) {
     const isImg = streamUrl.match(/\.(png|jpg|jpeg|webp|gif)$/i);
 
     return (
@@ -201,7 +206,12 @@ export function DocumentCanvas({
       >
         {isImg ? (
           <div className="relative w-full flex justify-center">
-            <img src={streamUrl} alt="Document" className="w-full h-auto object-contain rounded" />
+            <img
+              src={streamUrl}
+              alt="Document"
+              className="w-full h-auto object-contain rounded"
+              onError={() => setPdfError(true)}
+            />
             {region && (
               <div
                 className="pointer-events-none absolute rounded-sm border-2 border-[#ff4c51] bg-[#ff4c51]/25 shadow-[0_0_8px_rgba(255,76,81,0.5)] transition-all z-10 animate-pulse"
@@ -215,72 +225,11 @@ export function DocumentCanvas({
             )}
           </div>
         ) : (
-          <PdfMultiPageViewer url={streamUrl} activeRegion={region} />
+          <PdfMultiPageViewer url={streamUrl} activeRegion={region} onError={() => setPdfError(true)} />
         )}
       </div>
     );
   }
 
-  return (
-    <div
-      className="relative mx-auto bg-white shadow-md w-full transition-all duration-150"
-      style={{ width: widthPercentage, maxWidth: zoom <= 100 ? "100%" : `${zoom}%`, aspectRatio: "1 / 1.414" }}
-    >
-      <div className="p-8 text-[10px] leading-relaxed text-slate-700">
-        <div className="mb-4 flex justify-between text-center">
-          <div>
-            <p className="font-bold">CÔNG TY TNHH MTV AN NINH MẠNG VIETTEL</p>
-            <p>Số: TT-2025-041</p>
-          </div>
-          <div>
-            <p className="font-bold">CỘNG HOÀ XÃ HỘI CHỦ NGHĨA VIỆT NAM</p>
-            <p>Độc lập - Tự do - Hạnh phúc</p>
-          </div>
-        </div>
-        <p className="mb-3 text-center font-bold">TỜ TRÌNH</p>
-        <p className="mb-3 text-center italic">V/v: Đề nghị mua sắm thiết bị</p>
-        <p className="mb-2">Kính gửi: Ban Giám đốc Công ty</p>
-        <p className="mb-3">
-          Căn cứ nhu cầu thực tế, phòng Hành chính - Quản trị kính trình Ban Giám đốc phê duyệt mua sắm
-          thiết bị với các nội dung như sau:
-        </p>
-        <table className="mb-3 w-full border-collapse text-[9px]">
-          <thead>
-            <tr className="bg-slate-100">
-              <th className="border border-slate-300 p-1">STT</th>
-              <th className="border border-slate-300 p-1">Tên hàng hoá</th>
-              <th className="border border-slate-300 p-1">Mã hàng</th>
-              <th className="border border-slate-300 p-1">SL</th>
-              <th className="border border-slate-300 p-1">Đơn giá</th>
-              <th className="border border-slate-300 p-1">Thành tiền</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td className="border border-slate-300 p-1 text-center">1</td>
-              <td className="border border-slate-300 p-1">Máy in laser HP M712Dn</td>
-              <td className="border border-slate-300 p-1">HP-M712DN</td>
-              <td className="border border-slate-300 p-1 text-center">1</td>
-              <td className="border border-slate-300 p-1 text-right">86.000.000</td>
-              <td className="border border-slate-300 p-1 text-right">86.000.000</td>
-            </tr>
-          </tbody>
-        </table>
-        <p className="mb-1">Thông số kỹ thuật: In A3, in 2 mặt tự động, tốc độ 40 trang/phút.</p>
-        <p className="mb-3">Đối tác cung cấp: Công ty Sao Bắc.</p>
-      </div>
-
-      {region && (
-        <div
-          className="pointer-events-none absolute rounded-sm border-2 border-[#ff4c51] bg-[#ff4c51]/20 transition-all"
-          style={{
-            left: `${region.x}%`,
-            top: `${region.y}%`,
-            width: `${region.w}%`,
-            height: `${region.h}%`,
-          }}
-        />
-      )}
-    </div>
-  );
+  return <div className="p-8 text-center text-sm text-slate-500">Không thể tải bản xem trước tài liệu.</div>;
 }

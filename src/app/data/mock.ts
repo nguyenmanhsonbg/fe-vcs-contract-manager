@@ -1,4 +1,4 @@
-// Domain types and mock data for the Document Digitization system.
+// Domain types for the Document Digitization system.
 
 export type DocStatus =
   | "pending" // Chờ xử lý
@@ -123,22 +123,3 @@ export interface Product {
   sourcePage: number;
   confirmed: boolean; // false => "Temporary Data"
 }
-
-const staff = ["Nguyễn Văn A", "Trần Thị B", "Lê Minh C", "Phạm Thu D"];
-
-export const DOCUMENTS: DigitizedDoc[] = [];
-
-export const PRODUCTS: Product[] = [];
-
-// AI keyword suggestions used by the product lookup search.
-export const AI_KEYWORDS = [
-  "máy in",
-  "tường lửa",
-  "firewall",
-  "switch mạng",
-  "laptop",
-  "thiết bị bảo mật",
-  "mực in",
-];
-
-export { staff };

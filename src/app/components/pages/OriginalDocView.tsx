@@ -11,7 +11,7 @@ interface OriginalDocViewProps {
 export function OriginalDocView({ doc, onBack }: OriginalDocViewProps) {
   const [zoom, setZoom] = useState(100);
   const [page, setPage] = useState(1);
-  const totalPages = doc.pageCount || 12;
+  const totalPages = Math.max(1, doc.pageCount || 1);
 
   return (
     <div className="h-full w-full bg-[#f8f7fa] p-4 flex flex-col overflow-hidden font-sans">

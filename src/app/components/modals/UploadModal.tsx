@@ -1,17 +1,17 @@
 import { useState } from "react";
 import { Dialog, DialogContent } from "../ui/dialog";
-import { DOC_TYPE_LABELS, DocType, DigitizedDoc } from "../../data/mock";
 import { docApi } from "../../services/api";
 import { toast } from "sonner";
 
 interface UploadModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSuccess?: (doc: DigitizedDoc) => void;
+  onSuccess?: () => void;
 }
 
 interface UploadedFileItem {
   id: string;
+  fileObj: File;
   name: string;
   size: string;
   date: string;
@@ -20,68 +20,58 @@ interface UploadedFileItem {
 
 export function UploadModal({ open, onOpenChange, onSuccess }: UploadModalProps) {
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFileItem[]>([]);
-  const [docType, setDocType] = useState<DocType>("goods_contract");
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [progress, setProgress] = useState(0);
 
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      setSelectedFile(file);
-      const ext = file.name.endsWith(".xlsx") || file.name.endsWith(".xls") ? "xlsx" : "pdf";
-      const newItem: UploadedFileItem = {
-        id: Date.now().toString(),
-        name: file.name,
-        size: `${(file.size / (1024 * 1024)).toFixed(1)}MB`,
-        date: new Date().toLocaleDateString("vi-VN"),
-        type: ext,
-      };
-      setUploadedFiles([newItem]);
+    if (e.target.files && e.target.files.length > 0) {
+      const filesArr = Array.from(e.target.files);
+      const newItems: UploadedFileItem[] = filesArr.map((file, idx) => {
+        const ext = file.name.endsWith(".xlsx") || file.name.endsWith(".xls") ? "xlsx" : "pdf";
+        return {
+          id: `${Date.now()}-${idx}-${file.name}`,
+          fileObj: file,
+          name: file.name,
+          size: `${(file.size / (1024 * 1024)).toFixed(1)}MB`,
+          date: new Date().toLocaleDateString("vi-VN"),
+          type: ext,
+        };
+      });
+      setUploadedFiles((prev) => [...prev, ...newItems]);
+      e.target.value = "";
     }
   }
 
   function handleRemoveFile(id: string) {
     setUploadedFiles((prev) => prev.filter((f) => f.id !== id));
-    if (uploadedFiles.length <= 1) {
-      setSelectedFile(null);
-    }
   }
 
   async function handleStartUpload() {
-    if (!selectedFile) {
-      toast.warning("Vui lòng chọn file tài liệu để tải lên.");
+    if (uploadedFiles.length === 0) {
+      toast.warning("Vui lòng chọn ít nhất 1 file tài liệu để tải lên.");
       return;
     }
 
     setIsUploading(true);
     setProgress(10);
 
-    const timer = setInterval(() => {
-      setProgress((prev) => {
-        if (prev >= 90) {
-          clearInterval(timer);
-          return 90;
-        }
-        return prev + 20;
-      });
-    }, 150);
-
     try {
-      const newDoc = await docApi.uploadDocument(selectedFile, docType);
-      clearInterval(timer);
-      setProgress(100);
+      const total = uploadedFiles.length;
+      let completed = 0;
 
-      setTimeout(() => {
-        setIsUploading(false);
-        setSelectedFile(null);
-        setProgress(0);
-        onOpenChange(false);
-        toast.success(`Đã xử lý tài liệu thành công: ${newDoc.fileName}`);
-        if (onSuccess) onSuccess(newDoc);
-      }, 300);
+      for (const item of uploadedFiles) {
+        await docApi.uploadDocument(item.fileObj);
+        completed++;
+        setProgress(Math.round((completed / total) * 100));
+      }
+
+      toast.success(`Đã xử lý và đẩy ${total} tài liệu vào hàng đợi OCR thành công!`);
+      setIsUploading(false);
+      setUploadedFiles([]);
+      setProgress(0);
+      onOpenChange(false);
+      onSuccess?.();
     } catch {
-      clearInterval(timer);
       setIsUploading(false);
       toast.error("Lỗi khi tải lên tài liệu.");
     }
@@ -112,29 +102,16 @@ export function UploadModal({ open, onOpenChange, onSuccess }: UploadModalProps)
                   <path d="M12 16V8M12 8L9 11M12 8L15 11M3 15V16C3 18.2091 4.79086 20 7 20H17C19.2091 20 21 18.2091 21 16V15" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
               </div>
-              <p className="text-[17px] font-bold text-[#393740] leading-snug">Thả tệp vào đây</p>
-              <p className="text-[17px] font-bold text-[#393740] leading-snug">hoặc nhấp để tải lên</p>
+              <p className="text-[17px] font-bold text-[#393740] leading-snug">Thả các tệp vào đây</p>
+              <p className="text-[17px] font-bold text-[#393740] leading-snug">hoặc nhấp để chọn nhiều tệp</p>
 
               <div className="text-[12px] text-slate-500 mt-3 space-y-0.5">
-                <p>1. Dung lượng tối đa 10MB/tệp</p>
-                <p>2. Hỗ trợ: PDF, DOCX, XLSX, JPG, PNG</p>
+                <p>1. Hỗ trợ chọn nhiều file cùng lúc (tối đa 10MB/tệp)</p>
+                <p>2. Định dạng: PDF, DOCX, XLSX, JPG, PNG</p>
               </div>
-              <input type="file" className="hidden" onChange={handleFileChange} accept=".pdf,.docx,.xlsx,.png,.jpg,.jpeg" />
+              <input type="file" multiple className="hidden" onChange={handleFileChange} accept=".pdf,.docx,.xlsx,.png,.jpg,.jpeg" />
             </label>
           </div>
-
-          <label className="w-full space-y-1.5 text-xs font-semibold text-[#393740]">
-            <span>Loại tài liệu</span>
-            <select
-              value={docType}
-              onChange={(e) => setDocType(e.target.value as DocType)}
-              className="h-9 w-full rounded-[6px] border border-slate-200 bg-white px-3 font-normal outline-none focus:border-[#ff4c51]"
-            >
-              {Object.entries(DOC_TYPE_LABELS).map(([value, label]) => (
-                <option key={value} value={value}>{label}</option>
-              ))}
-            </select>
-          </label>
 
           {/* Progress Bar during upload */}
           {isUploading && (

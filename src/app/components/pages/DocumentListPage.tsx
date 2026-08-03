@@ -3,13 +3,16 @@ import { DigitizedDoc, DOC_TYPE_LABELS, DocType } from "../../data/mock";
 import { docApi } from "../../services/api";
 import { IconCalendar } from "../icons";
 
+const today = () => new Date().toISOString().slice(0, 10);
+
 interface DocumentListPageProps {
   onOpenDoc: (doc: DigitizedDoc) => void;
   onUploadClick: () => void;
   onViewOriginalDoc?: (doc: DigitizedDoc) => void;
+  refreshToken?: number;
 }
 
-export function DocumentListPage({ onOpenDoc, onUploadClick, onViewOriginalDoc }: DocumentListPageProps) {
+export function DocumentListPage({ onOpenDoc, onUploadClick, onViewOriginalDoc, refreshToken = 0 }: DocumentListPageProps) {
   const [documents, setDocuments] = useState<DigitizedDoc[]>([]);
   const [totalElements, setTotalElements] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
@@ -20,6 +23,8 @@ export function DocumentListPage({ onOpenDoc, onUploadClick, onViewOriginalDoc }
   const [uploader, setUploader] = useState<string>("all");
   const [assignee, setAssignee] = useState<string>("all");
   const [lowConfOnly, setLowConfOnly] = useState(false);
+  const [from, setFrom] = useState(today);
+  const [to, setTo] = useState(today);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
 
@@ -33,11 +38,14 @@ export function DocumentListPage({ onOpenDoc, onUploadClick, onViewOriginalDoc }
         uploadedBy: uploader,
         assignedTo: assignee,
         lowConfidenceOnly: lowConfOnly,
+        from,
+        to,
         page: currentPage,
         size: pageSize,
       });
-      setDocuments(res.content || []);
-      setTotalElements(res.totalElements || (res.content ? res.content.length : 0));
+      const rawContent = res.content || [];
+      setDocuments(rawContent);
+      setTotalElements(res.totalElements || rawContent.length);
       setTotalPages(res.totalPages || 1);
     } catch (err) {
       console.error("Lỗi khi tải danh sách từ backend:", err);
@@ -48,7 +56,11 @@ export function DocumentListPage({ onOpenDoc, onUploadClick, onViewOriginalDoc }
 
   useEffect(() => {
     loadData();
-  }, [search, type, statusFilter, uploader, assignee, lowConfOnly, currentPage, pageSize]);
+    const interval = setInterval(() => {
+      loadData();
+    }, 3000);
+    return () => clearInterval(interval);
+  }, [search, type, statusFilter, uploader, assignee, lowConfOnly, from, to, currentPage, pageSize, refreshToken]);
 
   const stats = useMemo(() => {
     const mine = documents.filter((d) => d.uploadedBy === "Nguyễn Văn A").length;
@@ -72,11 +84,26 @@ export function DocumentListPage({ onOpenDoc, onUploadClick, onViewOriginalDoc }
             Tải tài liệu mua sắm vào hệ thống để lưu trữ, trích xuất dữ liệu (OCR) và phục vụ xử lý nghiệp vụ
           </p>
         </div>
-        {/* Date Selector Button */}
-        <button className="flex h-10 items-center justify-between gap-3 rounded-[6px] border border-slate-200 bg-white px-3 text-[14px] font-normal text-[#393740] leading-[20px] shadow-2xs hover:border-slate-300 transition-colors shrink-0">
-          <span>01/04/2025 - 30/04/2025</span>
+        <div className="flex items-center gap-2 rounded-[6px] border border-slate-200 bg-white px-3 h-10 shadow-2xs shrink-0">
           <IconCalendar className="size-4 text-slate-500 shrink-0" />
-        </button>
+          <input
+            type="date"
+            value={from}
+            max={to}
+            onChange={(e) => setFrom(e.target.value)}
+            aria-label="Từ ngày"
+            className="text-[13px] text-[#393740] outline-none"
+          />
+          <span className="text-slate-400">-</span>
+          <input
+            type="date"
+            value={to}
+            min={from}
+            onChange={(e) => setTo(e.target.value)}
+            aria-label="Đến ngày"
+            className="text-[13px] text-[#393740] outline-none"
+          />
+        </div>
       </div>
 
       {/* 5 Stat Cards (Row 1132x108px, padding 24px, gap 8px, radius 6px) */}

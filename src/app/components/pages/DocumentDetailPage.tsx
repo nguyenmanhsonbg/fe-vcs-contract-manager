@@ -12,6 +12,37 @@ interface DocumentDetailPageProps {
   onViewOriginalDoc?: (doc: DigitizedDoc) => void;
 }
 
+export const FIELD_LABEL_MAP: Record<string, string> = {
+  documentType: "Loại tài liệu",
+  documentNumber: "Mã/Số tài liệu",
+  rawText: "Nội dung trích xuất",
+  contractNumber: "Số hợp đồng",
+  contractName: "Tên hợp đồng",
+  proposalNumber: "Số tờ trình",
+  proposalDate: "Ngày lập tờ trình",
+  title: "Tên hàng / Tiêu đề",
+  signDate: "Ngày ký",
+  effectiveDate: "Ngày hiệu lực",
+  expiryDate: "Ngày hết hạn",
+  partyAName: "Bên A (Chủ đầu tư)",
+  partyARepresentative: "Đại diện bên A",
+  partyBName: "Bên B (Nhà thầu)",
+  partyBRepresentative: "Đại diện bên B",
+  supplierTaxCode: "Mã số thuế",
+  contractValue: "Tổng giá trị hợp đồng",
+  totalAmount: "Tổng giá trị (VND)",
+  unitPrice: "Đơn giá (VND)",
+  quantity: "Số lượng",
+  unit: "Đơn vị tính",
+  specifications: "Thông số kỹ thuật",
+  partner: "Đối tác",
+};
+
+export function getFieldLabel(labelOrKey: string): string {
+  if (!labelOrKey) return "Trường dữ liệu";
+  return FIELD_LABEL_MAP[labelOrKey] || labelOrKey;
+}
+
 export function DocumentDetailPage({ doc, onBack, onViewOriginalDoc }: DocumentDetailPageProps) {
   const initialFields = doc?.fields || [];
   const [fields, setFields] = useState<ExtractedField[]>(initialFields);
@@ -43,6 +74,8 @@ export function DocumentDetailPage({ doc, onBack, onViewOriginalDoc }: DocumentD
   useEffect(() => {
     let timer: number | undefined;
     let active = true;
+    let attempts = 0;
+    const maxAttempts = 15; // Tối đa 15 lần poll (~22.5s) tránh lặp vô tận
 
     async function refresh() {
       const latest = await docApi.getDocumentById(doc.id);
@@ -50,7 +83,12 @@ export function DocumentDetailPage({ doc, onBack, onViewOriginalDoc }: DocumentD
       setFields(latest.fields || []);
       setEditLog(latest.editLog || []);
       setOcr(latest.ocr || null);
-      if (latest.status === "stored" || latest.status === "ocr") {
+
+      attempts += 1;
+      const isProcessing = latest.status === "ocr" || latest.status === "processing" || latest.status === "queued";
+      const needsOcrResult = latest.status === "stored" && (!latest.fields || latest.fields.length === 0);
+
+      if ((isProcessing || needsOcrResult) && attempts < maxAttempts) {
         timer = window.setTimeout(refresh, 1500);
       }
     }
@@ -120,17 +158,33 @@ export function DocumentDetailPage({ doc, onBack, onViewOriginalDoc }: DocumentD
   async function handleScan() {
     setScanning(true);
     try {
-      await docApi.rerunOCR(doc.id);
-      toast.success("Đã đưa tài liệu vào hàng đợi OCR.");
-      window.setTimeout(async () => {
-        const updated = await docApi.getDocumentById(doc.id);
-        if (updated) {
-          setFields(updated.fields || []);
-          setEditLog(updated.editLog || []);
-          setOcr(updated.ocr || null);
+      const resDoc = await docApi.rerunOCR(doc.id);
+      toast.success("Đã đưa tài liệu vào tiến trình quét OCR.");
+      if (resDoc) {
+        if (resDoc.fields && resDoc.fields.length > 0) setFields(resDoc.fields);
+        if (resDoc.ocr) setOcr(resDoc.ocr);
+        if (resDoc.editLog) setEditLog(resDoc.editLog);
+      }
+
+      let count = 0;
+      const pollTimer = setInterval(async () => {
+        count++;
+        const latest = await docApi.getDocumentById(doc.id);
+        if (latest) {
+          if (latest.fields && latest.fields.length > 0) {
+            setFields(latest.fields);
+            if (latest.ocr) setOcr(latest.ocr);
+            if (latest.editLog) setEditLog(latest.editLog);
+          }
+          if (latest.status === "review" || latest.status === "confirmed" || (latest.fields && latest.fields.length > 0) || count >= 8) {
+            clearInterval(pollTimer);
+            setScanning(false);
+          }
+        } else if (count >= 8) {
+          clearInterval(pollTimer);
+          setScanning(false);
         }
-        setScanning(false);
-      }, 3000);
+      }, 1000);
     } catch {
       setScanning(false);
       toast.error("Không thể quét lại tài liệu.");
@@ -277,21 +331,6 @@ export function DocumentDetailPage({ doc, onBack, onViewOriginalDoc }: DocumentD
             <div className="bg-white rounded-[8px] border border-slate-200 p-5 space-y-3">
               <h3 className="text-[17px] font-bold text-[#393740] pb-1">Dữ liệu đã bóc tách</h3>
 
-              {ocrPage && (
-                <div className="rounded-[6px] border border-slate-200 bg-slate-50 p-3 space-y-2">
-                  <div className="flex items-center justify-between text-xs font-semibold text-slate-600">
-                    <span>OCR trang {ocrPage.pageNumber}</span>
-                    <span>{Math.round(ocrPage.averageConfidence * 100)}%</span>
-                  </div>
-                  <p className="max-h-24 overflow-y-auto whitespace-pre-wrap text-[11px] leading-relaxed text-slate-600">
-                    {ocrPage.text || "Không có text OCR"}
-                  </p>
-                  {ocrPage.blocks.length > 0 && (
-                    <p className="text-[10px] text-slate-400">{ocrPage.blocks.length} text block</p>
-                  )}
-                </div>
-              )}
-
               {/* Extracted Fields List */}
               <div className="space-y-2.5 max-h-[580px] overflow-y-auto pr-1 custom-scrollbar">
                 {fields.map((f) => {
@@ -313,7 +352,7 @@ export function DocumentDetailPage({ doc, onBack, onViewOriginalDoc }: DocumentD
                       >
                         <div className="flex items-center justify-between gap-3">
                           <div className="w-[140px] shrink-0">
-                            <p className="text-xs font-bold text-[#393740]">{f.label}</p>
+                            <p className="text-xs font-bold text-[#393740]">{getFieldLabel(f.label)}</p>
                             {isEdited && (
                               <p className="text-[11px] text-slate-500 mt-1 flex items-center gap-1">
                                 <span>Đã chỉnh sửa</span>
@@ -373,7 +412,7 @@ export function DocumentDetailPage({ doc, onBack, onViewOriginalDoc }: DocumentD
                       >
                         <div className="flex items-center justify-between gap-3">
                           <div className="w-[140px] shrink-0">
-                            <p className="text-xs font-bold text-[#393740]">{f.label}</p>
+                            <p className="text-xs font-bold text-[#393740]">{getFieldLabel(f.label)}</p>
                             {isEdited && (
                               <p className="text-[11px] text-slate-500 mt-1 flex items-center gap-1">
                                 <span>Đã chỉnh sửa</span>
@@ -430,7 +469,7 @@ export function DocumentDetailPage({ doc, onBack, onViewOriginalDoc }: DocumentD
                         isSelected ? "bg-blue-50/70" : "hover:bg-slate-50"
                       }`}
                     >
-                      <span className="w-[140px] text-xs font-bold text-[#393740] shrink-0">{f.label}</span>
+                      <span className="w-[140px] text-xs font-bold text-[#393740] shrink-0">{getFieldLabel(f.label)}</span>
 
                       {isEditing ? (
                         <div className="flex-1 flex items-center gap-2 px-2" onClick={(e) => e.stopPropagation()}>

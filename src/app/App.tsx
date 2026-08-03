@@ -62,6 +62,7 @@ export default function App() {
   const [openDoc, setOpenDoc] = useState<DigitizedDoc | null>(null);
   const [originalDoc, setOriginalDoc] = useState<DigitizedDoc | null>(null);
   const [uploadModalOpen, setUploadModalOpen] = useState(false);
+  const [documentRefreshToken, setDocumentRefreshToken] = useState(0);
 
   function navigate(p: PageKey) {
     setOpenDoc(null);
@@ -95,6 +96,7 @@ export default function App() {
                 doc={openDoc}
                 onBack={() => setOpenDoc(null)}
                 onViewOriginalDoc={(d) => setOriginalDoc(d)}
+                refreshToken={documentRefreshToken}
               />
             ) : page === "list" ? (
               <DocumentListPage
@@ -118,9 +120,10 @@ export default function App() {
       <UploadModal
         open={uploadModalOpen}
         onOpenChange={setUploadModalOpen}
-        onSuccess={(doc) => {
+        onSuccess={() => {
+          setDocumentRefreshToken((value) => value + 1);
           setPage("list");
-          setOpenDoc(doc);
+          setOpenDoc(null);
         }}
       />
 

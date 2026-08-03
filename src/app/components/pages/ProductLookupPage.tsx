@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { AI_KEYWORDS, Product, DOC_TYPE_LABELS, DigitizedDoc } from "../../data/mock";
+import { Product, DOC_TYPE_LABELS, DigitizedDoc } from "../../data/mock";
 import { docApi } from "../../services/api";
 
 interface ProductLookupPageProps {
@@ -10,7 +10,6 @@ export function ProductLookupPage({ onOpenDoc }: ProductLookupPageProps) {
   const [products, setProducts] = useState<Product[]>([]);
   const [documents, setDocuments] = useState<DigitizedDoc[]>([]);
   const [search, setSearch] = useState("");
-  const [activeKeywords, setActiveKeywords] = useState<string[]>([]);
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -25,15 +24,8 @@ export function ProductLookupPage({ onOpenDoc }: ProductLookupPageProps) {
 
   const docMap = useMemo(() => Object.fromEntries(documents.map((d) => [d.id, d])), [documents]);
 
-  function toggleKeyword(kw: string) {
-    setActiveKeywords((prev) =>
-      prev.includes(kw) ? prev.filter((k) => k !== kw) : [...prev, kw]
-    );
-  }
-
   function clearFilters() {
     setSearch("");
-    setActiveKeywords([]);
   }
 
   const filtered = useMemo(() => {
@@ -42,17 +34,9 @@ export function ProductLookupPage({ onOpenDoc }: ProductLookupPageProps) {
       if (q && !p.name.toLowerCase().includes(q) && !p.code.toLowerCase().includes(q) && !p.description.toLowerCase().includes(q)) {
         return false;
       }
-      if (activeKeywords.length > 0) {
-        const matchesKeyword = activeKeywords.some(
-          (kw) =>
-            p.name.toLowerCase().includes(kw.toLowerCase()) ||
-            p.description.toLowerCase().includes(kw.toLowerCase())
-        );
-        if (!matchesKeyword) return false;
-      }
       return true;
     });
-  }, [products, search, activeKeywords]);
+  }, [products, search]);
 
   const confirmedCount = filtered.filter((p) => p.confirmed).length;
   const tempCount = filtered.filter((p) => !p.confirmed).length;
@@ -121,34 +105,11 @@ export function ProductLookupPage({ onOpenDoc }: ProductLookupPageProps) {
           <button className="h-10 px-5 rounded-[6px] bg-brand text-white text-xs font-semibold hover:bg-brand-dark transition-colors">
             Tìm kiếm
           </button>
-          {(search || activeKeywords.length > 0) && (
+          {search && (
             <button onClick={clearFilters} className="text-xs text-slate-500 hover:text-slate-700 underline px-2">
               Xoá bộ lọc
             </button>
           )}
-        </div>
-
-        {/* AI Keyword Chips */}
-        <div className="space-y-2 pt-1">
-          <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Gợi ý từ khoá AI</p>
-          <div className="flex flex-wrap gap-2">
-            {AI_KEYWORDS.map((kw) => {
-              const active = activeKeywords.includes(kw);
-              return (
-                <button
-                  key={kw}
-                  onClick={() => toggleKeyword(kw)}
-                  className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors ${
-                    active
-                      ? "bg-brand text-white border-brand"
-                      : "bg-slate-50 text-slate-600 border-slate-200 hover:border-brand/40 hover:text-brand"
-                  }`}
-                >
-                  {active ? `✕ ${kw}` : `+ ${kw}`}
-                </button>
-              );
-            })}
-          </div>
         </div>
 
         {/* Summary counts */}
