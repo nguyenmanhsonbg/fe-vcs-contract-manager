@@ -2,6 +2,16 @@ import {
   DigitizedDoc,
   Product,
 } from "../data/mock";
+import {
+  fetchProductSearchResults,
+  fetchSearchHistory,
+  addSearchHistoryItem,
+  removeSearchHistoryItem,
+  clearAllSearchHistory,
+  ProductSearchFilter,
+  ProductSearchPaginatedResponse,
+  SearchHistoryItem,
+} from "../data/productSearchMock";
 
 // ponytail: Base API URL với fallback /api/v1 cho local dev proxy
 const API_BASE = import.meta.env.VITE_API_BASE_URL || "/api/v1";
@@ -105,5 +115,58 @@ export const docApi = {
 
     const url = `/products${params.toString() ? `?${params.toString()}` : ""}`;
     return apiFetch<Product[]>(url);
+  },
+
+  /** Tìm kiếm sản phẩm theo chuẩn mới, hỗ trợ Mock fallback linh hoạt khi chưa có API backend */
+  async searchProducts(filters: ProductSearchFilter = {}): Promise<ProductSearchPaginatedResponse> {
+    try {
+      return await apiFetch<ProductSearchPaginatedResponse>("/products/search", {
+        method: "POST",
+        body: JSON.stringify(filters),
+      });
+    } catch {
+      // Khi API chưa sẵn sàng hoặc gặp lỗi kết nối, fallback về mock service riêng
+      return fetchProductSearchResults(filters);
+    }
+  },
+
+  /** Quản lý Lịch sử tìm kiếm */
+  async getSearchHistory(): Promise<SearchHistoryItem[]> {
+    try {
+      return await apiFetch<SearchHistoryItem[]>("/products/search-history");
+    } catch {
+      return fetchSearchHistory();
+    }
+  },
+
+  async saveSearchQuery(query: string): Promise<SearchHistoryItem[]> {
+    try {
+      return await apiFetch<SearchHistoryItem[]>("/products/search-history", {
+        method: "POST",
+        body: JSON.stringify({ query }),
+      });
+    } catch {
+      return addSearchHistoryItem(query);
+    }
+  },
+
+  async removeSearchQuery(id: string): Promise<SearchHistoryItem[]> {
+    try {
+      return await apiFetch<SearchHistoryItem[]>(`/products/search-history/${id}`, {
+        method: "DELETE",
+      });
+    } catch {
+      return removeSearchHistoryItem(id);
+    }
+  },
+
+  async clearSearchHistory(): Promise<SearchHistoryItem[]> {
+    try {
+      return await apiFetch<SearchHistoryItem[]>("/products/search-history/all", {
+        method: "DELETE",
+      });
+    } catch {
+      return clearAllSearchHistory();
+    }
   },
 };
