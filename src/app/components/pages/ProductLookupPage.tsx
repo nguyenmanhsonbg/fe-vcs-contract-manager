@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { DigitizedDoc } from "../../data/mock";
 import { docApi } from "../../services/api";
+import { Pagination } from "../common/Pagination";
 import {
   ProductSearchResultItem,
   SearchHistoryItem,
@@ -444,75 +445,18 @@ export function ProductLookupPage({ onOpenDoc }: ProductLookupPageProps) {
           </table>
         </div>
 
-        {/* Phân trang Pagination (tái sử dụng từ DocumentListPage) */}
-        <div className="flex items-center justify-between min-h-[43px] text-[13px] text-[#393740] leading-[20px] pt-1 flex-wrap gap-3">
-          <div className="flex items-center gap-4">
-            <p className="text-[#393740]">
-              {totalElements > 0 ? (
-                <>
-                  Hiển thị <span className="font-semibold text-slate-800">{startIndex + 1} - {endIndex}</span> của <span className="font-semibold text-slate-800">{totalElements}</span> kết quả
-                </>
-              ) : (
-                "Hiển thị 0 kết quả"
-              )}
-            </p>
-            <div className="flex items-center gap-1.5 text-xs text-slate-500">
-              <span>Hiển thị:</span>
-              <select
-                value={pageSize}
-                onChange={(e) => {
-                  setPageSize(Number(e.target.value));
-                  setPage(1);
-                }}
-                className="h-7 border border-slate-200 rounded px-2 text-xs bg-white text-slate-700 outline-none cursor-pointer font-medium"
-              >
-                {MOCK_PAGE_SIZE_OPTIONS.map((opt) => (
-                  <option key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-1">
-            <button
-              onClick={() => setPage((p) => Math.max(1, p - 1))}
-              disabled={page === 1}
-              className={`size-[30px] rounded-[6px] flex items-center justify-center text-[12px] font-medium transition-colors ${
-                page === 1
-                  ? "bg-slate-100/80 text-slate-400 cursor-not-allowed"
-                  : "bg-white border border-slate-200 text-slate-600 hover:bg-slate-50"
-              }`}
-            >
-              &lt;
-            </button>
-            {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
-              <button
-                key={p}
-                onClick={() => setPage(p)}
-                className={`size-[30px] rounded-[6px] font-medium flex items-center justify-center text-[12px] transition-colors ${
-                  page === p
-                    ? "bg-[#3f81ea] text-white shadow-2xs"
-                    : "bg-white border border-slate-200 text-slate-600 hover:bg-slate-50"
-                }`}
-              >
-                {p}
-              </button>
-            ))}
-            <button
-              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-              disabled={page === totalPages || totalElements === 0}
-              className={`size-[30px] rounded-[6px] flex items-center justify-center text-[12px] font-medium transition-colors ${
-                page === totalPages || totalElements === 0
-                  ? "bg-slate-100/80 text-slate-400 cursor-not-allowed"
-                  : "bg-white border border-slate-200 text-slate-600 hover:bg-slate-50"
-              }`}
-            >
-              &gt;
-            </button>
-          </div>
-        </div>
+        {/* Phân trang Pagination (tái sử dụng từ Pagination component) */}
+        <Pagination
+          currentPage={page}
+          pageSize={pageSize}
+          totalElements={totalElements}
+          totalPages={totalPages}
+          onPageChange={setPage}
+          onPageSizeChange={(newSize) => {
+            setPageSize(newSize);
+            setPage(1);
+          }}
+        />
       </div>
     </div>
   );

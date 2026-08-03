@@ -18,7 +18,7 @@ import {
 import imgImage2 from "../../imports/SốHoaTaiLiệu-1/01342b2bb964441edcb3fd61de43edf5fdb34da6.png";
 import imgAvatar from "../../imports/SốHoaTaiLiệu-1/420fce61b2448c9eab5d25435a5e458a011f53b7.png";
 
-export type PageKey = "list" | "product";
+export type PageKey = "list" | "product" | "proposal" | "contract";
 
 interface NavItem {
   key?: PageKey;
@@ -48,8 +48,8 @@ const SECTIONS: NavSection[] = [
         children: [
           { key: "list", label: "Số hoá tài liệu" },
           { key: "product", label: "Tìm kiếm sản phẩm" },
-          { label: "Quản lý tờ trình" },
-          { label: "Quản lý hợp đồng" },
+          { key: "proposal", label: "Quản lý tờ trình" },
+          { key: "contract", label: "Quản lý hợp đồng" },
         ],
       },
     ],

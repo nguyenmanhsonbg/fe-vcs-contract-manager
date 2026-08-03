@@ -12,6 +12,11 @@ import {
   ProductSearchPaginatedResponse,
   SearchHistoryItem,
 } from "../data/productSearchMock";
+import {
+  ProposalFilterOptions,
+  ProposalPaginatedResponse,
+  fetchProposalSearchResults,
+} from "../data/proposalMock";
 
 // ponytail: Base API URL với fallback /api/v1 cho local dev proxy
 const API_BASE = import.meta.env.VITE_API_BASE_URL || "/api/v1";
@@ -167,6 +172,18 @@ export const docApi = {
       });
     } catch {
       return clearAllSearchHistory();
+    }
+  },
+
+  /** Danh sách Tờ trình - Tự động thử kết nối REST API /proposals/search, fallback về proposalMock */
+  async getProposals(filters: ProposalFilterOptions = {}): Promise<ProposalPaginatedResponse> {
+    try {
+      return await apiFetch<ProposalPaginatedResponse>("/proposals/search", {
+        method: "POST",
+        body: JSON.stringify(filters),
+      });
+    } catch {
+      return fetchProposalSearchResults(filters);
     }
   },
 };

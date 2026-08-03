@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { DigitizedDoc, DOC_TYPE_LABELS, DocType } from "../../data/mock";
 import { docApi } from "../../services/api";
 import { IconCalendar } from "../icons";
+import { Pagination } from "../common/Pagination";
 
 const today = () => new Date().toISOString().slice(0, 10);
 
@@ -10,15 +11,24 @@ interface DocumentListPageProps {
   onUploadClick: () => void;
   onViewOriginalDoc?: (doc: DigitizedDoc) => void;
   refreshToken?: number;
+  defaultDocType?: string;
+  customTitle?: string;
 }
 
-export function DocumentListPage({ onOpenDoc, onUploadClick, onViewOriginalDoc, refreshToken = 0 }: DocumentListPageProps) {
+export function DocumentListPage({
+  onOpenDoc,
+  onUploadClick,
+  onViewOriginalDoc,
+  refreshToken = 0,
+  defaultDocType = "all",
+  customTitle,
+}: DocumentListPageProps) {
   const [documents, setDocuments] = useState<DigitizedDoc[]>([]);
   const [totalElements, setTotalElements] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
-  const [type, setType] = useState<string>("all");
+  const [type, setType] = useState<string>(defaultDocType);
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [uploader, setUploader] = useState<string>("all");
   const [assignee, setAssignee] = useState<string>("all");
@@ -55,6 +65,10 @@ export function DocumentListPage({ onOpenDoc, onUploadClick, onViewOriginalDoc, 
   };
 
   useEffect(() => {
+    setType(defaultDocType);
+  }, [defaultDocType]);
+
+  useEffect(() => {
     loadData();
     const interval = setInterval(() => {
       loadData();
@@ -79,7 +93,9 @@ export function DocumentListPage({ onOpenDoc, onUploadClick, onViewOriginalDoc, 
       {/* Page Header (1132x46px) */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-[24px] font-bold text-[#2F2B3D] leading-[29px]">Số hoá tài liệu</h1>
+          <h1 className="text-[24px] font-bold text-[#2F2B3D] leading-[29px]">
+            {customTitle || "Số hoá tài liệu"}
+          </h1>
           <p className="text-[12px] font-normal text-slate-500 leading-[17px] mt-1">
             Tải tài liệu mua sắm vào hệ thống để lưu trữ, trích xuất dữ liệu (OCR) và phục vụ xử lý nghiệp vụ
           </p>
@@ -341,70 +357,17 @@ export function DocumentListPage({ onOpenDoc, onUploadClick, onViewOriginalDoc, 
         </div>
 
         {/* Pagination bar */}
-        <div className="flex items-center justify-between min-h-[43px] text-[13px] text-[#393740] leading-[20px] pt-1 flex-wrap gap-3">
-          <div className="flex items-center gap-4">
-            <p className="text-[#393740]">
-              {totalElements > 0 ? (
-                <>
-                  Hiển thị <span className="font-semibold text-slate-800">{startIndex + 1} - {endIndex}</span> của <span className="font-semibold text-slate-800">{totalElements}</span> kết quả
-                </>
-              ) : (
-                "Hiển thị 0 kết quả"
-              )}
-            </p>
-            <div className="flex items-center gap-1.5 text-xs text-slate-500">
-              <span>Hiển thị:</span>
-              <select
-                value={pageSize}
-                onChange={(e) => setPageSize(Number(e.target.value))}
-                className="h-7 border border-slate-200 rounded px-2 text-xs bg-white text-slate-700 outline-none cursor-pointer font-medium"
-              >
-                <option value={5}>5 / trang</option>
-                <option value={10}>10 / trang</option>
-                <option value={20}>20 / trang</option>
-                <option value={50}>50 / trang</option>
-              </select>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-1">
-            <button
-              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-              disabled={currentPage === 1}
-              className={`size-[30px] rounded-[6px] flex items-center justify-center text-[12px] font-medium transition-colors ${
-                currentPage === 1
-                  ? "bg-slate-100/80 text-slate-400 cursor-not-allowed"
-                  : "bg-white border border-slate-200 text-slate-600 hover:bg-slate-50"
-              }`}
-            >
-              &lt;
-            </button>
-            {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
-              <button
-                key={p}
-                onClick={() => setCurrentPage(p)}
-                className={`size-[30px] rounded-[6px] font-medium flex items-center justify-center text-[12px] transition-colors ${
-                  currentPage === p
-                    ? "bg-[#3f81ea] text-white shadow-2xs"
-                    : "bg-white border border-slate-200 text-slate-600 hover:bg-slate-50"
-                }`}
-              >
-                {p}
-              </button>
-            ))}
-            <button
-              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-              disabled={currentPage === totalPages || totalElements === 0}
-              className={`size-[30px] rounded-[6px] flex items-center justify-center text-[12px] font-medium transition-colors ${
-                currentPage === totalPages || totalElements === 0
-                  ? "bg-slate-100/80 text-slate-400 cursor-not-allowed"
-                  : "bg-white border border-slate-200 text-slate-600 hover:bg-slate-50"
-              }`}
-            >
-              &gt;
-            </button>
-          </div>
-        </div>
+        <Pagination
+          currentPage={currentPage}
+          pageSize={pageSize}
+          totalElements={totalElements}
+          totalPages={totalPages}
+          onPageChange={setCurrentPage}
+          onPageSizeChange={(newSize) => {
+            setPageSize(newSize);
+            setCurrentPage(1);
+          }}
+        />
       </div>
     </div>
   );
