@@ -11,6 +11,13 @@ import {
 // ponytail: Base API URL với fallback /api/v1 cho local dev proxy
 const API_BASE = import.meta.env.VITE_API_BASE_URL || "/api/v1";
 
+export class ApiError extends Error {
+  constructor(public readonly status: number, message: string) {
+    super(message);
+    this.name = "ApiError";
+  }
+}
+
 export interface PageResponse<T> {
   content: T[];
   page: number;
@@ -42,7 +49,15 @@ async function apiFetch<T>(endpoint: string, options?: RequestInit): Promise<T> 
     ...options,
   });
   if (!res.ok) {
-    throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+    const body = await res.text();
+    let message = body;
+    try {
+      const parsed = JSON.parse(body) as { message?: string; detail?: string; error?: string };
+      message = parsed.message || parsed.detail || parsed.error || body;
+    } catch {
+      // Keep the raw response when it is not JSON.
+    }
+    throw new ApiError(res.status, message || res.statusText || `HTTP ${res.status}`);
   }
   return await res.json();
 }
@@ -60,7 +75,8 @@ export const docApi = {
   async getDocumentById(id: string): Promise<DigitizedDoc | null> {
     try {
       return await apiFetch<DigitizedDoc>(`/documents/${id}`);
-    } catch {
+    } catch (error) {
+      console.error(`Failed to load document ${id}:`, error);
       return null;
     }
   },

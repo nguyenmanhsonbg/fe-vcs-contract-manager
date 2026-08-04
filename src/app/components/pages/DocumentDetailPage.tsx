@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { DigitizedDoc, DOC_TYPE_LABELS, ExtractedField } from "../../data/models";
-import { docApi } from "../../services/api";
+import { ApiError, docApi } from "../../services/api";
 import { toast } from "sonner";
 import { DocumentCanvas } from "../DocumentCanvas";
 import { IconAlertTriangle, IconPencil, IconCheck, IconScan, IconArrowsMaximize } from "../icons";
@@ -134,8 +134,9 @@ export function DocumentDetailPage({ doc, onBack, onViewOriginalDoc }: DocumentD
       setFields(updatedDoc.fields);
       setEditLog(updatedDoc.editLog);
       toast.success(`Đã cập nhật trường "${f.label}"`);
-    } catch {
-      toast.error("Lỗi khi cập nhật trường.");
+    } catch (error) {
+      console.error("Lỗi khi cập nhật trường:", error);
+      toast.error(error instanceof ApiError ? `Cập nhật thất bại (${error.status}): ${error.message}` : "Lỗi khi cập nhật trường.");
     }
   }
 
@@ -150,9 +151,14 @@ export function DocumentDetailPage({ doc, onBack, onViewOriginalDoc }: DocumentD
   }
 
   async function handleConfirmDocument() {
-    await docApi.confirmDocument(doc.id);
-    setConfirmed(true);
-    toast.success("Đã xác nhận hoàn tất tài liệu!");
+    try {
+      await docApi.confirmDocument(doc.id);
+      setConfirmed(true);
+      toast.success("Đã xác nhận hoàn tất tài liệu!");
+    } catch (error) {
+      console.error("Lỗi khi xác nhận tài liệu:", error);
+      toast.error(error instanceof ApiError ? `Xác nhận thất bại (${error.status}): ${error.message}` : "Không thể xác nhận tài liệu.");
+    }
   }
 
   async function handleScan() {
@@ -168,21 +174,28 @@ export function DocumentDetailPage({ doc, onBack, onViewOriginalDoc }: DocumentD
 
       let count = 0;
       const pollTimer = setInterval(async () => {
-        count++;
-        const latest = await docApi.getDocumentById(doc.id);
-        if (latest) {
-          if (latest.fields && latest.fields.length > 0) {
-            setFields(latest.fields);
-            if (latest.ocr) setOcr(latest.ocr);
-            if (latest.editLog) setEditLog(latest.editLog);
-          }
-          if (latest.status === "review" || latest.status === "confirmed" || (latest.fields && latest.fields.length > 0) || count >= 8) {
+        try {
+          count++;
+          const latest = await docApi.getDocumentById(doc.id);
+          if (latest) {
+            if (latest.fields && latest.fields.length > 0) {
+              setFields(latest.fields);
+              if (latest.ocr) setOcr(latest.ocr);
+              if (latest.editLog) setEditLog(latest.editLog);
+            }
+            if (latest.status === "review" || latest.status === "confirmed" || (latest.fields && latest.fields.length > 0) || count >= 8) {
+              clearInterval(pollTimer);
+              setScanning(false);
+            }
+          } else if (count >= 8) {
             clearInterval(pollTimer);
             setScanning(false);
           }
-        } else if (count >= 8) {
+        } catch (error) {
           clearInterval(pollTimer);
           setScanning(false);
+          console.error("Lỗi khi kiểm tra tiến trình OCR:", error);
+          toast.error(error instanceof ApiError ? `Kiểm tra OCR thất bại (${error.status}): ${error.message}` : "Không thể kiểm tra tiến trình OCR.");
         }
       }, 1000);
     } catch {

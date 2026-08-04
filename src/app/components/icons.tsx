@@ -91,6 +91,33 @@ export const IconCheck = ({ className }: { className?: string }) => (
   </svg>
 );
 
+export const IconCircleCheck = ({ className }: { className?: string }) => (
+  <svg className={className} width="22" height="22" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <rect width="22" height="22" rx="11" fill="#28C76F" />
+    <path d="M4.58398 11L9.16732 15.5834L18.334 6.41669" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
+
+export const IconCircleClose = ({ className }: { className?: string }) => (
+  <svg className={className} width="22" height="22" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <rect width="22" height="22" rx="11" fill="#FF4C51" />
+    <path d="M7.33398 7.33331L14.6673 14.6666M14.6673 7.33331L7.33398 14.6666" stroke="white" strokeWidth="1.5" strokeLinecap="round" />
+  </svg>
+);
+
+export const IconCircleMinus = ({ className }: { className?: string }) => (
+  <svg className={className} width="22" height="22" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <rect width="22" height="22" rx="11" fill="#C0BEC5" />
+    <path d="M6.875 11H15.125" stroke="white" strokeWidth="1.5" strokeLinecap="round" />
+  </svg>
+);
+
+export const IconChevronRight = ({ className }: { className?: string }) => (
+  <svg className={className} width="22" height="22" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M8.25 5.5L13.75 11L8.25 16.5" stroke="#2F2B3D" strokeOpacity="0.9" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
+
 export const IconLayoutBoardSplit = ({ className }: { className?: string }) => (
   <svg className={className} width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
     <rect x="4.66675" y="4.66666" width="18.6667" height="18.6667" rx="2" stroke="#FF9F43" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>

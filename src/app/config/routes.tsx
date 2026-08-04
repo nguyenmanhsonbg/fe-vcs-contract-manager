@@ -1,6 +1,7 @@
 import React, { ReactNode } from "react";
 import { PageKey } from "../components/Sidebar";
 import { DocumentListPage } from "../components/pages/DocumentListPage";
+import { ContractListPage } from "../components/pages/ContractListPage";
 import { ProposalListPage } from "../components/pages/ProposalListPage";
 import { ProductLookupPage } from "../components/pages/ProductLookupPage";
 import { DigitizedDoc } from "../data/models";
@@ -44,16 +45,7 @@ export const ROUTES: RouteDefinition[] = [
     key: "contract",
     hash: "#/contracts",
     breadcrumb: ["Trang chủ", "Quản trị dữ liệu", "Quản lý hợp đồng"],
-    render: (props) => (
-      <DocumentListPage
-        onOpenDoc={props.onOpenDoc}
-        onUploadClick={props.onUploadClick}
-        onViewOriginalDoc={props.onViewOriginalDoc}
-        defaultDocType="goods_contract"
-        customTitle="Quản lý Hợp đồng"
-        refreshToken={props.refreshToken}
-      />
-    ),
+    render: () => <ContractListPage />,
   },
   {
     key: "product",
