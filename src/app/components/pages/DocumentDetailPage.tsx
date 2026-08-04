@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { DigitizedDoc, DOC_TYPE_LABELS, ExtractedField } from "../../data/mock";
+import { DigitizedDoc, DOC_TYPE_LABELS, ExtractedField } from "../../data/models";
 import { docApi } from "../../services/api";
 import { toast } from "sonner";
 import { DocumentCanvas } from "../DocumentCanvas";

@@ -8,20 +8,19 @@ import {
   RotateCcw,
   Clock,
 } from "lucide-react";
-import { DigitizedDoc } from "../../data/mock";
+import { DigitizedDoc } from "../../data/models";
 import { docApi } from "../../services/api";
 import { Pagination } from "../common/Pagination";
-import {
-  ProductSearchResultItem,
-  SearchHistoryItem,
-  MOCK_SEARCH_SUGGESTIONS,
-  MOCK_TIME_RANGE_OPTIONS,
-  MOCK_PRICE_MIN_OPTIONS,
-  MOCK_PRICE_MAX_OPTIONS,
-  MOCK_PAGE_SIZE_OPTIONS,
-  DEFAULT_SEARCH_QUERY,
-  getMockFallbackDoc,
-} from "../../data/productSearchMock";
+import { ProductSearchResultItem, SearchHistoryItem } from "../../data/apiModels";
+
+const TIME_RANGE_OPTIONS = [
+  { value: "12_months", label: "12 tháng gần đây" },
+  { value: "6_months", label: "6 tháng gần đây" },
+  { value: "3_months", label: "3 tháng gần đây" },
+  { value: "all", label: "Tất cả thời gian" },
+];
+const PRICE_MIN_OPTIONS = [{ value: 0, label: "Từ" }, { value: 10000000, label: "10.000.000 VNĐ" }, { value: 20000000, label: "20.000.000 VNĐ" }];
+const PRICE_MAX_OPTIONS = [{ value: 0, label: "Đến" }, { value: 25000000, label: "25.000.000 VNĐ" }, { value: 50000000, label: "50.000.000 VNĐ" }];
 
 interface ProductLookupPageProps {
   onOpenDoc: (doc: DigitizedDoc) => void;
@@ -29,7 +28,7 @@ interface ProductLookupPageProps {
 
 export function ProductLookupPage({ onOpenDoc }: ProductLookupPageProps) {
   // Trạng thái tìm kiếm & Bộ lọc
-  const [searchQuery, setSearchQuery] = useState(DEFAULT_SEARCH_QUERY);
+  const [searchQuery, setSearchQuery] = useState("");
   const [searchHistory, setSearchHistory] = useState<SearchHistoryItem[]>([]);
   const [showHistoryDropdown, setShowHistoryDropdown] = useState(false);
   const searchContainerRef = useRef<HTMLDivElement>(null);
@@ -44,7 +43,7 @@ export function ProductLookupPage({ onOpenDoc }: ProductLookupPageProps) {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
 
-  // Kết quả dữ liệu từ Mock / Service
+  // Kết quả từ API backend
   const [items, setItems] = useState<ProductSearchResultItem[]>([]);
   const [totalElements, setTotalElements] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
@@ -120,8 +119,6 @@ export function ProductLookupPage({ onOpenDoc }: ProductLookupPageProps) {
     if (doc) {
       onOpenDoc(doc);
     } else {
-      // Fallback nếu chưa có docId thực tế
-      onOpenDoc(getMockFallbackDoc(docId));
     }
   }
 
@@ -234,24 +231,6 @@ export function ProductLookupPage({ onOpenDoc }: ProductLookupPageProps) {
           </button>
         </div>
 
-        {/* Thẻ Gợi ý tìm kiếm */}
-        <div className="flex items-center gap-2 text-xs">
-          <span className="text-slate-500 font-medium">Gợi ý tìm kiếm:</span>
-          <div className="flex items-center gap-2 flex-wrap">
-            {MOCK_SEARCH_SUGGESTIONS.map((tag) => (
-              <button
-                key={tag}
-                onClick={() => {
-                  setSearchQuery(tag);
-                  setPage(1);
-                }}
-                className="px-3 py-1 rounded-full bg-slate-100/90 text-slate-700 hover:bg-slate-200 transition-colors text-[11px] font-medium"
-              >
-                {tag}
-              </button>
-            ))}
-          </div>
-        </div>
       </div>
 
       {/* 3. Thẻ Bộ lọc */}
@@ -265,7 +244,7 @@ export function ProductLookupPage({ onOpenDoc }: ProductLookupPageProps) {
               onChange={(e) => setTimeRange(e.target.value)}
               className="h-9 px-3 pr-8 rounded-md border border-slate-200 bg-white text-slate-700 outline-none focus:border-red-400 transition-colors cursor-pointer"
             >
-              {MOCK_TIME_RANGE_OPTIONS.map((opt) => (
+              {TIME_RANGE_OPTIONS.map((opt) => (
                 <option key={opt.value} value={opt.value}>
                   {opt.label}
                 </option>
@@ -281,7 +260,7 @@ export function ProductLookupPage({ onOpenDoc }: ProductLookupPageProps) {
               onChange={(e) => setPriceMin(Number(e.target.value))}
               className="h-9 px-3 pr-8 rounded-md border border-slate-200 bg-white text-slate-700 outline-none focus:border-red-400 transition-colors cursor-pointer"
             >
-              {MOCK_PRICE_MIN_OPTIONS.map((opt) => (
+              {PRICE_MIN_OPTIONS.map((opt) => (
                 <option key={opt.value} value={opt.value}>
                   {opt.label}
                 </option>
@@ -292,7 +271,7 @@ export function ProductLookupPage({ onOpenDoc }: ProductLookupPageProps) {
               onChange={(e) => setPriceMax(Number(e.target.value))}
               className="h-9 px-3 pr-8 rounded-md border border-slate-200 bg-white text-slate-700 outline-none focus:border-red-400 transition-colors cursor-pointer"
             >
-              {MOCK_PRICE_MAX_OPTIONS.map((opt) => (
+              {PRICE_MAX_OPTIONS.map((opt) => (
                 <option key={opt.value} value={opt.value}>
                   {opt.label}
                 </option>

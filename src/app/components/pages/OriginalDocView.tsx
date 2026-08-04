@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { DigitizedDoc } from "../../data/mock";
+import { DigitizedDoc } from "../../data/models";
 import { DocumentCanvas } from "../DocumentCanvas";
 import { RotateCw, Minus, Plus, ChevronDown, Maximize2 } from "lucide-react";
 

@@ -3,7 +3,7 @@ import { PageKey } from "../components/Sidebar";
 import { DocumentListPage } from "../components/pages/DocumentListPage";
 import { ProposalListPage } from "../components/pages/ProposalListPage";
 import { ProductLookupPage } from "../components/pages/ProductLookupPage";
-import { DigitizedDoc } from "../data/mock";
+import { DigitizedDoc } from "../data/models";
 
 export interface RouteComponentProps {
   onOpenDoc: (doc: DigitizedDoc) => void;

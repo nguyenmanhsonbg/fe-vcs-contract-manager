@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { DigitizedDoc, DOC_TYPE_LABELS, DocType } from "../../data/mock";
+import { DigitizedDoc, DOC_TYPE_LABELS, DocType } from "../../data/models";
 import { docApi } from "../../services/api";
 import { IconCalendar } from "../icons";
 import { Pagination } from "../common/Pagination";

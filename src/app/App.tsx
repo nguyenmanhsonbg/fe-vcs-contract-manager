@@ -2,10 +2,9 @@ import { Component, ErrorInfo, ReactNode, useState, useEffect } from "react";
 import { Sidebar, PageKey } from "./components/Sidebar";
 import { TopBar } from "./components/TopBar";
 import { DocumentDetailPage } from "./components/pages/DocumentDetailPage";
-import { ProposalDetailPage } from "./components/pages/ProposalDetailPage";
 import { OriginalDocView } from "./components/pages/OriginalDocView";
 import { UploadModal } from "./components/modals/UploadModal";
-import { DigitizedDoc } from "./data/mock";
+import { DigitizedDoc } from "./data/models";
 import { docApi } from "./services/api";
 import { Toaster } from "./components/ui/sonner";
 import { getRouteByKey, parseHashRoute } from "./config/routes";
@@ -77,49 +76,14 @@ export default function App() {
           if (apiDoc) {
             setOpenDoc(apiDoc);
           } else {
-            // Fallback mock object when opening direct URL
-            setOpenDoc({
-              id: parsed.docId,
-              fileName: `Tài liệu_${parsed.docId}.pdf`,
-              documentType: parsed.page === "proposal" ? "proposal" : "goods_contract",
-              uploadedBy: "Nguyễn Văn A",
-              uploadedAt: "18/04/2025 10:23",
-              pageCount: 1,
-              status: "review",
-              confidence: 96,
-              averageConfidence: 96,
-              fieldsToReview: 0,
-              assignedTo: "Trần Văn B",
-              lastUpdated: "18/04/2025",
-              fields: [
-                { id: "f1", label: "Số tờ trình", value: parsed.docId, confidence: 98 },
-                { id: "f2", label: "Nội dung", value: "Mua máy in laser HP M712dn cho phòng hành chính", confidence: 95 },
-              ],
-              lineItems: [],
-              editLogs: [],
-            });
+            setOpenDoc(null);
           }
         }
         setOriginalDoc(null);
       } else if (parsed.subType === "original" && parsed.docId) {
         if (!originalDoc || originalDoc.id !== parsed.docId) {
-          setOriginalDoc({
-            id: parsed.docId,
-            fileName: `Tài liệu gốc_${parsed.docId}.pdf`,
-            documentType: "goods_contract",
-            uploadedBy: "Nguyễn Văn A",
-            uploadedAt: "18/04/2025",
-            pageCount: 1,
-            status: "review",
-            confidence: 96,
-            averageConfidence: 96,
-            fieldsToReview: 0,
-            assignedTo: "Trần Văn B",
-            lastUpdated: "18/04/2025",
-            fields: [],
-            lineItems: [],
-            editLogs: [],
-          });
+          const apiDoc = await docApi.getDocumentById(parsed.docId);
+          setOriginalDoc(apiDoc);
         }
       } else {
         setOpenDoc(null);
@@ -188,16 +152,12 @@ export default function App() {
             {originalDoc ? (
               <OriginalDocView doc={originalDoc} onBack={handleBackFromSubPage} />
             ) : openDoc ? (
-              openDoc.documentType === "proposal" ? (
-                <ProposalDetailPage doc={openDoc} onBack={handleBackFromSubPage} />
-              ) : (
-                <DocumentDetailPage
-                  doc={openDoc}
-                  onBack={handleBackFromSubPage}
-                  onViewOriginalDoc={handleViewOriginalDoc}
-                  refreshToken={documentRefreshToken}
-                />
-              )
+              <DocumentDetailPage
+                doc={openDoc}
+                onBack={handleBackFromSubPage}
+                onViewOriginalDoc={handleViewOriginalDoc}
+                refreshToken={documentRefreshToken}
+              />
             ) : (
               currentRoute.render({
                 onOpenDoc: handleOpenDoc,

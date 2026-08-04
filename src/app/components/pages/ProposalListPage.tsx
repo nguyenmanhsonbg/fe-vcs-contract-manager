@@ -11,7 +11,7 @@ import {
   X,
 } from "lucide-react";
 import { toast } from "sonner";
-import { DigitizedDoc } from "../../data/mock";
+import { DigitizedDoc } from "../../data/models";
 import { docApi } from "../../services/api";
 import { Pagination } from "../common/Pagination";
 import {
@@ -21,10 +21,9 @@ import {
   IconMoreVertical,
   IconPencil,
 } from "../icons";
-import {
-  ProposalItem,
-  MOCK_PROPOSAL_CATEGORIES,
-} from "../../data/proposalMock";
+import { ProposalItem } from "../../data/apiModels";
+
+const PROPOSAL_CATEGORIES = ["proposal"];
 
 interface ProposalListPageProps {
   onOpenDoc: (doc: DigitizedDoc) => void;
@@ -96,30 +95,7 @@ export function ProposalListPage({ onOpenDoc }: ProposalListPageProps) {
   };
 
   const handleViewDetail = (item: ProposalItem) => {
-    const mockDoc: DigitizedDoc = {
-      id: item.id,
-      fileName: `${item.code}_${item.title}.pdf`,
-      documentType: "proposal",
-      uploadedBy: "Nguyễn Văn A",
-      uploadedAt: item.createdAt,
-      pageCount: 1,
-      status: "review",
-      confidence: 96,
-      averageConfidence: 96,
-      fieldsToReview: 0,
-      assignedTo: "Trần Văn B",
-      lastUpdated: item.createdAt,
-      fields: [
-        { id: "f1", label: "Số tờ trình", value: item.code, confidence: 98 },
-        { id: "f2", label: "Tên tờ trình", value: item.title, confidence: 95 },
-        { id: "f3", label: "Loại HHDV", value: item.category, confidence: 97 },
-        { id: "f4", label: "Đối tác đề xuất", value: item.supplier, confidence: 94 },
-        { id: "f5", label: "Tổng giá trị đề xuất", value: `${formatCurrency(item.amount)} VNĐ`, confidence: 99 },
-      ],
-      lineItems: [],
-      editLogs: [],
-    };
-    onOpenDoc(mockDoc);
+    docApi.getDocumentById(item.id).then((doc) => doc && onOpenDoc(doc));
   };
 
   return (
@@ -148,7 +124,7 @@ export function ProposalListPage({ onOpenDoc }: ProposalListPageProps) {
                 className="w-full appearance-none rounded-[6px] border border-slate-200 bg-white px-3 py-2 text-[13px] text-slate-800 outline-none focus:border-[#ff4c51] pr-8"
               >
                 <option value="all">Tất cả</option>
-                {MOCK_PROPOSAL_CATEGORIES.map((cat) => (
+                {PROPOSAL_CATEGORIES.map((cat) => (
                   <option key={cat} value={cat}>
                     {cat}
                   </option>
@@ -295,7 +271,7 @@ export function ProposalListPage({ onOpenDoc }: ProposalListPageProps) {
                             onChange={(e) => setEditForm({ ...editForm, category: e.target.value })}
                             className="w-full rounded-[6px] border border-slate-300 bg-white px-2 py-1.5 text-[13px] text-slate-800 outline-none focus:border-[#ff4c51]"
                           >
-                            {MOCK_PROPOSAL_CATEGORIES.map((cat) => (
+                            {PROPOSAL_CATEGORIES.map((cat) => (
                               <option key={cat} value={cat}>
                                 {cat}
                               </option>

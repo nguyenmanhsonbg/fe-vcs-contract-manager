@@ -1,22 +1,12 @@
+import { DigitizedDoc } from "../data/models";
 import {
-  DigitizedDoc,
-  Product,
-} from "../data/mock";
-import {
-  fetchProductSearchResults,
-  fetchSearchHistory,
-  addSearchHistoryItem,
-  removeSearchHistoryItem,
-  clearAllSearchHistory,
   ProductSearchFilter,
   ProductSearchPaginatedResponse,
   SearchHistoryItem,
-} from "../data/productSearchMock";
-import {
   ProposalFilterOptions,
   ProposalPaginatedResponse,
-  fetchProposalSearchResults,
-} from "../data/proposalMock";
+  Product,
+} from "../data/apiModels";
 
 // ponytail: Base API URL với fallback /api/v1 cho local dev proxy
 const API_BASE = import.meta.env.VITE_API_BASE_URL || "/api/v1";
@@ -122,68 +112,43 @@ export const docApi = {
     return apiFetch<Product[]>(url);
   },
 
-  /** Tìm kiếm sản phẩm theo chuẩn mới, hỗ trợ Mock fallback linh hoạt khi chưa có API backend */
+  /** Tìm kiếm sản phẩm qua OpenSearch backend */
   async searchProducts(filters: ProductSearchFilter = {}): Promise<ProductSearchPaginatedResponse> {
-    try {
-      return await apiFetch<ProductSearchPaginatedResponse>("/products/search", {
-        method: "POST",
-        body: JSON.stringify(filters),
-      });
-    } catch {
-      // Khi API chưa sẵn sàng hoặc gặp lỗi kết nối, fallback về mock service riêng
-      return fetchProductSearchResults(filters);
-    }
+    return apiFetch<ProductSearchPaginatedResponse>("/products/search", {
+      method: "POST",
+      body: JSON.stringify(filters),
+    });
   },
 
   /** Quản lý Lịch sử tìm kiếm */
   async getSearchHistory(): Promise<SearchHistoryItem[]> {
-    try {
-      return await apiFetch<SearchHistoryItem[]>("/products/search-history");
-    } catch {
-      return fetchSearchHistory();
-    }
+    return apiFetch<SearchHistoryItem[]>("/products/search-history");
   },
 
   async saveSearchQuery(query: string): Promise<SearchHistoryItem[]> {
-    try {
-      return await apiFetch<SearchHistoryItem[]>("/products/search-history", {
-        method: "POST",
-        body: JSON.stringify({ query }),
-      });
-    } catch {
-      return addSearchHistoryItem(query);
-    }
+    return apiFetch<SearchHistoryItem[]>("/products/search-history", {
+      method: "POST",
+      body: JSON.stringify({ query }),
+    });
   },
 
   async removeSearchQuery(id: string): Promise<SearchHistoryItem[]> {
-    try {
-      return await apiFetch<SearchHistoryItem[]>(`/products/search-history/${id}`, {
-        method: "DELETE",
-      });
-    } catch {
-      return removeSearchHistoryItem(id);
-    }
+    return apiFetch<SearchHistoryItem[]>(`/products/search-history/${id}`, {
+      method: "DELETE",
+    });
   },
 
   async clearSearchHistory(): Promise<SearchHistoryItem[]> {
-    try {
-      return await apiFetch<SearchHistoryItem[]>("/products/search-history/all", {
-        method: "DELETE",
-      });
-    } catch {
-      return clearAllSearchHistory();
-    }
+    return apiFetch<SearchHistoryItem[]>("/products/search-history/all", {
+      method: "DELETE",
+    });
   },
 
-  /** Danh sách Tờ trình - Tự động thử kết nối REST API /proposals/search, fallback về proposalMock */
+  /** Danh sách Tờ trình từ PostgreSQL backend */
   async getProposals(filters: ProposalFilterOptions = {}): Promise<ProposalPaginatedResponse> {
-    try {
-      return await apiFetch<ProposalPaginatedResponse>("/proposals/search", {
-        method: "POST",
-        body: JSON.stringify(filters),
-      });
-    } catch {
-      return fetchProposalSearchResults(filters);
-    }
+    return apiFetch<ProposalPaginatedResponse>("/proposals/search", {
+      method: "POST",
+      body: JSON.stringify(filters),
+    });
   },
 };
