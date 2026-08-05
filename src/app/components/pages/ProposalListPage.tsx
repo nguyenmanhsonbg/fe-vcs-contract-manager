@@ -1,11 +1,5 @@
 import { useState, useEffect } from "react";
 import {
-  Search,
-  Filter,
-  Calendar,
-  ChevronDown,
-  ChevronLeft,
-  ChevronRight,
   Loader2,
   Check,
   X,
@@ -14,8 +8,11 @@ import { toast } from "sonner";
 import { DigitizedDoc } from "../../data/models";
 import { docApi } from "../../services/api";
 import { Pagination } from "../common/Pagination";
+import { PageHeader } from "../common/PageHeader";
+import { SelectFilter } from "../common/SelectFilter";
+import { SearchInput } from "../common/SearchInput";
+import { DatePickerInput } from "../common/DatePickerInput";
 import {
-  IconSearch,
   IconFilter,
   IconEye,
   IconMoreVertical,
@@ -101,90 +98,64 @@ export function ProposalListPage({ onOpenDoc }: ProposalListPageProps) {
   return (
     <div className="w-full space-y-5 p-6 bg-[#f8f7fa]">
       {/* Page Header */}
-      <div>
-        <h1 className="text-[24px] font-bold text-[#2F2B3D] leading-[29px]">Quản lý tờ trình</h1>
-        <p className="text-[12px] font-normal text-slate-500 leading-[17px] mt-1">
-          Tạo mới, cập nhật và theo dõi các đề xuất mua hàng cho bạn phụ trách
-        </p>
-      </div>
+      <PageHeader
+        title="Quản lý tờ trình"
+        description="Tạo mới, cập nhật và theo dõi các đề xuất mua hàng cho bạn phụ trách"
+      />
 
       {/* Top Filter Card */}
       <div className="w-full rounded-[8px] bg-white p-4 shadow-2xs border border-slate-100/80">
         <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
-          {/* Filter 1: Loại hàng hóa/dịch vụ */}
-          <div className="md:col-span-3 space-y-1.5">
-            <label className="text-[12px] font-medium text-slate-700">Loại hàng hóa/dịch vụ</label>
-            <div className="relative">
-              <select
-                value={categoryFilter}
-                onChange={(e) => {
-                  setCategoryFilter(e.target.value);
-                  setCurrentPage(1);
-                }}
-                className="w-full appearance-none rounded-[6px] border border-slate-200 bg-white px-3 py-2 text-[13px] text-slate-800 outline-none focus:border-[#ff4c51] pr-8"
-              >
-                <option value="all">Tất cả</option>
-                {PROPOSAL_CATEGORIES.map((cat) => (
-                  <option key={cat} value={cat}>
-                    {cat}
-                  </option>
-                ))}
-              </select>
-              <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 size-4 text-slate-400 pointer-events-none" />
-            </div>
+          <div className="md:col-span-3">
+            <SelectFilter
+              label="Loại hàng hóa/dịch vụ"
+              value={categoryFilter}
+              onChange={(val) => {
+                setCategoryFilter(val);
+                setCurrentPage(1);
+              }}
+              options={[
+                { value: "all", label: "Tất cả" },
+                ...PROPOSAL_CATEGORIES.map((cat) => ({ value: cat, label: cat })),
+              ]}
+            />
           </div>
 
-          {/* Filter 2: Khoảng thời gian */}
-          <div className="md:col-span-3 space-y-1.5">
-            <label className="text-[12px] font-medium text-slate-700">Khoảng thời gian</label>
-            <div className="relative flex items-center">
-              <input
-                type="text"
-                placeholder="YYYY. MM. DD."
-                value={dateRange}
-                onChange={(e) => setDateRange(e.target.value)}
-                className="w-full rounded-[6px] border border-slate-200 bg-white px-3 py-2 text-[13px] text-slate-800 placeholder-slate-400 outline-none focus:border-[#ff4c51] pr-8"
-              />
-              <Calendar className="absolute right-2.5 size-4 text-slate-400 pointer-events-none" />
-            </div>
+          <div className="md:col-span-3">
+            <DatePickerInput
+              label="Khoảng thời gian"
+              value={dateRange}
+              onChange={setDateRange}
+            />
           </div>
 
-          {/* Filter 3: Giá trị */}
-          <div className="md:col-span-2 space-y-1.5">
-            <label className="text-[12px] font-medium text-slate-700">Giá trị</label>
-            <div className="relative">
-              <select
-                value={valueFilter}
-                onChange={(e) => {
-                  setValueFilter(e.target.value);
-                  setCurrentPage(1);
-                }}
-                className="w-full appearance-none rounded-[6px] border border-slate-200 bg-white px-3 py-2 text-[13px] text-slate-800 outline-none focus:border-[#ff4c51] pr-8"
-              >
-                <option value="all">Tất cả</option>
-                <option value="under50">Dưới 50 triệu</option>
-                <option value="50to100">50 - 100 triệu</option>
-                <option value="over100">Trên 100 triệu</option>
-              </select>
-              <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 size-4 text-slate-400 pointer-events-none" />
-            </div>
+          <div className="md:col-span-2">
+            <SelectFilter
+              label="Giá trị"
+              value={valueFilter}
+              onChange={(val) => {
+                setValueFilter(val);
+                setCurrentPage(1);
+              }}
+              options={[
+                { value: "all", label: "Tất cả" },
+                { value: "under50", label: "Dưới 50 triệu" },
+                { value: "50to100", label: "50 - 100 triệu" },
+                { value: "over100", label: "Trên 100 triệu" },
+              ]}
+            />
           </div>
 
-          {/* Search Box */}
-          <div className="md:col-span-4 flex items-center gap-2">
-            <div className="relative flex-1">
-              <IconSearch className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-slate-400" />
-              <input
-                type="text"
-                placeholder="Tìm theo mã tờ trình, tên hàng, đối tác..."
-                value={searchQuery}
-                onChange={(e) => {
-                  setSearchQuery(e.target.value);
-                  setCurrentPage(1);
-                }}
-                className="w-full rounded-[6px] border border-slate-200 bg-white pl-9 pr-3 py-2 text-[13px] text-slate-800 placeholder-slate-400 outline-none focus:border-[#ff4c51]"
-              />
-            </div>
+          <div className="md:col-span-4 flex items-end gap-2">
+            <SearchInput
+              value={searchQuery}
+              onChange={(val) => {
+                setSearchQuery(val);
+                setCurrentPage(1);
+              }}
+              placeholder="Tìm theo mã tờ trình, tên hàng, đối tác..."
+              className="flex-1"
+            />
             <button
               onClick={() => {
                 setCategoryFilter("all");

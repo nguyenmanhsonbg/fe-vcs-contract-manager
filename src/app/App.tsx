@@ -94,7 +94,7 @@ export default function App() {
     syncStateFromHash();
 
     if (!window.location.hash) {
-      window.location.hash = getRouteByKey("list").hash;
+      window.location.hash = getRouteByKey("overview").hash;
     }
 
     window.addEventListener("hashchange", syncStateFromHash);
@@ -137,6 +137,20 @@ export default function App() {
       ? ["Trang chủ", "Quản trị dữ liệu", "Chi tiết tờ trình"]
       : ["Trang chủ", "Quản trị dữ liệu", "Chi tiết số hóa"]
     : currentRoute.breadcrumb;
+
+  if (currentRoute.key === "login") {
+    return (
+      <div className="min-h-screen w-full bg-[#f8f7fa]">
+        {currentRoute.render({
+          onOpenDoc: handleOpenDoc,
+          onUploadClick: () => setUploadModalOpen(true),
+          onViewOriginalDoc: handleViewOriginalDoc,
+          refreshToken: documentRefreshToken,
+        })}
+        <Toaster position="top-right" richColors />
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-screen w-full overflow-hidden bg-[#f8f7fa] text-foreground font-sans">

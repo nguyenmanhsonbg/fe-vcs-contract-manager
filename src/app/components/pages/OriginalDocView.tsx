@@ -2,6 +2,7 @@ import { useState } from "react";
 import { DigitizedDoc } from "../../data/models";
 import { DocumentCanvas } from "../DocumentCanvas";
 import { RotateCw, Minus, Plus, ChevronDown, Maximize2 } from "lucide-react";
+import { IconArrowLeft } from "../icons";
 
 interface OriginalDocViewProps {
   doc: DigitizedDoc;
@@ -24,9 +25,7 @@ export function OriginalDocView({ doc, onBack }: OriginalDocViewProps) {
             className="p-1 hover:bg-slate-100 rounded-[6px] text-[#2F2B3D] transition-colors"
             title="Quay lại"
           >
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-              <path d="M19 12H5M5 12L12 19M5 12L12 5" stroke="#2F2B3D" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
+            <IconArrowLeft className="size-6 text-[#2F2B3D]" />
           </button>
           <h1 className="text-[20px] font-bold text-[#2F2B3D]">Chi tiết tài liệu</h1>
         </div>

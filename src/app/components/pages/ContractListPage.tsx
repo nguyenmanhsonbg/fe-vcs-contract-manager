@@ -1,9 +1,7 @@
-import type { ReactNode } from "react";
 import { useMemo, useState } from "react";
 import {
   Calendar,
   CheckSquare,
-  ChevronDown,
   ChevronRight,
   Clock3,
   FileText,
@@ -11,16 +9,14 @@ import {
   Plus,
 } from "lucide-react";
 import { Pagination } from "../common/Pagination";
-import { IconEye, IconFilter, IconMoreVertical, IconSearch, IconPencil } from "../icons";
+import { StatusBadge } from "../common/StatusBadge";
+import { PageHeader } from "../common/PageHeader";
+import { StatCard } from "../common/StatCard";
+import { SelectFilter } from "../common/SelectFilter";
+import { SearchInput } from "../common/SearchInput";
+import { IconEye, IconFilter, IconMoreVertical, IconPencil } from "../icons";
 import { contracts, contractActivities, contractStats, type ContractStatus } from "../../data/contractMock";
 import { ContractCreatePage } from "./ContractCreatePage";
-
-const statusClass: Record<ContractStatus, string> = {
-  "Đang thực hiện": "bg-[#fff3e8] text-[#ff9f43]",
-  "Đã nghiệm thu": "bg-[#e9f9f0] text-[#28c76f]",
-  "Đã thanh toán": "bg-[#e8f3ff] text-[#3f81ea]",
-  "Chờ phê duyệt": "bg-[#ffecee] text-[#ff4c51]",
-};
 
 const activityDot: Record<string, string> = {
   emerald: "bg-[#e9f9f0] text-[#28c76f]",
@@ -31,24 +27,6 @@ const activityDot: Record<string, string> = {
 
 function formatCurrency(value: number) {
   return new Intl.NumberFormat("vi-VN").format(value);
-}
-
-function SelectFilter({ label, value, onChange, children }: { label: string; value: string; onChange: (value: string) => void; children: ReactNode }) {
-  return (
-    <label className="space-y-1.5 text-[12px] font-medium text-[#5d586c]">
-      <span>{label}</span>
-      <span className="relative block">
-        <select
-          value={value}
-          onChange={(event) => onChange(event.target.value)}
-          className="h-9 w-full appearance-none rounded-[6px] border border-slate-200 bg-white px-3 pr-8 text-[13px] text-[#393740] outline-none focus:border-[#3f81ea]"
-        >
-          {children}
-        </select>
-        <ChevronDown className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
-      </span>
-    </label>
-  );
 }
 
 export function ContractListPage() {
@@ -77,54 +55,54 @@ export function ContractListPage() {
 
   return (
     <div className="min-h-full w-full space-y-6 bg-[#f8f7fa] p-6 text-[#393740]">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h1 className="text-[24px] font-bold leading-[29px] text-[#2f2b3d]">Quản lý hợp đồng</h1>
-          <p className="mt-1 text-[12px] leading-[17px] text-slate-500">
-            Tạo mới, cập nhật và theo dõi các hợp đồng do bạn phụ trách
-          </p>
-        </div>
-        <button
-          onClick={() => setCreating(true)}
-          className="inline-flex h-[46px] items-center gap-2 rounded-[6px] bg-[#ff4c51] px-5 text-[13px] font-medium text-white shadow-sm hover:bg-[#e64449]"
-        >
-          <Plus className="size-4" />
-          Tạo Hợp Đồng
-        </button>
-      </div>
+      <PageHeader
+        title="Quản lý hợp đồng"
+        description="Tạo mới, cập nhật và theo dõi các hợp đồng do bạn phụ trách"
+        action={
+          <button
+            onClick={() => setCreating(true)}
+            className="inline-flex h-[46px] items-center gap-2 rounded-[6px] bg-[#ff4c51] px-5 text-[13px] font-medium text-white shadow-sm hover:bg-[#e64449]"
+          >
+            <Plus className="size-4" />
+            Tạo Hợp Đồng
+          </button>
+        }
+      />
 
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-4">
-        {[
-          { label: "Hợp đồng của tôi", value: contractStats.mine, color: "#3f81ea", icon: FileText },
-          { label: "Đang thực hiện", value: contractStats.running, color: "#ff9f43", icon: Clock3 },
-          { label: "Đã nghiệm thu", value: contractStats.accepted, color: "#28c76f", icon: CheckSquare },
-        ].map(({ label, value, color, icon: Icon }) => (
-          <div key={label} className="flex h-[108px] items-center rounded-[6px] border-b-[3px] bg-white p-6 shadow-[0_2px_8px_rgba(47,43,61,0.12)]" style={{ borderBottomColor: color }}>
-            <div className="flex items-center gap-4">
-              <div className="flex size-10 items-center justify-center rounded-[6px]" style={{ color, backgroundColor: `${color}22` }}>
-                <Icon className="size-6" />
-              </div>
-              <div>
-                <p className="text-[13px] font-medium leading-[18px]">{label}</p>
-                <p className="text-[24px] font-medium leading-[38px]" style={{ color }}>{value}</p>
-              </div>
-            </div>
-          </div>
-        ))}
-
-        <div className="flex h-[108px] items-center rounded-[6px] border-b-[3px] border-[#00bad1] bg-white p-6 shadow-[0_2px_8px_rgba(47,43,61,0.12)]">
-          <div className="flex items-center gap-4">
-            <div className="flex size-10 items-center justify-center rounded-[6px] bg-[#e6fbfd] text-[#00bad1]">
-              <GitFork className="size-6" />
-            </div>
-            <div>
-              <p className="text-[13px] font-medium leading-[18px]">Trạng thái thực thi</p>
-              <p className="text-[18px] font-medium leading-[38px] text-[#00bad1]">
-                Thanh toán: {contractStats.paid} <span className="text-[#5d586c]">|</span> Thanh lý: {contractStats.liquidated}
-              </p>
-            </div>
-          </div>
-        </div>
+        <StatCard
+          variant="accent-bottom"
+          title="Hợp đồng của tôi"
+          value={contractStats.mine}
+          accentColor="#3f81ea"
+          icon={FileText}
+        />
+        <StatCard
+          variant="accent-bottom"
+          title="Đang thực hiện"
+          value={contractStats.running}
+          accentColor="#ff9f43"
+          icon={Clock3}
+        />
+        <StatCard
+          variant="accent-bottom"
+          title="Đã nghiệm thu"
+          value={contractStats.accepted}
+          accentColor="#28c76f"
+          icon={CheckSquare}
+        />
+        <StatCard
+          variant="accent-bottom"
+          title="Trạng thái thực thi"
+          value=""
+          accentColor="#00bad1"
+          icon={GitFork}
+          extraContent={
+            <>
+              Thanh toán: {contractStats.paid} <span className="text-[#5d586c]">|</span> Thanh lý: {contractStats.liquidated}
+            </>
+          }
+        />
       </div>
 
       <div className="grid grid-cols-1 gap-4 rounded-[6px] bg-white p-5 shadow-[0_2px_8px_rgba(47,43,61,0.08)] md:grid-cols-[160px_160px_180px_160px_1fr_44px]">
@@ -152,18 +130,14 @@ export function ContractListPage() {
           <option value="Đã thanh toán">Đã thanh toán</option>
           <option value="Chờ phê duyệt">Chờ phê duyệt</option>
         </SelectFilter>
-        <label className="space-y-1.5 text-[12px] font-medium text-transparent">
-          <span>Tìm kiếm</span>
-          <span className="relative block">
-            <IconSearch className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
-            <input
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder="Tìm theo mã HĐ, đối tác..."
-              className="h-9 w-full rounded-[6px] border border-slate-200 bg-white px-9 text-[13px] text-[#393740] outline-none focus:border-[#3f81ea]"
-            />
-          </span>
-        </label>
+        <div className="space-y-1.5">
+          <span className="text-[12px] font-medium text-transparent block">Tìm kiếm</span>
+          <SearchInput
+            value={query}
+            onChange={setQuery}
+            placeholder="Tìm theo mã HĐ, đối tác..."
+          />
+        </div>
         <button
           onClick={() => {
             setContractType("all");
@@ -200,9 +174,7 @@ export function ContractListPage() {
                   <td className="px-3 py-2 whitespace-nowrap">{formatCurrency(item.value)}</td>
                   <td className="px-3 py-2 whitespace-nowrap">{item.signedAt}</td>
                   <td className="px-3 py-2 whitespace-nowrap">
-                    <span className={`inline-flex h-6 items-center rounded-[4px] px-2 text-[11px] font-medium ${statusClass[item.status]}`}>
-                      {item.status}
-                    </span>
+                    <StatusBadge status={item.status} />
                   </td>
                   <td className="px-3 py-2 whitespace-nowrap">{item.source}</td>
                   <td className="px-3 py-2">

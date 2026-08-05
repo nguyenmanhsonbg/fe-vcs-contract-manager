@@ -18,7 +18,7 @@ import {
 import imgImage2 from "../../imports/SốHoaTaiLiệu-1/01342b2bb964441edcb3fd61de43edf5fdb34da6.png";
 import imgAvatar from "../../imports/SốHoaTaiLiệu-1/420fce61b2448c9eab5d25435a5e458a011f53b7.png";
 
-export type PageKey = "list" | "product" | "proposal" | "contract";
+export type PageKey = "overview" | "list" | "product" | "proposal" | "contract" | "login";
 
 interface NavItem {
   key?: PageKey;
@@ -36,7 +36,7 @@ interface NavSection {
 const SECTIONS: NavSection[] = [
   {
     items: [
-      { label: "Báo cáo tổng quan", icon: IconBaoCaoTongQuan },
+      { key: "overview", label: "Báo cáo tổng quan", icon: IconBaoCaoTongQuan },
     ],
   },
   {

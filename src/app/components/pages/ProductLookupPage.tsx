@@ -11,6 +11,7 @@ import {
 import { DigitizedDoc } from "../../data/models";
 import { docApi } from "../../services/api";
 import { Pagination } from "../common/Pagination";
+import { PageHeader } from "../common/PageHeader";
 import { ProductSearchResultItem, SearchHistoryItem } from "../../data/apiModels";
 
 const TIME_RANGE_OPTIONS = [
@@ -128,12 +129,10 @@ export function ProductLookupPage({ onOpenDoc }: ProductLookupPageProps) {
   return (
     <div className="w-full space-y-4 px-6 py-4 bg-[#f8f7fa] min-h-full">
       {/* 1. Header Tiêu đề trang */}
-      <div>
-        <h1 className="text-2xl font-bold text-[#2f2b3d]">Tìm kiếm sản phẩm</h1>
-        <p className="text-xs text-slate-500 italic mt-1">
-          Tìm kiếm nhanh trên kho tài liệu mua bán thuộc phạm vi bạn được phân công
-        </p>
-      </div>
+      <PageHeader
+        title="Tìm kiếm sản phẩm"
+        description="Tìm kiếm nhanh trên kho tài liệu mua bán thuộc phạm vi bạn được phân công"
+      />
 
       {/* 2. Thẻ Tìm kiếm thông minh + AI Mode */}
       <div className="rounded-lg border border-slate-200/80 bg-white p-4 shadow-xs space-y-3">

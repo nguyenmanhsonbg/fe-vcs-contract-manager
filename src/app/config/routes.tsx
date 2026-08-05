@@ -1,9 +1,11 @@
 import React, { ReactNode } from "react";
 import { PageKey } from "../components/Sidebar";
+import { OverviewReportPage } from "../components/pages/OverviewReportPage";
 import { DocumentListPage } from "../components/pages/DocumentListPage";
 import { ContractListPage } from "../components/pages/ContractListPage";
 import { ProposalListPage } from "../components/pages/ProposalListPage";
 import { ProductLookupPage } from "../components/pages/ProductLookupPage";
+import { LoginPage } from "../components/pages/LoginPage";
 import { DigitizedDoc } from "../data/models";
 
 export interface RouteComponentProps {
@@ -22,6 +24,18 @@ export interface RouteDefinition {
 
 /** Registry danh sách tất cả Route/Tab trong hệ thống */
 export const ROUTES: RouteDefinition[] = [
+  {
+    key: "overview",
+    hash: "#/overview",
+    breadcrumb: ["Trang chủ", "Báo cáo tổng quan"],
+    render: () => <OverviewReportPage />,
+  },
+  {
+    key: "login",
+    hash: "#/login",
+    breadcrumb: ["Trang chủ", "Đăng nhập"],
+    render: () => <LoginPage onLoginSuccess={() => { window.location.hash = "#/overview"; }} />,
+  },
   {
     key: "list",
     hash: "#/documents",
@@ -84,7 +98,7 @@ export function parseHashRoute(hash: string): ParsedRoute {
   const clean = hash.replace(/^#\/?/, "");
   const parts = clean.split("/").filter(Boolean);
 
-  const section = parts[0] || "documents";
+  const section = parts[0] || "overview";
   
   // Tự động tìm Route khớp với URL section từ ROUTES Registry (Không hardcode!)
   const matchedRoute =
