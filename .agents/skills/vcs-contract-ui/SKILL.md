@@ -103,8 +103,79 @@ Khi xây dựng màn hình mới hoặc nâng cấp giao diện, **BẮT BUỘC*
 
 ---
 
-## 6. Kiểm tra & Đảm bảo chất lượng Code (Quality & Build Checklist)
+## 7. Nguyên tắc Thiết kế FE Sẵn sàng Gắn Backend API (Backend API-Ready Conventions)
+
+Để đảm bảo khi chuyển giao kết nối Backend RESTful API (Spring Boot/Node.js) không cần phải refactor lại giao diện FE, tất cả trang và component trong dự án PHẢI tuân thủ các quy tắc sau:
+
+### 7.1. Tập trung hóa Service Layer (`src/app/services/`)
+- Mọi thao tác gọi dữ liệu (HTTP GET, POST, PUT, DELETE) **KHÔNG** được viết `fetch`/`axios` trực tiếp trong file JSX/TSX của trang.
+- Định nghĩa tất cả API method bên trong [api.ts](file:///home/quocnm/workspace/vcs-produce/vcs-contract-manager-ui/src/app/services/api.ts).
+- Đảm bảo sử dụng `API_BASE = import.meta.env.VITE_API_BASE_URL || "/api/v1"` và hỗ trợ fallback dữ liệu khi chưa bật server backend.
+
+### 7.2. Định nghĩa DTO & Models thống nhất (`src/app/data/`)
+- Khai báo đầy đủ TypeScript Interface cho Request Payload & Response Body trong [models.ts](file:///home/quocnm/workspace/vcs-produce/vcs-contract-manager-ui/src/app/data/models.ts) hoặc [apiModels.ts](file:///home/quocnm/workspace/vcs-produce/vcs-contract-manager-ui/src/app/data/apiModels.ts).
+- Sử dụng kiểu dữ liệu chuẩn RESTful PageResponse:
+  ```typescript
+  export interface PageResponse<T> {
+    content: T[];
+    page: number;
+    size: number;
+    totalElements: number;
+    totalPages: number;
+  }
+  ```
+
+### 7.3. Quản lý 4 Trạng thái Cốt lõi tại Component (UI State Pattern)
+Mọi trang danh sách/bảng/chi tiết PHẢI quản lý đủ 4 trạng thái sau:
+1. `loading: boolean` - Hiển thị Skeleton hoặc hiệu ứng tải dữ liệu.
+2. `data: T | T[]` - Dữ liệu nhận từ API.
+3. `error: string | null` - Thông báo lỗi khi API thất bại (`ApiError`).
+4. `pagination: PageResponse` - Quản lý trang hiện tại, kích thước trang và tổng số phần tử.
+
+```tsx
+// Pattern chuẩn cho Page Component sẵn sàng kết nối API
+const [loading, setLoading] = useState(false);
+const [data, setData] = useState<DigitizedDoc[]>([]);
+const [error, setError] = useState<string | null>(null);
+
+useEffect(() => {
+  async function loadData() {
+    try {
+      setLoading(true);
+      setError(null);
+      const res = await docApi.getDocuments(filters);
+      setData(res.content);
+    } catch (err: any) {
+      setError(err.message || "Không thể tải dữ liệu");
+      toast.error("Lỗi kết nối Backend API");
+    } finally {
+      setLoading(false);
+    }
+  }
+  loadData();
+}, [filters]);
+```
+
+### 7.4. Xử lý Thao tác Mutation Async (`async/await` + `try/catch`)
+- Với các nút hành động (Tạo mới, Cập nhật, Xóa, Phê duyệt, Đổi trạng thái), luôn bọc trong hàm `async` và hiển thị phản hồi bằng `toast` (`sonner`):
+  ```tsx
+  async function handleConfirm(id: string) {
+    try {
+      await docApi.updateDocumentStatus(id, "confirmed");
+      toast.success("Cập nhật trạng thái thành công!");
+      fetchData(); // Reload danh sách từ API
+    } catch (err: any) {
+      toast.error(err.message || "Thao tác thất bại");
+    }
+  }
+  ```
+
+---
+
+## 8. Kiểm tra & Đảm bảo chất lượng Code (Quality & Build Checklist)
 
 Trước khi hoàn tất bất kỳ thay đổi nào:
 1. Chạy `npm run build` để đảm bảo ứng dụng biên dịch thành công 100%, không bị lỗi trùng lặp import hay sai kiểu TypeScript.
 2. Kiểm tra không có code dư thừa hay over-engineering (Tuân thủ skill `ponytail`).
+3. Đảm bảo tất cả biến dữ liệu giao diện đều truyền từ state/props đại diện cho DTO từ backend API.
+
