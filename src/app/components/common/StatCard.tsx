@@ -18,6 +18,7 @@ export interface StatCardProps {
   variant?: "default" | "accent-bottom";
   accentColor?: string;
   extraContent?: ReactNode;
+  onClick?: () => void;
 }
 
 export function StatCard({
@@ -37,12 +38,13 @@ export function StatCard({
   variant = "default",
   accentColor,
   extraContent,
+  onClick,
 }: StatCardProps) {
   if (variant === "accent-bottom") {
     return (
       <div
-        className={`flex h-[108px] items-center rounded-[6px] border-b-[3px] bg-white p-6 shadow-[0_2px_8px_rgba(47,43,61,0.12)] ${className}`}
-        style={{ borderBottomColor: accentColor || "#3f81ea" }}
+        onClick={onClick}
+        className={`flex h-[108px] items-center rounded-[6px] border border-slate-200/80 bg-white p-6 shadow-[0_2px_8px_rgba(47,43,61,0.12)] ${className}`}
       >
         <div className="flex items-center gap-4 w-full">
           {Icon && (
@@ -79,7 +81,8 @@ export function StatCard({
 
   return (
     <div
-      className={`bg-white rounded-xl p-5 shadow-[0_4px_16px_rgba(47,43,61,0.08)] border border-slate-100 flex flex-col justify-between overflow-hidden relative pb-6 ${className}`}
+      onClick={onClick}
+      className={`bg-white rounded-xl p-5 shadow-[0_4px_16px_rgba(47,43,61,0.08)] border border-slate-100 flex flex-col justify-between overflow-hidden relative ${className}`}
     >
       <div className="flex items-center gap-3.5">
         {Icon && (
@@ -113,8 +116,6 @@ export function StatCard({
           {trendSubtext && <span className="text-slate-400 font-normal">{trendSubtext}</span>}
         </div>
       )}
-
-      {bottomBarBg && <div className={`absolute bottom-0 left-0 right-0 h-[4px] ${bottomBarBg}`} />}
     </div>
   );
 }

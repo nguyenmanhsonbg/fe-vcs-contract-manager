@@ -15,6 +15,7 @@ import { StatusBadge } from "../common/StatusBadge";
 import { PageHeader } from "../common/PageHeader";
 import { UploadDropzone } from "../common/UploadDropzone";
 import { SearchInput } from "../common/SearchInput";
+import { StatCard } from "../common/StatCard";
 
 const today = () => new Date().toISOString().slice(0, 10);
 
@@ -45,14 +46,17 @@ export function DocumentListPage({
   const [uploader, setUploader] = useState<string>("all");
   const [assignee, setAssignee] = useState<string>("all");
   const [lowConfOnly, setLowConfOnly] = useState(false);
-  const [from, setFrom] = useState(today);
-  const [to, setTo] = useState(today);
+  const [from, setFrom] = useState("");
+  const [to, setTo] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
+
+  const [allDocuments, setAllDocuments] = useState<DigitizedDoc[]>([]);
 
   const loadData = async () => {
     setLoading(true);
     try {
+      // Fetch filtered documents for the table view
       const res = await docApi.getDocuments({
         search,
         type,
@@ -69,6 +73,21 @@ export function DocumentListPage({
       setDocuments(rawContent);
       setTotalElements(res.totalElements || rawContent.length);
       setTotalPages(res.totalPages || 1);
+
+      // Fetch all documents for stat counts without status filtering
+      const statsRes = await docApi.getDocuments({
+        search,
+        type,
+        status: "all",
+        uploadedBy: uploader,
+        assignedTo: assignee,
+        lowConfidenceOnly: lowConfOnly,
+        from,
+        to,
+        page: 1,
+        size: 1000,
+      });
+      setAllDocuments(statsRes.content || []);
     } catch (err) {
       console.error("Lỗi khi tải danh sách từ backend:", err);
     } finally {
@@ -89,13 +108,13 @@ export function DocumentListPage({
   }, [search, type, statusFilter, uploader, assignee, lowConfOnly, from, to, currentPage, pageSize, refreshToken]);
 
   const stats = useMemo(() => {
-    const mine = documents.filter((d) => d.uploadedBy === "Nguyễn Văn A").length;
-    const ocr = documents.filter((d) => d.status === "ocr" || d.status === "pending").length;
-    const review = documents.filter((d) => d.status === "review").length;
-    const confirmed = documents.filter((d) => d.status === "confirmed").length;
-    const failed = documents.filter((d) => d.status === "failed").length;
+    const mine = allDocuments.filter((d) => d.uploadedBy === "Nguyễn Văn A" || d.uploadedBy === "Tôi").length;
+    const ocr = allDocuments.filter((d) => d.status === "ocr" || d.status === "pending").length;
+    const review = allDocuments.filter((d) => d.status === "review").length;
+    const confirmed = allDocuments.filter((d) => d.status === "confirmed").length;
+    const failed = allDocuments.filter((d) => d.status === "failed").length;
     return { mine, ocr, review, confirmed, failed };
-  }, [documents]);
+  }, [allDocuments]);
 
   const startIndex = (currentPage - 1) * pageSize;
   const endIndex = Math.min(startIndex + documents.length, totalElements);
@@ -132,90 +151,66 @@ export function DocumentListPage({
 
       {/* 5 Stat Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-2">
-        <div
+        <StatCard
+          variant="accent-bottom"
+          title="Tài liệu của tôi"
+          value={stats.mine}
+          accentColor="#3f81ea"
+          icon={IconDocTextSimple}
+          iconBgClass="bg-[rgba(63,129,234,0.14)] text-[#3f81ea]"
           onClick={() => setStatusFilter("all")}
-          className={`bg-white rounded-[6px] h-[108px] p-6 border-b-[3px] border-[#3f81ea] shadow-[0px_2px_4px_rgba(47,43,61,0.12)] cursor-pointer hover:shadow-md transition-shadow relative overflow-hidden flex items-center ${
+          className={`cursor-pointer hover:shadow-md transition-shadow ${
             statusFilter === "all" ? "ring-2 ring-[#3f81ea]" : ""
           }`}
-        >
-          <div className="flex items-center gap-4 w-full">
-            <div className="size-10 rounded-[6px] bg-[rgba(63,129,234,0.14)] flex items-center justify-center text-[#3f81ea] shrink-0 p-1.5">
-              <IconDocTextSimple className="size-5" />
-            </div>
-            <div className="min-w-0">
-              <p className="text-[13px] text-[#393740] font-medium leading-[18px] truncate">Tài liệu của tôi</p>
-              <p className="text-[24px] leading-[38px] font-medium text-[#3f81ea]">{stats.mine}</p>
-            </div>
-          </div>
-        </div>
-
-        <div
+        />
+        <StatCard
+          variant="accent-bottom"
+          title="Đang xử lý"
+          value={stats.ocr}
+          accentColor="#00bad1"
+          icon={IconClockProcessing}
+          iconBgClass="bg-[rgba(0,186,209,0.14)] text-[#00bad1]"
           onClick={() => setStatusFilter("ocr")}
-          className={`bg-white rounded-[6px] h-[108px] p-6 border-b-[3px] border-[#00bad1] shadow-[0px_2px_4px_rgba(47,43,61,0.12)] cursor-pointer hover:shadow-md transition-shadow relative overflow-hidden flex items-center ${
+          className={`cursor-pointer hover:shadow-md transition-shadow ${
             statusFilter === "ocr" ? "ring-2 ring-[#00bad1]" : ""
           }`}
-        >
-          <div className="flex items-center gap-4 w-full">
-            <div className="size-10 rounded-[6px] bg-[rgba(0,186,209,0.14)] flex items-center justify-center text-[#00bad1] shrink-0 p-1.5">
-              <IconClockProcessing className="size-5" />
-            </div>
-            <div className="min-w-0">
-              <p className="text-[13px] text-[#393740] font-medium leading-[18px] truncate">Đang xử lý</p>
-              <p className="text-[24px] leading-[38px] font-medium text-[#00bad1]">{stats.ocr}</p>
-            </div>
-          </div>
-        </div>
-
-        <div
+        />
+        <StatCard
+          variant="accent-bottom"
+          title="Chờ đối soát"
+          value={stats.review}
+          accentColor="#ff9f43"
+          icon={IconReviewSplit}
+          iconBgClass="bg-[rgba(255,159,67,0.14)] text-[#ff9f43]"
           onClick={() => setStatusFilter("review")}
-          className={`bg-white rounded-[6px] h-[108px] p-6 border-b-[3px] border-[#ff9f43] shadow-[0px_2px_4px_rgba(47,43,61,0.12)] cursor-pointer hover:shadow-md transition-shadow relative overflow-hidden flex items-center ${
+          className={`cursor-pointer hover:shadow-md transition-shadow ${
             statusFilter === "review" ? "ring-2 ring-[#ff9f43]" : ""
           }`}
-        >
-          <div className="flex items-center gap-4 w-full">
-            <div className="size-10 rounded-[6px] bg-[rgba(255,159,67,0.14)] flex items-center justify-center text-[#ff9f43] shrink-0 p-1.5">
-              <IconReviewSplit className="size-5" />
-            </div>
-            <div className="min-w-0">
-              <p className="text-[13px] text-[#393740] font-medium leading-[18px] truncate">Chờ đối soát</p>
-              <p className="text-[24px] leading-[38px] font-medium text-[#ff9f43]">{stats.review}</p>
-            </div>
-          </div>
-        </div>
-
-        <div
+        />
+        <StatCard
+          variant="accent-bottom"
+          title="Đã xác nhận"
+          value={stats.confirmed}
+          accentColor="#28c76f"
+          icon={IconCheckCircleOutline}
+          iconBgClass="bg-[rgba(40,199,111,0.14)] text-[#28c76f]"
           onClick={() => setStatusFilter("confirmed")}
-          className={`bg-white rounded-[6px] h-[108px] p-6 border-b-[3px] border-[#28c76f] shadow-[0px_2px_4px_rgba(47,43,61,0.12)] cursor-pointer hover:shadow-md transition-shadow relative overflow-hidden flex items-center ${
+          className={`cursor-pointer hover:shadow-md transition-shadow ${
             statusFilter === "confirmed" ? "ring-2 ring-[#28c76f]" : ""
           }`}
-        >
-          <div className="flex items-center gap-4 w-full">
-            <div className="size-10 rounded-[6px] bg-[rgba(40,199,111,0.14)] flex items-center justify-center text-[#28c76f] shrink-0 p-1.5">
-              <IconCheckCircleOutline className="size-5" />
-            </div>
-            <div className="min-w-0">
-              <p className="text-[13px] text-[#393740] font-medium leading-[18px] truncate">Đã xác nhận</p>
-              <p className="text-[24px] leading-[38px] font-medium text-[#28c76f]">{stats.confirmed}</p>
-            </div>
-          </div>
-        </div>
-
-        <div
+        />
+        <StatCard
+          variant="accent-bottom"
+          title="Lỗi"
+          value={stats.failed}
+          accentColor="#ea5455"
+          icon={IconAlertTriangleOutline}
+          iconBgClass="bg-[rgba(234,84,85,0.14)] text-[#ea5455]"
           onClick={() => setStatusFilter("failed")}
-          className={`bg-white rounded-[6px] h-[108px] p-6 border-b-[3px] border-[#ea5455] shadow-[0px_2px_4px_rgba(47,43,61,0.12)] cursor-pointer hover:shadow-md transition-shadow relative overflow-hidden flex items-center ${
+          className={`cursor-pointer hover:shadow-md transition-shadow ${
             statusFilter === "failed" ? "ring-2 ring-[#ea5455]" : ""
           }`}
-        >
-          <div className="flex items-center gap-4 w-full">
-            <div className="size-10 rounded-[6px] bg-[rgba(234,84,85,0.14)] flex items-center justify-center text-[#ea5455] shrink-0 p-1.5">
-              <IconAlertTriangleOutline className="size-5" />
-            </div>
-            <div className="min-w-0">
-              <p className="text-[13px] text-[#393740] font-medium leading-[18px] truncate">Lỗi</p>
-              <p className="text-[24px] leading-[38px] font-medium text-[#ea5455]">{stats.failed}</p>
-            </div>
-          </div>
-        </div>
+        />
       </div>
 
       {/* Upload Dropzone Card */}

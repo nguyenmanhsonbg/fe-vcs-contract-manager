@@ -98,9 +98,10 @@ export function parseHashRoute(hash: string): ParsedRoute {
   const clean = hash.replace(/^#\/?/, "");
   const parts = clean.split("/").filter(Boolean);
 
-  const section = parts[0] || "overview";
+  const rawSection = parts[0] || "overview";
+  const section = rawSection === "doc" ? "documents" : rawSection;
   
-  // Tự động tìm Route khớp với URL section từ ROUTES Registry (Không hardcode!)
+  // Tự động tìm Route khớp với URL section từ ROUTES Registry
   const matchedRoute =
     ROUTES.find((r) => r.hash.replace(/^#\/?/, "") === section) || ROUTES[0];
 

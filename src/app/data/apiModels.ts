@@ -82,3 +82,38 @@ export interface ProposalPaginatedResponse {
   totalElements: number;
   totalPages: number;
 }
+
+export interface ProposalLineItemDto {
+  id?: string;
+  itemCategory?: string;
+  name: string;
+  description: string;
+  supplier?: string;
+  unit: string;
+  quantity: number;
+  unitPrice: number;
+  taxRate?: number;
+  lineAmount?: number;
+  lineTaxAmount?: number;
+}
+
+export interface ProposalDetailDto {
+  id: string;
+  summary: ProposalItem;
+  status: string;
+  processType?: string;
+  currency?: string;
+  subtotal?: number;
+  taxAmount?: number;
+  routingValue?: number;
+  totalValue?: number;
+  proposalNumber?: string;
+  proposalDate?: string;
+  proposalContent?: string;
+  purpose?: string;
+  legalBasis?: string;
+  budgetSource?: string;
+  executionPeriod?: string;
+  items?: ProposalLineItemDto[];
+}
+

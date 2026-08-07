@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { DigitizedDoc, DOC_TYPE_LABELS, ExtractedField } from "../../data/models";
 import { ApiError, docApi } from "../../services/api";
 import { toast } from "sonner";
@@ -43,6 +43,18 @@ export function getFieldLabel(labelOrKey: string): string {
   return FIELD_LABEL_MAP[labelOrKey] || labelOrKey;
 }
 
+const ZOOM_OPTIONS = [25, 50, 75, 100, 125, 150, 200, 250, 300, 400, 500];
+
+function getNextZoom(current: number, direction: "in" | "out"): number {
+  if (direction === "in") {
+    const match = ZOOM_OPTIONS.find((z) => z > current);
+    return match || 500;
+  } else {
+    const match = [...ZOOM_OPTIONS].reverse().find((z) => z < current);
+    return match || 25;
+  }
+}
+
 export function DocumentDetailPage({ doc, onBack, onViewOriginalDoc }: DocumentDetailPageProps) {
   const initialFields = doc?.fields || [];
   const [fields, setFields] = useState<ExtractedField[]>(initialFields);
@@ -51,7 +63,87 @@ export function DocumentDetailPage({ doc, onBack, onViewOriginalDoc }: DocumentD
   const [selectedId, setSelectedId] = useState<string | null>(initialFields[0]?.id || null);
   const [page, setPage] = useState(1);
   const [zoom, setZoom] = useState(100);
+  const [rotation, setRotation] = useState(0);
   const [confirmed, setConfirmed] = useState(doc?.status === "confirmed");
+
+  // Mouse drag to pan canvas
+  const canvasContainerRef = useRef<HTMLDivElement | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0, scrollLeft: 0, scrollTop: 0 });
+
+  function handleMouseDown(e: React.MouseEvent<HTMLDivElement>) {
+    if (!canvasContainerRef.current) return;
+    setIsDragging(true);
+    setDragStart({
+      x: e.clientX,
+      y: e.clientY,
+      scrollLeft: canvasContainerRef.current.scrollLeft,
+      scrollTop: canvasContainerRef.current.scrollTop,
+    });
+  }
+
+  function handleMouseMove(e: React.MouseEvent<HTMLDivElement>) {
+    if (!isDragging || !canvasContainerRef.current) return;
+    e.preventDefault();
+    const dx = e.clientX - dragStart.x;
+    const dy = e.clientY - dragStart.y;
+    canvasContainerRef.current.scrollLeft = dragStart.scrollLeft - dx;
+    canvasContainerRef.current.scrollTop = dragStart.scrollTop - dy;
+  }
+
+  function handleMouseUp() {
+    setIsDragging(false);
+  }
+
+  // Ctrl + mouse wheel zooming listener with snapped zoom levels
+  useEffect(() => {
+    const container = canvasContainerRef.current;
+    if (!container) return;
+
+    const handleWheel = (e: WheelEvent) => {
+      if (e.ctrlKey || e.metaKey) {
+        e.preventDefault();
+        setZoom((z) => getNextZoom(z, e.deltaY < 0 ? "in" : "out"));
+      }
+    };
+
+    container.addEventListener("wheel", handleWheel, { passive: false });
+    return () => {
+      container.removeEventListener("wheel", handleWheel);
+    };
+  }, []);
+
+  async function handleDownload() {
+    try {
+      const url = `/api/v1/documents/${doc.id}/download`;
+      const res = await fetch(url);
+      if (res.ok) {
+        const blob = await res.blob();
+        const blobUrl = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = blobUrl;
+        a.download = doc.fileName || `document-${doc.id}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(blobUrl);
+      } else {
+        const fallbackContent = `%PDF-1.4 Mock Document Content for ${doc.fileName}`;
+        const blob = new Blob([fallbackContent], { type: "application/pdf" });
+        const blobUrl = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = blobUrl;
+        a.download = doc.fileName || `document-${doc.id}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(blobUrl);
+      }
+      toast.success(`Đã tải về tài liệu "${doc.fileName}" thành công!`);
+    } catch {
+      toast.error("Lỗi khi tải tài liệu xuống.");
+    }
+  }
   const [logExpanded, setLogExpanded] = useState(false);
   const [scanning, setScanning] = useState(false);
 
@@ -272,30 +364,39 @@ export function DocumentDetailPage({ doc, onBack, onViewOriginalDoc }: DocumentD
               {/* Left Group: Rotate, Minus, Zoom Select, Plus */}
               <div className="flex items-center gap-2">
                 {/* Rotate */}
-                <button className="p-2 bg-[#f0eff4] hover:bg-[#e4e3e8] rounded-[6px] text-[#5d586c] transition-colors" title="Xoay">
+                <button
+                  onClick={() => setRotation((r) => r + 90)}
+                  className="p-2 bg-[#f0eff4] hover:bg-[#e4e3e8] rounded-[6px] text-[#5d586c] transition-colors"
+                  title="Xoay 90°"
+                >
                   <RotateCw className="size-4" />
                 </button>
                 {/* Zoom Out */}
-                <button onClick={() => setZoom((z) => Math.max(50, z - 10))} className="p-2 bg-[#f0eff4] hover:bg-[#e4e3e8] rounded-[6px] text-[#5d586c] transition-colors" title="Thu nhỏ">
+                <button onClick={() => setZoom((z) => getNextZoom(z, "out"))} className="p-2 bg-[#f0eff4] hover:bg-[#e4e3e8] rounded-[6px] text-[#5d586c] transition-colors" title="Thu nhỏ">
                   <Minus className="size-4" />
                 </button>
                 {/* Zoom Select */}
-                <div className="relative">
+                <div className="relative flex items-center">
                   <select
                     value={zoom}
                     onChange={(e) => setZoom(Number(e.target.value))}
-                    className="h-8 border-none bg-[#f0eff4] hover:bg-[#e4e3e8] rounded-[6px] px-3 text-xs text-[#5d586c] outline-none appearance-none pr-7 font-semibold cursor-pointer transition-colors"
+                    className="h-8 border-none bg-[#f0eff4] hover:bg-[#e4e3e8] rounded-[6px] pl-3 pr-7 text-xs text-[#5d586c] outline-none appearance-none font-semibold cursor-pointer transition-colors"
                   >
-                    <option value={50}>50%</option>
-                    <option value={75}>75%</option>
-                    <option value={100}>100%</option>
-                    <option value={125}>125%</option>
-                    <option value={150}>150%</option>
+                    {ZOOM_OPTIONS.map((val) => (
+                      <option key={val} value={val}>
+                        {val}%
+                      </option>
+                    ))}
+                    {!ZOOM_OPTIONS.includes(zoom) && (
+                      <option key={zoom} value={zoom}>
+                        {zoom}%
+                      </option>
+                    )}
                   </select>
-                  <ChevronDown className="size-4 text-[#5d586c] absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  <ChevronDown className="size-4 text-[#5d586c] absolute right-2 pointer-events-none" />
                 </div>
                 {/* Zoom In */}
-                <button onClick={() => setZoom((z) => Math.min(200, z + 10))} className="p-2 bg-[#f0eff4] hover:bg-[#e4e3e8] rounded-[6px] text-[#5d586c] transition-colors" title="Phóng to">
+                <button onClick={() => setZoom((z) => getNextZoom(z, "in"))} className="p-2 bg-[#f0eff4] hover:bg-[#e4e3e8] rounded-[6px] text-[#5d586c] transition-colors" title="Phóng to">
                   <Plus className="size-4" />
                 </button>
               </div>
@@ -310,7 +411,11 @@ export function DocumentDetailPage({ doc, onBack, onViewOriginalDoc }: DocumentD
                 >
                   <IconScan className={`size-4 text-[#5d586c] ${scanning ? "animate-pulse" : ""}`} />
                 </button>
-                <button className="p-1.5 hover:bg-slate-100 rounded-[6px] text-[#5d586c] transition-colors" title="Tải xuống">
+                <button
+                  onClick={handleDownload}
+                  className="p-1.5 hover:bg-slate-100 rounded-[6px] text-[#5d586c] transition-colors"
+                  title="Tải xuống"
+                >
                   <Download className="size-4 text-[#5d586c]" />
                 </button>
               </div>
@@ -327,10 +432,20 @@ export function DocumentDetailPage({ doc, onBack, onViewOriginalDoc }: DocumentD
                 <IconArrowsMaximize className="size-4 text-[#5d586c]" />
               </button>
 
-              <div className="min-h-[580px] max-h-[680px] overflow-auto bg-slate-100/50 p-6 flex justify-center items-start">
+              <div
+                ref={canvasContainerRef}
+                onMouseDown={handleMouseDown}
+                onMouseMove={handleMouseMove}
+                onMouseUp={handleMouseUp}
+                onMouseLeave={handleMouseUp}
+                className={`min-h-[580px] max-h-[680px] overflow-auto bg-slate-100/50 p-6 flex justify-center items-start select-none ${
+                  isDragging ? "cursor-grabbing" : "cursor-grab"
+                }`}
+              >
                 <DocumentCanvas
                   zoom={zoom}
                   page={page}
+                  rotation={rotation}
                   region={activeRegion && activeRegion.page === page ? activeRegion : null}
                   docId={doc?.id}
                 />

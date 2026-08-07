@@ -305,3 +305,35 @@ export const IconDatabase = ({ className = "size-5" }: { className?: string }) =
   </svg>
 );
 
+export const IconMenuHamburger = ({ className = "size-5" }: { className?: string }) => (
+  <svg className={className} width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M3 6H21M3 12H21M3 18H21" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
+
+export const IconPhuongAnKinhDoanh = ({ className = "size-5" }: { className?: string }) => (
+  <svg className={className} width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M11.6667 2.5H5C4.07953 2.5 3.33334 3.24619 3.33334 4.16667V15.8333C3.33334 16.7538 4.07953 17.5 5.00001 17.5H15C15.9205 17.5 16.6667 16.7538 16.6667 15.8333V7.5L11.6667 2.5Z" stroke="currentColor" strokeOpacity="0.9" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    <path d="M11.6667 2.5V7.5H16.6667" stroke="currentColor" strokeOpacity="0.9" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    <path d="M10 9.16666C9.07953 9.16666 8.33334 9.91285 8.33334 10.8333C8.33334 11.7538 9.07953 12.5 10 12.5C10.9205 12.5 11.6667 13.2462 11.6667 14.1667C11.6667 15.0871 10.9205 15.8333 10 15.8333M10 8.33333V9.16666M10 15.8333V16.6667" stroke="currentColor" strokeOpacity="0.9" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
+
+export const IconFlagVietnam = ({ className = "w-6 h-4" }: { className?: string }) => (
+  <svg className={className} viewBox="0 0 24 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <rect width="24" height="16" rx="2" fill="#DA251D" />
+    <polygon points="12,3.5 12.95,6.42 16,6.42 13.53,8.22 14.47,11.14 12,9.34 9.53,11.14 10.47,8.22 8,6.42 11.05,6.42" fill="#FFFE00" />
+  </svg>
+);
+
+export const IconArrowsMinimize = ({ className = "size-4" }: { className?: string }) => (
+  <svg className={className} width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M8 3V8H3M21 8H16V3M3 16H8V21M16 21V16H21" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
+
+
+
+
+
+

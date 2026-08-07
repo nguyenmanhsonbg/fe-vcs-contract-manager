@@ -85,12 +85,6 @@ export function UploadModal({ open, onOpenChange, onSuccess }: UploadModalProps)
           {/* Header */}
           <div className="flex items-center justify-between w-full">
             <h2 className="text-[17px] font-bold text-[#2F2B3D]">Tải lên tài liệu</h2>
-            <button
-              onClick={() => onOpenChange(false)}
-              className="text-slate-400 hover:text-slate-600 transition-colors p-1 rounded-md"
-            >
-              <IconClose className="size-4 text-slate-500" />
-            </button>
           </div>
 
           {/* Upload Dropzone Box */}

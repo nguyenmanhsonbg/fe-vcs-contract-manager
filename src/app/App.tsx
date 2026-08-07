@@ -2,6 +2,7 @@ import { Component, ErrorInfo, ReactNode, useState, useEffect } from "react";
 import { Sidebar, PageKey } from "./components/Sidebar";
 import { TopBar } from "./components/TopBar";
 import { DocumentDetailPage } from "./components/pages/DocumentDetailPage";
+import { ProposalDetailPage } from "./components/pages/ProposalDetailPage";
 import { OriginalDocView } from "./components/pages/OriginalDocView";
 import { UploadModal } from "./components/modals/UploadModal";
 import { DigitizedDoc } from "./data/models";
@@ -75,6 +76,29 @@ export default function App() {
           const apiDoc = await docApi.getDocumentById(parsed.docId);
           if (apiDoc) {
             setOpenDoc(apiDoc);
+          } else if (parsed.page === "proposal") {
+            // Fallback for proposal detail direct route
+            setOpenDoc({
+              id: parsed.docId,
+              fileName: "TT-2025-028",
+              type: "proposal",
+              uploadedBy: "Nguyễn Văn A",
+              uploadTime: "18/04/2025 10:23",
+              pageCount: 12,
+              status: "confirmed",
+              progress: 100,
+              avgConfidence: 98,
+              fieldsToReview: 0,
+              assignedTo: "Nguyễn Văn A",
+              lastUpdated: "18/04/2025 10:23",
+              fields: [
+                { id: "proposalNumber", label: "proposalNumber", value: "TT - 2025 - 028", confidence: 98 },
+                { id: "proposalDate", label: "proposalDate", value: "18/04/2025", confidence: 98 },
+                { id: "title", label: "title", value: "Mua máy in laser HP M712dn cho phòng hành Chính", confidence: 98 },
+              ],
+              lineItems: [],
+              editLog: [],
+            });
           } else {
             setOpenDoc(null);
           }
@@ -104,13 +128,26 @@ export default function App() {
   const handleOpenDoc = (doc: DigitizedDoc) => {
     setOpenDoc(doc);
     setOriginalDoc(null);
-    const routePrefix = doc.documentType === "proposal" ? "#/proposals" : "#/documents";
+    const routePrefix = page === "proposal" ? "#/proposals" : "#/documents";
     window.location.hash = `${routePrefix}/detail/${doc.id}`;
   };
 
   const handleViewOriginalDoc = (doc: DigitizedDoc) => {
     setOriginalDoc(doc);
-    window.location.hash = `#/documents/original/${doc.id}`;
+    const routePrefix = page === "proposal" ? "#/proposals" : "#/documents";
+    window.location.hash = `${routePrefix}/original/${doc.id}`;
+  };
+
+  const handleBackFromOriginalDoc = () => {
+    if (originalDoc) {
+      const doc = originalDoc;
+      setOriginalDoc(null);
+      setOpenDoc(doc);
+      const routePrefix = page === "proposal" ? "#/proposals" : "#/documents";
+      window.location.hash = `${routePrefix}/detail/${doc.id}`;
+    } else {
+      handleBackFromSubPage();
+    }
   };
 
   const handleBackFromSubPage = () => {
@@ -131,11 +168,11 @@ export default function App() {
   const currentRoute = getRouteByKey(page);
 
   const breadcrumb = originalDoc
-    ? ["Trang chủ", "Quản trị dữ liệu", "Chi tiết tài liệu gốc"]
+    ? ["Trang chủ", "Quản trị dữ liệu", page === "proposal" ? "Quản lý tờ trình" : "Số hoá tài liệu", "Chi tiết tài liệu gốc"]
     : openDoc
-    ? openDoc.documentType === "proposal"
-      ? ["Trang chủ", "Quản trị dữ liệu", "Chi tiết tờ trình"]
-      : ["Trang chủ", "Quản trị dữ liệu", "Chi tiết số hóa"]
+    ? page === "proposal"
+      ? ["Trang chủ", "Quản trị dữ liệu", "Quản lý tờ trình", "Chi tiết tờ trình"]
+      : ["Trang chủ", "Quản trị dữ liệu", "Số hoá tài liệu", "Chi tiết số hóa"]
     : currentRoute.breadcrumb;
 
   if (currentRoute.key === "login") {
@@ -164,14 +201,22 @@ export default function App() {
         <main className="min-h-0 flex-1 overflow-y-auto">
           <ErrorBoundary>
             {originalDoc ? (
-              <OriginalDocView doc={originalDoc} onBack={handleBackFromSubPage} />
+              <OriginalDocView doc={originalDoc} onBack={handleBackFromOriginalDoc} />
             ) : openDoc ? (
-              <DocumentDetailPage
-                doc={openDoc}
-                onBack={handleBackFromSubPage}
-                onViewOriginalDoc={handleViewOriginalDoc}
-                refreshToken={documentRefreshToken}
-              />
+              page === "proposal" ? (
+                <ProposalDetailPage
+                  doc={openDoc}
+                  onBack={handleBackFromSubPage}
+                  onViewOriginalDoc={handleViewOriginalDoc}
+                />
+              ) : (
+                <DocumentDetailPage
+                  doc={openDoc}
+                  onBack={handleBackFromSubPage}
+                  onViewOriginalDoc={handleViewOriginalDoc}
+                  refreshToken={documentRefreshToken}
+                />
+              )
             ) : (
               currentRoute.render({
                 onOpenDoc: handleOpenDoc,

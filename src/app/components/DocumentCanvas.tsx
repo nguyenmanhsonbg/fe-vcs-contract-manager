@@ -24,11 +24,15 @@ interface DocumentCanvasProps {
 function SinglePageCanvas({
   url,
   pageNumber,
+  activePage,
   region,
+  rotation = 0,
 }: {
   url: string;
   pageNumber: number;
+  activePage: number;
   region: Region | null;
+  rotation?: number;
 }) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -73,19 +77,23 @@ function SinglePageCanvas({
   }, [url, pageNumber]);
 
   useEffect(() => {
-    if (region && containerRef.current) {
-      containerRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
+    if ((region && (region.page === pageNumber || region.page === 1)) || activePage === pageNumber) {
+      containerRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
     }
-  }, [region]);
+  }, [region, activePage, pageNumber]);
 
   return (
     <div
       ref={containerRef}
-      className="relative bg-white shadow-md rounded overflow-hidden flex flex-col items-center border border-slate-200 w-full"
+      className="relative rounded overflow-hidden flex flex-col items-center border border-slate-200/90 w-full transition-transform duration-200 ease-out shadow-sm"
+      style={{
+        transform: rotation ? `rotate(${rotation}deg)` : undefined,
+        transformOrigin: "center center",
+      }}
     >
-      <div className="relative w-full flex justify-center">
+      <div className="relative w-full flex justify-center bg-white">
         <canvas ref={canvasRef} className="w-full h-auto rounded object-contain" />
-        {region && (
+        {region && (region.page === pageNumber || region.page === 1) && (
           <div
             className="pointer-events-none absolute rounded-sm border-2 border-[#ff4c51] bg-[#ff4c51]/25 shadow-[0_0_8px_rgba(255,76,81,0.5)] transition-all z-10 animate-pulse"
             style={{
@@ -97,7 +105,7 @@ function SinglePageCanvas({
           />
         )}
       </div>
-      <div className="py-1 text-[11px] font-medium text-slate-400 border-t border-slate-100 w-full text-center bg-slate-50/50">
+      <div className="py-1 text-[11px] font-medium text-slate-500 border-t border-slate-100 w-full text-center bg-slate-50 shrink-0 select-none">
         Trang {pageNumber}
       </div>
     </div>
@@ -106,11 +114,15 @@ function SinglePageCanvas({
 
 function PdfMultiPageViewer({
   url,
+  activePage = 1,
   activeRegion,
+  rotation = 0,
   onError,
 }: {
   url: string;
+  activePage?: number;
   activeRegion: Region | null;
+  rotation?: number;
   onError?: () => void;
 }) {
   const [numPages, setNumPages] = useState<number>(0);
@@ -164,7 +176,7 @@ function PdfMultiPageViewer({
   }
 
   return (
-    <div className="w-full flex flex-col items-center gap-6 p-2">
+    <div className="w-full flex flex-col items-center gap-6 p-1">
       {Array.from({ length: numPages }, (_, index) => {
         const pageNumber = index + 1;
         return (
@@ -172,7 +184,9 @@ function PdfMultiPageViewer({
             key={pageNumber}
             url={url}
             pageNumber={pageNumber}
-            region={activeRegion && (activeRegion.page === pageNumber || activeRegion.page === 1) ? activeRegion : null}
+            activePage={activePage}
+            rotation={rotation}
+            region={activeRegion}
           />
         );
       })}
@@ -181,16 +195,17 @@ function PdfMultiPageViewer({
 }
 
 /** Render file PDF thực tế từ Portal API stream hoặc HTML canvas highlight. */
+// ponytail: Multi-page viewer displaying all document pages continuously.
 export function DocumentCanvas({
   zoom,
   page,
+  rotation = 0,
   region,
   pdfUrl,
   docId,
 }: DocumentCanvasProps) {
   const streamUrl = pdfUrl || (docId ? `/api/v1/documents/${docId}/preview` : null);
   const [pdfError, setPdfError] = useState(false);
-  const widthPercentage = zoom === 100 ? "100%" : `${zoom}%`;
 
   useEffect(() => {
     setPdfError(false);
@@ -201,11 +216,20 @@ export function DocumentCanvas({
 
     return (
       <div
-        className="relative mx-auto bg-white shadow-md rounded overflow-hidden flex items-center justify-center p-2 w-full transition-all duration-150"
-        style={{ width: widthPercentage, maxWidth: zoom <= 100 ? "100%" : `${zoom}%` }}
+        className="relative mx-auto flex flex-col items-center justify-start p-1 transition-all duration-150 ease-out origin-top shrink-0"
+        style={{
+          width: `${zoom}%`,
+          minWidth: `${zoom}%`,
+        }}
       >
         {isImg ? (
-          <div className="relative w-full flex justify-center">
+          <div
+            className="relative w-full flex justify-center transition-transform duration-200 ease-out bg-white rounded border border-slate-200 shadow-sm overflow-hidden"
+            style={{
+              transform: rotation ? `rotate(${rotation}deg)` : undefined,
+              transformOrigin: "center center",
+            }}
+          >
             <img
               src={streamUrl}
               alt="Document"
@@ -225,7 +249,7 @@ export function DocumentCanvas({
             )}
           </div>
         ) : (
-          <PdfMultiPageViewer url={streamUrl} activeRegion={region} onError={() => setPdfError(true)} />
+          <PdfMultiPageViewer url={streamUrl} activePage={page} activeRegion={region} rotation={rotation} onError={() => setPdfError(true)} />
         )}
       </div>
     );

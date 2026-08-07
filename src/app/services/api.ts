@@ -5,6 +5,8 @@ import {
   SearchHistoryItem,
   ProposalFilterOptions,
   ProposalPaginatedResponse,
+  ProposalDetailDto,
+  ProposalLineItemDto,
   Product,
 } from "../data/apiModels";
 
@@ -167,4 +169,58 @@ export const docApi = {
       body: JSON.stringify(filters),
     });
   },
+
+  /** Chi tiết Tờ trình theo ID */
+  async getProposalById(id: string): Promise<ProposalDetailDto | null> {
+    try {
+      return await apiFetch<ProposalDetailDto>(`/proposals/${id}`);
+    } catch (error) {
+      console.error(`Failed to fetch proposal detail ${id}:`, error);
+      return null;
+    }
+  },
+
+  /** Cập nhật thông tin Tờ trình */
+  async updateProposal(
+    id: string,
+    data: {
+      title?: string;
+      proposalNumber?: string;
+      proposalDate?: string;
+      proposalContent?: string;
+      purpose?: string;
+      legalBasis?: string;
+      budgetSource?: string;
+      executionPeriod?: string;
+    }
+  ): Promise<ProposalDetailDto> {
+    return apiFetch<ProposalDetailDto>(`/proposals/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    });
+  },
+
+  /** Thêm hạng mục vào Tờ trình */
+  async addProposalItem(id: string, item: ProposalLineItemDto): Promise<ProposalDetailDto> {
+    return apiFetch<ProposalDetailDto>(`/proposals/${id}/items`, {
+      method: "POST",
+      body: JSON.stringify(item),
+    });
+  },
+
+  /** Trình phê duyệt Tờ trình */
+  async submitProposal(id: string): Promise<ProposalDetailDto> {
+    return apiFetch<ProposalDetailDto>(`/proposals/${id}/submit`, {
+      method: "POST",
+    });
+  },
+
+  /** Hủy Tờ trình */
+  async cancelProposal(id: string, reason: string): Promise<ProposalDetailDto> {
+    return apiFetch<ProposalDetailDto>(`/proposals/${id}/cancel`, {
+      method: "POST",
+      body: JSON.stringify({ reason }),
+    });
+  },
 };
+
