@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { DigitizedDoc } from "../../data/models";
+import { ProposalDetailDto } from "../../data/apiModels";
 import { docApi } from "../../services/api";
 import { toast } from "sonner";
 import {
@@ -8,7 +9,7 @@ import {
   IconArrowsMaximize,
   IconChevronDown,
 } from "../icons";
-import { RotateCw, Minus, Plus, Save, Send } from "lucide-react";
+import { RotateCw, Minus, Plus, Send } from "lucide-react";
 
 interface ProposalDetailPageProps {
   doc?: DigitizedDoc | null;
@@ -25,6 +26,7 @@ export interface ProposalLineItem {
   quantity: number;
   unitPrice: number;
   vatPercent: number;
+  lineAmount?: number;
 }
 
 const ZOOM_OPTIONS = [25, 50, 75, 100, 125, 150, 200];
@@ -32,33 +34,22 @@ const ZOOM_OPTIONS = [25, 50, 75, 100, 125, 150, 200];
 export function ProposalDetailPage({ doc, onBack }: ProposalDetailPageProps) {
   // Form State - A. Thông tin chung
   const [proposalNumber, setProposalNumber] = useState(
-    doc?.fields?.find((f) => f.label === "proposalNumber" || f.id === "proposalNumber")?.value || "TT - 2025 - 028"
+    doc?.fields?.find((f) => f.label === "proposalNumber" || f.id === "proposalNumber")?.value || ""
   );
   const [proposalDate, setProposalDate] = useState(
-    doc?.fields?.find((f) => f.label === "proposalDate" || f.id === "proposalDate")?.value || "18/04/2025"
+    doc?.fields?.find((f) => f.label === "proposalDate" || f.id === "proposalDate")?.value || ""
   );
-  const [proposalType, setProposalType] = useState("Hàng hóa");
-  const [category, setCategory] = useState("Thiết bị văn phòng");
+  const [proposalType, setProposalType] = useState("GOODS");
+  const [category, setCategory] = useState("");
   const [content, setContent] = useState(
-    doc?.fields?.find((f) => f.label === "title" || f.id === "title")?.value || "Mua máy in laser HP M712dn cho phòng hành Chính"
+    doc?.fields?.find((f) => f.label === "title" || f.id === "title")?.value || ""
   );
   const [status, setStatus] = useState<string>("DRAFT");
   const [saving, setSaving] = useState(false);
+  const [backendDetail, setBackendDetail] = useState<ProposalDetailDto | null>(null);
 
   // Table Line Items State
-  const [lineItems, setLineItems] = useState<ProposalLineItem[]>([
-    {
-      stt: 1,
-      name: "Máy in MD712Dn",
-      description:
-        "Máy in MD712Dn là thiết bị in laser đơn sắc tốc độ cao, hỗ trợ in hai mặt tự động và kết nối mạng, phù hợp cho văn phòng có nhu cầu in ấn thường xuyên.",
-      supplier: "An Phát",
-      unit: "Cái",
-      quantity: 2,
-      unitPrice: 86000000,
-      vatPercent: 8,
-    },
-  ]);
+  const [lineItems, setLineItems] = useState<ProposalLineItem[]>([]);
 
   // Load backend details if available
   useEffect(() => {
@@ -66,22 +57,27 @@ export function ProposalDetailPage({ doc, onBack }: ProposalDetailPageProps) {
     async function loadBackendDetail() {
       const detail = await docApi.getProposalById(doc!.id);
       if (detail) {
+        setBackendDetail(detail);
         if (detail.proposalNumber || detail.summary?.code) setProposalNumber(detail.proposalNumber || detail.summary.code);
         if (detail.proposalDate || detail.summary?.createdAt) setProposalDate(detail.proposalDate || detail.summary.createdAt);
         if (detail.proposalContent || detail.summary?.title) setContent(detail.proposalContent || detail.summary.title);
-        if (detail.summary?.category) setCategory(detail.summary.category);
+        if (detail.summary?.category) {
+          setCategory(detail.summary.category);
+          setProposalType(detail.summary.category);
+        }
         if (detail.status) setStatus(detail.status);
         if (detail.items && detail.items.length > 0) {
           setLineItems(
             detail.items.map((item, idx) => ({
               stt: idx + 1,
-              name: item.name || "Máy in MD712Dn",
+              name: item.name || "",
               description: item.description || "",
-              supplier: item.supplier || "An Phát",
-              unit: item.unit || "Cái",
-              quantity: item.quantity || 1,
+              supplier: item.supplier || "",
+              unit: item.unit || "",
+              quantity: item.quantity || 0,
               unitPrice: item.unitPrice || 0,
-              vatPercent: item.taxRate || 8,
+              vatPercent: item.taxRate || 0,
+              lineAmount: item.lineAmount,
             }))
           );
         }
@@ -94,18 +90,12 @@ export function ProposalDetailPage({ doc, onBack }: ProposalDetailPageProps) {
   const [zoom, setZoom] = useState(100);
   const [rotation, setRotation] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
-  const totalPages = 12;
+  const totalPages = doc?.pageCount || 1;
 
   // Financial Calculations
-  const totalBeforeVat = lineItems.reduce(
-    (acc, item) => acc + item.quantity * item.unitPrice,
-    0
-  );
-  const totalVat = lineItems.reduce(
-    (acc, item) => acc + (item.quantity * item.unitPrice * item.vatPercent) / 100,
-    0
-  );
-  const grandTotal = totalBeforeVat + totalVat;
+  const totalBeforeVat = backendDetail?.subtotal ?? 0;
+  const totalVat = backendDetail?.taxAmount ?? 0;
+  const grandTotal = backendDetail?.totalValue ?? backendDetail?.routingValue ?? 0;
 
   const formatCurrency = (val: number) => {
     return new Intl.NumberFormat("vi-VN").format(val);
@@ -113,27 +103,6 @@ export function ProposalDetailPage({ doc, onBack }: ProposalDetailPageProps) {
 
   const handleDownload = () => {
     toast.success(`Đã tải tờ trình ${proposalNumber} thành công!`);
-  };
-
-  const handleSave = async () => {
-    if (!doc?.id) {
-      toast.success("Lưu thay đổi tờ trình thành công!");
-      return;
-    }
-    setSaving(true);
-    try {
-      await docApi.updateProposal(doc.id, {
-        proposalNumber,
-        proposalDate,
-        title: content,
-        proposalContent: content,
-      });
-      toast.success("Đã cập nhật tờ trình trên Backend thành công!");
-    } catch {
-      toast.success("Đã cập nhật tờ trình thành công!");
-    } finally {
-      setSaving(false);
-    }
   };
 
   const handleSubmitProposal = async () => {
@@ -174,15 +143,6 @@ export function ProposalDetailPage({ doc, onBack }: ProposalDetailPageProps) {
 
         <div className="flex items-center gap-2">
           <button
-            onClick={handleSave}
-            disabled={saving}
-            className="flex items-center gap-2 px-3.5 py-2 bg-white border border-slate-200 hover:bg-slate-50 text-[#393740] text-[13px] font-medium rounded-[6px] shadow-2xs transition-colors disabled:opacity-50"
-          >
-            <Save className="size-4 text-slate-600" />
-            <span>Lưu tạm</span>
-          </button>
-
-          <button
             onClick={handleSubmitProposal}
             disabled={saving || status === "PENDING_APPROVAL" || status === "APPROVED"}
             className="flex items-center gap-2 px-4 py-2 bg-[#ff4c51] hover:bg-[#e64449] text-white text-[13px] font-semibold rounded-[6px] shadow-2xs transition-colors disabled:opacity-50"
@@ -207,8 +167,7 @@ export function ProposalDetailPage({ doc, onBack }: ProposalDetailPageProps) {
           Mã tờ trình: {proposalNumber}
         </h2>
         <p className="text-[13px] text-[#8f8d95]">
-          Cập nhật lần cuối: {doc?.lastUpdated || "18/04/2025 10:23"} bởi{" "}
-          {doc?.uploadedBy || "Nguyễn Văn A"}
+          Cập nhật lần cuối: {doc?.lastUpdated || "—"} bởi {doc?.uploadedBy || "—"}
         </p>
       </div>
 
@@ -225,60 +184,35 @@ export function ProposalDetailPage({ doc, onBack }: ProposalDetailPageProps) {
               <label className="text-[13px] font-medium text-[#5d586c]">
                 Số tờ trình
               </label>
-              <input
-                type="text"
-                value={proposalNumber}
-                onChange={(e) => setProposalNumber(e.target.value)}
-                className="w-full rounded-[6px] border border-slate-200 bg-white px-3 py-2 text-[13px] text-[#2f2b3d] outline-none focus:border-[#ff4c51] transition-colors"
-              />
+              <p className="w-full rounded-[6px] bg-slate-50 px-3 py-2 text-[13px] text-[#2f2b3d]">{proposalNumber || "—"}</p>
             </div>
 
             <div className="space-y-1.5">
               <label className="text-[13px] font-medium text-[#5d586c]">
                 Ngày tờ trình
               </label>
-              <input
-                type="text"
-                value={proposalDate}
-                onChange={(e) => setProposalDate(e.target.value)}
-                className="w-full rounded-[6px] border border-slate-200 bg-white px-3 py-2 text-[13px] text-[#2f2b3d] outline-none focus:border-[#ff4c51] transition-colors"
-              />
+              <p className="w-full rounded-[6px] bg-slate-50 px-3 py-2 text-[13px] text-[#2f2b3d]">{proposalDate || "—"}</p>
             </div>
 
             <div className="space-y-1.5">
               <label className="text-[13px] font-medium text-[#5d586c]">
                 Loại đề xuất
               </label>
-              <input
-                type="text"
-                value={proposalType}
-                onChange={(e) => setProposalType(e.target.value)}
-                className="w-full rounded-[6px] border border-slate-200 bg-white px-3 py-2 text-[13px] text-[#2f2b3d] outline-none focus:border-[#ff4c51] transition-colors"
-              />
+              <p className="w-full rounded-[6px] bg-slate-50 px-3 py-2 text-[13px] text-[#2f2b3d]">{proposalType || "—"}</p>
             </div>
 
             <div className="space-y-1.5">
               <label className="text-[13px] font-medium text-[#5d586c]">
                 Danh mục hàng hóa/dịch vụ
               </label>
-              <input
-                type="text"
-                value={category}
-                onChange={(e) => setCategory(e.target.value)}
-                className="w-full rounded-[6px] border border-slate-200 bg-white px-3 py-2 text-[13px] text-[#2f2b3d] outline-none focus:border-[#ff4c51] transition-colors"
-              />
+              <p className="w-full rounded-[6px] bg-slate-50 px-3 py-2 text-[13px] text-[#2f2b3d]">{category || "—"}</p>
             </div>
 
             <div className="space-y-1.5">
               <label className="text-[13px] font-medium text-[#5d586c]">
                 Nội dung đề xuất
               </label>
-              <textarea
-                rows={4}
-                value={content}
-                onChange={(e) => setContent(e.target.value)}
-                className="w-full rounded-[6px] border border-slate-200 bg-white px-3 py-2 text-[13px] text-[#2f2b3d] outline-none focus:border-[#ff4c51] transition-colors resize-none"
-              />
+              <p className="min-h-[104px] w-full rounded-[6px] bg-slate-50 px-3 py-2 text-[13px] text-[#2f2b3d] whitespace-pre-wrap">{content || "—"}</p>
             </div>
           </div>
         </div>
@@ -486,8 +420,10 @@ export function ProposalDetailPage({ doc, onBack }: ProposalDetailPageProps) {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 text-[#2f2b3d]">
-              {lineItems.map((item) => {
-                const lineTotal = item.quantity * item.unitPrice;
+              {lineItems.length === 0 ? (
+                <tr><td colSpan={9} className="py-6 text-center text-slate-400">Chưa có hạng mục</td></tr>
+              ) : lineItems.map((item) => {
+                const lineTotal = item.lineAmount ?? item.quantity * item.unitPrice;
                 return (
                   <tr key={item.stt} className="hover:bg-slate-50/50 transition-colors">
                     <td className="py-3.5 px-3 text-center text-slate-500">{item.stt}</td>
@@ -561,12 +497,7 @@ export function ProposalDetailPage({ doc, onBack }: ProposalDetailPageProps) {
           <span className="text-[13px] font-bold text-[#2f2b3d] shrink-0">
             Bằng chữ:
           </span>
-          <input
-            type="text"
-            readOnly
-            value="Một trăm tám mươi lăm triệu sáu trăm nghìn đồng"
-            className="flex-1 rounded-[6px] border border-slate-200 bg-white px-3 py-2 text-[13px] text-slate-500 italic outline-none"
-          />
+          <span className="flex-1 rounded-[6px] bg-slate-50 px-3 py-2 text-[13px] text-slate-500 italic">{formatCurrency(grandTotal)} đồng</span>
         </div>
       </div>
     </div>
