@@ -117,3 +117,14 @@ export interface ProposalDetailDto {
   items?: ProposalLineItemDto[];
 }
 
+export type ContractType = "GOODS" | "NON_CONSULTING_SERVICE";
+export type ContractStatus = "DRAFT" | "PENDING_APPROVAL" | "CHANGES_REQUESTED" | "APPROVED" | "REJECTED" | "SIGNED" | "IN_EXECUTION" | "DELIVERED" | "ACCEPTED" | "PAID" | "LIQUIDATED" | "CANCELLED";
+export interface ContractItemDto { id?: string; lineNo?: number; itemCategory: "GOODS" | "SERVICE"; itemName: string; description?: string; unit: string; quantity: number; unitPrice: number; lineSubtotal?: number; lineTaxAmount?: number; lineTotal?: number; version?: number; }
+export interface ContractPartyDto { id?: string; partyRole: "BUYER" | "VENDOR"; name: string; address?: string; taxCode?: string; phone?: string; representativeName?: string; representativeTitle?: string; }
+export interface ContractSummaryDto { id: string; contractNumber?: string; contractType: ContractType; status: ContractStatus; packageName?: string; vendorName?: string; totalAmount: number; sourceType: string; signingDate?: string; updatedAt: string; }
+export interface ContractDetailDto { id: string; summary: ContractSummaryDto; currency: string; subtotalAmount: number; taxFeeAmount: number; discountAmount: number; otherMandatoryCost: number; totalAmount: number; version: number; contractNumber?: string; contractForm?: string; packageCode?: string; packageName?: string; proposalId?: string; biddingResultId?: string; extractionResultId?: string; officialDocumentId?: string; officialDocumentVersionId?: string; items: ContractItemDto[]; parties: ContractPartyDto[]; milestones: ContractMilestoneDto[]; appendices: ContractAppendixDto[]; allowedActions: string[]; }
+export interface ContractMilestoneDto { id: string; milestoneType: string; status: string; plannedDate?: string; completedDate?: string; notes?: string; evidenceDocumentVersionId?: string; version: number; }
+export interface ContractAppendixDto { id: string; appendixNo: string; appendixType?: string; documentVersionId: string; changesSummary?: string; effectiveDate?: string; version: number; }
+export interface ContractPageResponse { content: ContractSummaryDto[]; page: number; size: number; totalElements: number; totalPages: number; }
+export interface ContractStatsDto { total: number; running: number; accepted: number; paid: number; liquidated: number; }
+export interface ContractActivityDto { action: string; contractId: string; actor: string; timestamp: string; }

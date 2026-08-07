@@ -19,6 +19,8 @@ interface DocumentCanvasProps {
   region: Region | null;
   pdfUrl?: string;
   docId?: string;
+  onPageCount?: (count: number) => void;
+  compact?: boolean;
 }
 
 function SinglePageCanvas({
@@ -27,12 +29,14 @@ function SinglePageCanvas({
   activePage,
   region,
   rotation = 0,
+  compact = false,
 }: {
   url: string;
   pageNumber: number;
   activePage: number;
   region: Region | null;
   rotation?: number;
+  compact?: boolean;
 }) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -85,7 +89,7 @@ function SinglePageCanvas({
   return (
     <div
       ref={containerRef}
-      className="relative rounded overflow-hidden flex flex-col items-center border border-slate-200/90 w-full transition-transform duration-200 ease-out shadow-sm"
+      className={`relative overflow-hidden flex flex-col items-center w-full transition-transform duration-200 ease-out ${compact ? "rounded-[2px] border border-slate-200/80 shadow-[0_1px_4px_rgba(47,43,61,0.12)]" : "rounded border border-slate-200/90 shadow-sm"}`}
       style={{
         transform: rotation ? `rotate(${rotation}deg)` : undefined,
         transformOrigin: "center center",
@@ -105,9 +109,7 @@ function SinglePageCanvas({
           />
         )}
       </div>
-      <div className="py-1 text-[11px] font-medium text-slate-500 border-t border-slate-100 w-full text-center bg-slate-50 shrink-0 select-none">
-        Trang {pageNumber}
-      </div>
+      {!compact && <div className="py-1 text-[11px] font-medium text-slate-500 border-t border-slate-100 w-full text-center bg-slate-50 shrink-0 select-none">Trang {pageNumber}</div>}
     </div>
   );
 }
@@ -118,12 +120,16 @@ function PdfMultiPageViewer({
   activeRegion,
   rotation = 0,
   onError,
+  onPageCount,
+  compact,
 }: {
   url: string;
   activePage?: number;
   activeRegion: Region | null;
   rotation?: number;
   onError?: () => void;
+  onPageCount?: (count: number) => void;
+  compact?: boolean;
 }) {
   const [numPages, setNumPages] = useState<number>(0);
   const [loading, setLoading] = useState(true);
@@ -145,6 +151,7 @@ function PdfMultiPageViewer({
         const pdf = await pdfjsLib.getDocument({ url, withCredentials: false }).promise;
         if (!active) return;
         setNumPages(pdf.numPages || 1);
+        onPageCount?.(pdf.numPages || 1);
         setLoading(false);
       } catch (err) {
         console.warn("PDF stream not available, switching to canvas fallback:", err);
@@ -161,7 +168,7 @@ function PdfMultiPageViewer({
     return () => {
       active = false;
     };
-  }, [url]);
+  }, [url, onPageCount]);
 
   if (loading) {
     return (
@@ -176,7 +183,7 @@ function PdfMultiPageViewer({
   }
 
   return (
-    <div className="w-full flex flex-col items-center gap-6 p-1">
+    <div className={`w-full flex flex-col items-center ${compact ? "gap-0 p-0" : "gap-6 p-1"}`}>
       {Array.from({ length: numPages }, (_, index) => {
         const pageNumber = index + 1;
         return (
@@ -187,6 +194,7 @@ function PdfMultiPageViewer({
             activePage={activePage}
             rotation={rotation}
             region={activeRegion}
+            compact={compact}
           />
         );
       })}
@@ -203,6 +211,8 @@ export function DocumentCanvas({
   region,
   pdfUrl,
   docId,
+  onPageCount,
+  compact = false,
 }: DocumentCanvasProps) {
   const streamUrl = pdfUrl || (docId ? `/api/v1/documents/${docId}/preview` : null);
   const [pdfError, setPdfError] = useState(false);
@@ -249,7 +259,7 @@ export function DocumentCanvas({
             )}
           </div>
         ) : (
-          <PdfMultiPageViewer url={streamUrl} activePage={page} activeRegion={region} rotation={rotation} onError={() => setPdfError(true)} />
+          <PdfMultiPageViewer url={streamUrl} activePage={page} activeRegion={region} rotation={rotation} onError={() => setPdfError(true)} onPageCount={onPageCount} compact={compact} />
         )}
       </div>
     );

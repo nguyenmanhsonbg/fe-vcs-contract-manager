@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Calendar,
   CheckSquare,
@@ -15,7 +15,10 @@ import { StatCard } from "../common/StatCard";
 import { SelectFilter } from "../common/SelectFilter";
 import { SearchInput } from "../common/SearchInput";
 import { IconEye, IconFilter, IconMoreVertical, IconPencil } from "../icons";
-import { contracts, contractActivities, contractStats, type ContractStatus } from "../../data/contractMock";
+import type { ContractItem } from "../../data/contractMock";
+import { ApiError, docApi } from "../../services/api";
+import type { ContractActivityDto, ContractSummaryDto } from "../../data/apiModels";
+import { toast } from "sonner";
 import { ContractCreatePage } from "./ContractCreatePage";
 
 const activityDot: Record<string, string> = {
@@ -29,6 +32,10 @@ function formatCurrency(value: number) {
   return new Intl.NumberFormat("vi-VN").format(value);
 }
 
+const statusLabel: Record<string, string> = { DRAFT: "Lưu nháp", PENDING_APPROVAL: "Chờ phê duyệt", CHANGES_REQUESTED: "Yêu cầu chỉnh sửa", APPROVED: "Đã duyệt", REJECTED: "Từ chối", SIGNED: "Đã ký", IN_EXECUTION: "Đang thực hiện", DELIVERED: "Đã giao hàng", ACCEPTED: "Đã nghiệm thu", PAID: "Đã thanh toán", LIQUIDATED: "Thanh lý", CANCELLED: "Hủy" };
+const statusCode = Object.fromEntries(Object.entries(statusLabel).map(([code, label]) => [label, code]));
+function mapContract(c: ContractSummaryDto): ContractItem { return { id: c.contractNumber || c.id, contractType: c.contractType === "GOODS" ? "Trọn gói" : "Đơn giá cố định", goodsType: c.contractType === "GOODS" ? "Hàng hoá" : "Phi tư vấn", goodsName: c.packageName || "-", partner: c.vendorName || "-", value: Number(c.totalAmount || 0), signedAt: c.signingDate || "-", status: (statusLabel[c.status] || c.status) as ContractItem["status"], source: c.sourceType }; }
+
 export function ContractListPage() {
   const [creating, setCreating] = useState(false);
   const [contractType, setContractType] = useState("all");
@@ -37,10 +44,26 @@ export function ContractListPage() {
   const [query, setQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
+  const [apiContracts, setApiContracts] = useState<ContractItem[]>([]);
+  const [apiActivities, setApiActivities] = useState<ContractActivityDto[]>([]);
+  const [apiStats, setApiStats] = useState({ mine: 0, running: 0, accepted: 0, paid: 0, liquidated: 0 });
+  const [totalElements, setTotalElements] = useState(0); const [totalPages, setTotalPages] = useState(1);
+  useEffect(() => {
+    Promise.allSettled([
+      docApi.getContracts({ page: currentPage, size: pageSize, q: query || undefined, status: statusCode[status] }),
+      docApi.getContractStats(),
+      docApi.getContractActivity(),
+    ]).then(([list, stats, activity]) => {
+      if (list.status === "fulfilled") { setApiContracts(list.value.content.map(mapContract)); setTotalElements(list.value.totalElements); setTotalPages(list.value.totalPages); }
+      else toast.error(list.reason instanceof ApiError ? list.reason.message : "Không thể tải danh sách hợp đồng");
+      if (stats.status === "fulfilled") setApiStats({ mine: stats.value.total, running: stats.value.running, accepted: stats.value.accepted, paid: stats.value.paid, liquidated: stats.value.liquidated });
+      if (activity.status === "fulfilled") setApiActivities(activity.value);
+    });
+  }, [currentPage, pageSize, query, status]);
 
   const filteredContracts = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
-    return contracts.filter((item) => {
+    return apiContracts.filter((item) => {
       if (contractType !== "all" && item.contractType !== contractType) return false;
       if (goodsType !== "all" && item.goodsType !== goodsType) return false;
       if (status !== "all" && item.status !== status) return false;
@@ -73,21 +96,21 @@ export function ContractListPage() {
         <StatCard
           variant="accent-bottom"
           title="Hợp đồng của tôi"
-          value={contractStats.mine}
+          value={apiStats.mine}
           accentColor="#3f81ea"
           icon={FileText}
         />
         <StatCard
           variant="accent-bottom"
           title="Đang thực hiện"
-          value={contractStats.running}
+          value={apiStats.running}
           accentColor="#ff9f43"
           icon={Clock3}
         />
         <StatCard
           variant="accent-bottom"
           title="Đã nghiệm thu"
-          value={contractStats.accepted}
+          value={apiStats.accepted}
           accentColor="#28c76f"
           icon={CheckSquare}
         />
@@ -99,7 +122,7 @@ export function ContractListPage() {
           icon={GitFork}
           extraContent={
             <>
-              Thanh toán: {contractStats.paid} <span className="text-[#5d586c]">|</span> Thanh lý: {contractStats.liquidated}
+              Thanh toán: {apiStats.paid} <span className="text-[#5d586c]">|</span> Thanh lý: {apiStats.liquidated}
             </>
           }
         />
@@ -192,8 +215,8 @@ export function ContractListPage() {
         <Pagination
           currentPage={currentPage}
           pageSize={pageSize}
-          totalElements={28}
-          totalPages={3}
+          totalElements={totalElements}
+          totalPages={totalPages}
           pageSizeOptions={[10, 20, 50]}
           onPageChange={setCurrentPage}
           onPageSizeChange={(size) => {
@@ -212,13 +235,13 @@ export function ContractListPage() {
           </button>
         </div>
         <div>
-          {contractActivities.map(({ icon: Icon, color, text, actor, time }, index) => (
+          {apiActivities.map((item) => ({ icon: FileText, color: "blue" as const, text: item.action, actor: item.actor, time: item.timestamp })).map(({ icon: Icon, color, text, actor, time }, index, list) => (
             <div key={`${text}-${time}`} className="grid grid-cols-[36px_1fr_160px] gap-3">
               <div className="relative flex justify-center">
                 <span className={`flex size-8 items-center justify-center rounded-full ${activityDot[color]}`}>
                   <Icon className="size-4" />
                 </span>
-                {index < contractActivities.length - 1 && <span className="absolute top-8 h-10 border-l border-slate-200" />}
+                {index < list.length - 1 && <span className="absolute top-8 h-10 border-l border-slate-200" />}
               </div>
               <div className="min-h-[76px] pt-1">
                 <p className="text-[13px] leading-[18px] text-[#393740]">{text}</p>

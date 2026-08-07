@@ -8,6 +8,10 @@ import {
   ProposalDetailDto,
   ProposalLineItemDto,
   Product,
+  ContractDetailDto,
+  ContractPageResponse,
+  ContractStatsDto,
+  ContractActivityDto,
 } from "../data/apiModels";
 
 // ponytail: Base API URL với fallback /api/v1 cho local dev proxy
@@ -222,5 +226,20 @@ export const docApi = {
       body: JSON.stringify({ reason }),
     });
   },
-};
 
+  async getContracts(params: { q?: string; contractType?: string; status?: string; page?: number; size?: number } = {}): Promise<ContractPageResponse> {
+    const query = new URLSearchParams();
+    Object.entries(params).forEach(([key, value]) => value !== undefined && value !== "" && query.set(key, String(value)));
+    return apiFetch<ContractPageResponse>(`/contracts?${query}`);
+  },
+  async getContractStats(): Promise<ContractStatsDto> { return apiFetch<ContractStatsDto>("/contracts/stats"); },
+  async getContractActivity(size = 10): Promise<ContractActivityDto[]> { return apiFetch<ContractActivityDto>(`/contracts/activity?size=${size}`); },
+  async getContract(id: string): Promise<ContractDetailDto> { return apiFetch<ContractDetailDto>(`/contracts/${id}`); },
+  async createContract(data: unknown): Promise<ContractDetailDto> { return apiFetch<ContractDetailDto>("/contracts", { method: "POST", body: JSON.stringify(data) }); },
+  async updateContract(id: string, data: unknown): Promise<ContractDetailDto> { return apiFetch<ContractDetailDto>(`/contracts/${id}`, { method: "PATCH", body: JSON.stringify(data) }); },
+  async contractFromProposal(proposalId: string): Promise<ContractDetailDto> { return apiFetch<ContractDetailDto>(`/contracts/from-proposal?proposalId=${encodeURIComponent(proposalId)}`, { method: "POST", headers: { "Idempotency-Key": `proposal:${proposalId}` } }); },
+  async contractFromExtraction(extractionResultId: string): Promise<ContractDetailDto> { return apiFetch<ContractDetailDto>(`/contracts/from-extraction?extractionResultId=${encodeURIComponent(extractionResultId)}`, { method: "POST" }); },
+  async contractFromBidding(data: unknown): Promise<ContractDetailDto> { return apiFetch<ContractDetailDto>("/contracts/from-bidding-result", { method: "POST", body: JSON.stringify(data) }); },
+  async contractAction(id: string, action: string, body?: unknown): Promise<ContractDetailDto> { return apiFetch<ContractDetailDto>(`/contracts/${id}/${action}`, { method: "POST", body: body === undefined ? undefined : JSON.stringify(body) }); },
+  async contractApproval(id: string, body: unknown): Promise<ContractDetailDto> { return apiFetch<ContractDetailDto>(`/contracts/${id}/approval-actions`, { method: "POST", body: JSON.stringify(body) }); },
+};
