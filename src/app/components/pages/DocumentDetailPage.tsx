@@ -65,6 +65,7 @@ export function DocumentDetailPage({ doc, onBack, onViewOriginalDoc }: DocumentD
   const [zoom, setZoom] = useState(100);
   const [rotation, setRotation] = useState(0);
   const [confirmed, setConfirmed] = useState(doc?.status === "confirmed");
+  const llmRequestedRef = useRef(false);
 
   // Mouse drag to pan canvas
   const canvasContainerRef = useRef<HTMLDivElement | null>(null);
@@ -163,11 +164,25 @@ export function DocumentDetailPage({ doc, onBack, onViewOriginalDoc }: DocumentD
   const lowConfidenceCount = (fields || []).filter((f) => f && f.confidence < 85).length;
   const confirmedFieldCount = (fields || []).filter((f) => f && f.confidence >= 85).length;
 
+  async function requestLlmExtraction() {
+    if (llmRequestedRef.current) return;
+    llmRequestedRef.current = true;
+    try {
+      await docApi.extractFields(doc.id);
+      toast.success("Đã gửi dữ liệu OCR sang LLM để bóc tách.");
+    } catch (error) {
+      llmRequestedRef.current = false;
+      if (error instanceof ApiError && error.status === 409) return;
+      toast.error(error instanceof ApiError ? `Bóc tách LLM thất bại (${error.status}): ${error.message}` : "Không thể bóc tách dữ liệu bằng LLM.");
+    }
+  }
+
   useEffect(() => {
+    llmRequestedRef.current = false;
     let timer: number | undefined;
     let active = true;
     let attempts = 0;
-    const maxAttempts = 15; // Tối đa 15 lần poll (~22.5s) tránh lặp vô tận
+    const maxAttempts = 30; // OCR + LLM có thể chạy nối tiếp
 
     async function refresh() {
       const latest = await docApi.getDocumentById(doc.id);
@@ -180,7 +195,11 @@ export function DocumentDetailPage({ doc, onBack, onViewOriginalDoc }: DocumentD
       const isProcessing = latest.status === "ocr" || latest.status === "processing" || latest.status === "queued";
       const needsOcrResult = latest.status === "stored" && (!latest.fields || latest.fields.length === 0);
 
-      if ((isProcessing || needsOcrResult) && attempts < maxAttempts) {
+      if (latest.ocr?.pages?.length && !(latest.fields || []).length) {
+        await requestLlmExtraction();
+      }
+
+      if ((isProcessing || needsOcrResult || llmRequestedRef.current) && attempts < maxAttempts) {
         timer = window.setTimeout(refresh, 1500);
       }
     }
@@ -259,8 +278,8 @@ export function DocumentDetailPage({ doc, onBack, onViewOriginalDoc }: DocumentD
       const resDoc = await docApi.rerunOCR(doc.id);
       toast.success("Đã đưa tài liệu vào tiến trình quét OCR.");
       if (resDoc) {
-        if (resDoc.fields && resDoc.fields.length > 0) setFields(resDoc.fields);
-        if (resDoc.ocr) setOcr(resDoc.ocr);
+        setFields(resDoc.fields || []);
+        setOcr(resDoc.ocr || null);
         if (resDoc.editLog) setEditLog(resDoc.editLog);
       }
 
@@ -270,12 +289,13 @@ export function DocumentDetailPage({ doc, onBack, onViewOriginalDoc }: DocumentD
           count++;
           const latest = await docApi.getDocumentById(doc.id);
           if (latest) {
-            if (latest.fields && latest.fields.length > 0) {
-              setFields(latest.fields);
-              if (latest.ocr) setOcr(latest.ocr);
-              if (latest.editLog) setEditLog(latest.editLog);
+            setFields(latest.fields || []);
+            setOcr(latest.ocr || null);
+            setEditLog(latest.editLog || []);
+            if (latest.ocr?.pages?.length && !(latest.fields || []).length) {
+              await requestLlmExtraction();
             }
-            if (latest.status === "review" || latest.status === "confirmed" || (latest.fields && latest.fields.length > 0) || count >= 8) {
+            if (latest.status === "review" || latest.status === "confirmed" || (latest.fields && latest.fields.length > 0) || count >= 30) {
               clearInterval(pollTimer);
               setScanning(false);
             }

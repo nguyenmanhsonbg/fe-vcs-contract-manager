@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 import { contractClauses, contractForm } from "../../data/contractMock";
 import { IconChevronRight, IconCircleCheck, IconCircleClose, IconCircleMinus } from "../icons";
-import { ApiError, docApi } from "../../services/api";
+import { ApiError, docApi, type ContractTemplateOption } from "../../services/api";
 import { toast } from "sonner";
 
 type FieldProps = { label: string; required?: boolean; suffix?: string; placeholder?: string };
@@ -100,14 +100,15 @@ function ClauseAttachments() {
   );
 }
 
-function SelectField({ label, value, required = false, options = [value] }: { label: string; value: string; required?: boolean; options?: string[] }) {
+type SelectOption = string | { label: string; value: string };
+function SelectField({ label, value, required = false, options = [value] }: { label: string; value: string; required?: boolean; options?: SelectOption[] }) {
   const { values, setValue } = useForm();
   return (
     <label className="space-y-2 text-[14px] text-[#393740]">
       <span>{label} {required && <b className="font-normal text-[#ff4c51]">*</b>}</span>
       <span className="relative block">
         <select value={values[label] || value} onChange={(e) => setValue(label, e.target.value)} className="h-[38px] w-full appearance-none rounded-[6px] border border-[#dbdade] bg-white px-3 pr-9 text-[12px] text-[#393740] outline-none focus:border-[#3f81ea]">
-          {options.map((option) => <option key={option} value={option}>{option || "Chọn giá trị"}</option>)}
+          {options.map((option) => { const item = typeof option === "string" ? { label: option, value: option } : option; return <option key={item.value} value={item.value}>{item.label || "Chọn giá trị"}</option>; })}
         </select>
         <ChevronDown className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-[#5d586c]" />
       </span>
@@ -117,13 +118,16 @@ function SelectField({ label, value, required = false, options = [value] }: { la
 
 function ContractOverview() {
   const [proposalOptions, setProposalOptions] = useState<string[]>([contractForm.proposal]);
+  const [templateOptions, setTemplateOptions] = useState<ContractTemplateOption[]>([]);
+  const { values, setValue } = useForm();
   useEffect(() => { void docApi.getProposals({ page: 1, size: 100 }).then((result) => setProposalOptions(result.content.map((item) => `${item.code} - ${item.title}`))).catch(() => undefined); }, []);
+  useEffect(() => { void docApi.getContractTemplates().then((result) => { setTemplateOptions(result); if (!values["Mẫu hợp đồng"] && result[0]) setValue("Mẫu hợp đồng", result[0].key); }).catch(() => undefined); }, []);
   return (
     <section className="rounded-[6px] border border-[#dbdade] bg-white p-4">
       <h2 className="mb-4 px-1 text-[16px] font-bold text-[#393740]">Thông tin chung</h2>
       <Grid>
         <Field label="Số hợp đồng" required placeholder={contractForm.number} />
-        <SelectField label="Mẫu hợp đồng" required value={contractForm.template} options={[contractForm.template, "Hợp đồng hàng hóa", "Hợp đồng phi hàng hóa (dịch vụ)"]} />
+        <SelectField label="Mẫu hợp đồng" required value={values["Mẫu hợp đồng"] || contractForm.template} options={templateOptions.length ? templateOptions.map((item) => ({ label: item.label, value: item.key })) : [contractForm.template]} />
         <SelectField label="Gói thầu" required value={contractForm.biddingPackage} options={[contractForm.biddingPackage, "Chưa chọn gói thầu"]} />
         <SelectField label="Đề xuất mua sắm" required value={contractForm.proposal} options={proposalOptions} />
         <SelectField label="Nội dung Đề xuất" required value={contractForm.content} options={[contractForm.content, "Mua sắm hàng hóa", "Cung cấp dịch vụ"]} />
@@ -248,7 +252,7 @@ export function ContractCreatePage({ onBack }: { onBack: () => void }) {
   const amount = (key: string) => Number(value(key).replace(/[^0-9,.-]/g, "").replace(/\./g, "").replace(",", ".")) || 0;
   const contractType = value("Loại hợp đồng").toLowerCase().includes("phi") ? "NON_CONSULTING_SERVICE" : "GOODS";
   const previewData = {
-    contractNumber: value("Số hợp đồng"), packageName: value("Gói thầu"), packageCode: value("Mã gói"), contractForm: value("Mẫu hợp đồng"),
+    templateKey: value("Mẫu hợp đồng"), contractNumber: value("Số hợp đồng"), packageName: value("Gói thầu"), packageCode: value("Mã gói"), contractForm: value("Mẫu hợp đồng"),
     signingDay: value("Ngày ký").split(/[./-]/)[0], signingMonth: value("Ngày ký").split(/[./-]/)[1], signingYear: value("Ngày ký").split(/[./-]/)[2],
     partyAName: value("Tên chủ đầu tư"), partyAAddress: value("Địa chỉ bên mua"), partyATaxCode: value("Mã số thuế bên mua"), partyARepresentative: value("Đại diện bên mua"), partyBName: value("Tên nhà thầu"), partyBAddress: value("Địa chỉ bên bán"), partyBTaxCode: value("Mã số thuế bên bán"), partyBPhone: value("Điện thoại bên bán"), partyBRepresentative: value("Đại diện bên bán"), partyBTitle: value("Chức vụ bên bán"), totalAmount: amount("Giá hợp đồng (đã bao gồm thuế)"), totalAmountText: value("Giá hợp đồng (bằng chữ)"), currency: "VND",
   };

@@ -5,6 +5,7 @@ import { DocumentViewerToolbar, useDocumentPan, useWheelZoom } from "../Document
 
 export interface ContractPreviewData {
   templateId?: string;
+  templateKey?: string;
   contractNumber?: string;
   contractForm?: string;
   packageName?: string;

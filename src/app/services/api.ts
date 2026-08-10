@@ -32,6 +32,8 @@ export interface PageResponse<T> {
   totalPages: number;
 }
 
+export interface ContractTemplateOption { key: string; label: string; }
+
 export interface DocumentFilterOptions {
   search?: string;
   type?: string;
@@ -47,6 +49,29 @@ export interface DocumentFilterOptions {
   page?: number;
   size?: number;
 }
+
+export interface ExtractionFieldSpec {
+  id: string;
+  label: string;
+  type: string;
+  required?: boolean;
+  description?: string;
+  confidenceThreshold?: number;
+}
+
+export const DEFAULT_EXTRACTION_FIELDS: ExtractionFieldSpec[] = [
+  { id: "documentType", label: "Loại tài liệu", type: "string", description: "Loại văn bản" },
+  { id: "documentNumber", label: "Mã tài liệu", type: "string", description: "Số hiệu hoặc mã tài liệu" },
+  { id: "proposalDate", label: "Ngày lập", type: "date", description: "Ngày lập hoặc ban hành tài liệu" },
+  { id: "title", label: "Tên hàng", type: "string", description: "Tên hàng hóa hoặc tiêu đề tài liệu" },
+  { id: "productCode", label: "Mã hàng", type: "string", description: "Mã sản phẩm hoặc mã hàng hóa" },
+  { id: "partner", label: "Đối tác", type: "string", description: "Tên đối tác hoặc nhà cung cấp" },
+  { id: "specifications", label: "Thông số kỹ thuật", type: "string", description: "Thông số kỹ thuật của hàng hóa" },
+  { id: "unit", label: "Đơn vị tính", type: "string", description: "Đơn vị tính" },
+  { id: "quantity", label: "Số lượng", type: "number", description: "Số lượng hàng hóa" },
+  { id: "unitPrice", label: "Đơn giá (VND)", type: "number", description: "Đơn giá chưa hoặc đã gồm thuế theo tài liệu" },
+  { id: "totalAmount", label: "Tổng giá trị (VND)", type: "number", description: "Tổng giá trị thành tiền" },
+];
 
 /** Fetcher chuẩn REST API - Kết nối trực tiếp Backend Spring Boot */
 async function apiFetch<T>(endpoint: string, options?: RequestInit): Promise<T> {
@@ -121,6 +146,14 @@ export const docApi = {
   async rerunOCR(docId: string): Promise<DigitizedDoc> {
     return apiFetch<DigitizedDoc>(`/documents/${docId}/rerun-ocr`, {
       method: "POST",
+    });
+  },
+
+  /** Gửi raw OCR + field schema sang LLM qua backend. */
+  async extractFields(docId: string, fields: ExtractionFieldSpec[] = DEFAULT_EXTRACTION_FIELDS): Promise<DigitizedDoc> {
+    return apiFetch<DigitizedDoc>(`/documents/${docId}/extract-fields`, {
+      method: "POST",
+      body: JSON.stringify(fields),
     });
   },
 
@@ -232,6 +265,7 @@ export const docApi = {
     Object.entries(params).forEach(([key, value]) => value !== undefined && value !== "" && query.set(key, String(value)));
     return apiFetch<ContractPageResponse>(`/contracts?${query}`);
   },
+  async getContractTemplates(): Promise<ContractTemplateOption[]> { return apiFetch<ContractTemplateOption[]>("/contracts/templates"); },
   async getContractStats(): Promise<ContractStatsDto> { return apiFetch<ContractStatsDto>("/contracts/stats"); },
   async getContractActivity(size = 10): Promise<ContractActivityDto[]> { return apiFetch<ContractActivityDto>(`/contracts/activity?size=${size}`); },
   async getContract(id: string): Promise<ContractDetailDto> { return apiFetch<ContractDetailDto>(`/contracts/${id}`); },
