@@ -12,6 +12,8 @@ import {
   ContractPageResponse,
   ContractStatsDto,
   ContractActivityDto,
+  ContractTemplateVersionDto,
+  ContractClauseTemplateDto,
 } from "../data/apiModels";
 
 // ponytail: Base API URL với fallback /api/v1 cho local dev proxy
@@ -91,6 +93,12 @@ async function apiFetch<T>(endpoint: string, options?: RequestInit): Promise<T> 
     throw new ApiError(res.status, message || res.statusText || `HTTP ${res.status}`);
   }
   return await res.json();
+}
+
+async function apiBlob(endpoint: string, body: unknown): Promise<Blob> {
+  const res = await fetch(`${API_BASE}${endpoint}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+  if (!res.ok) throw new ApiError(res.status, await res.text() || "Request failed");
+  return res.blob();
 }
 
 export const docApi = {
@@ -266,6 +274,12 @@ export const docApi = {
     return apiFetch<ContractPageResponse>(`/contracts?${query}`);
   },
   async getContractTemplates(): Promise<ContractTemplateOption[]> { return apiFetch<ContractTemplateOption[]>("/contracts/templates"); },
+  async getContractTemplateVersions(contractType: string): Promise<ContractTemplateVersionDto[]> { return apiFetch<ContractTemplateVersionDto[]>(`/contract-templates?contractType=${encodeURIComponent(contractType)}`); },
+  async getContractTemplateClauses(templateVersionId: string): Promise<ContractClauseTemplateDto[]> {
+    const result = await apiFetch<ContractClauseTemplateDto[] | { clauses: ContractClauseTemplateDto[] }>(`/contract-templates/${templateVersionId}/clauses`);
+    return Array.isArray(result) ? result : result.clauses;
+  },
+  async previewContract(data: unknown): Promise<Blob> { return apiBlob("/contracts/preview", data); },
   async getContractStats(): Promise<ContractStatsDto> { return apiFetch<ContractStatsDto>("/contracts/stats"); },
   async getContractActivity(size = 10): Promise<ContractActivityDto[]> { return apiFetch<ContractActivityDto>(`/contracts/activity?size=${size}`); },
   async getContract(id: string): Promise<ContractDetailDto> { return apiFetch<ContractDetailDto>(`/contracts/${id}`); },

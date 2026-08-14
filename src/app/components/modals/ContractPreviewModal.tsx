@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { ArrowLeft, Loader2 } from "lucide-react";
 import { DocumentCanvas } from "../DocumentCanvas";
 import { DocumentViewerToolbar, useDocumentPan, useWheelZoom } from "../DocumentViewerToolbar";
+import { docApi } from "../../services/api";
 
 export interface ContractPreviewData {
   templateId?: string;
@@ -31,6 +32,7 @@ export interface ContractPreviewData {
     lineTotal: number;
   }>;
   cleanPlaceholderDecorations?: boolean;
+  clauseValues?: Record<string, unknown>;
 }
 
 interface ContractPreviewModalProps {
@@ -51,9 +53,7 @@ export function ContractPreviewModal({ isOpen, onClose, contractData }: Contract
   useWheelZoom(previewContainerRef, setZoom);
   const pan = useDocumentPan(previewContainerRef);
   const downloadPreviewPdf = async () => {
-    const response = await fetch("/api/v1/contracts/preview", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...contractData, cleanPlaceholderDecorations: true }) });
-    if (!response.ok) throw new Error("Không thể tải PDF hợp đồng");
-    const url = URL.createObjectURL(await response.blob()); const link = document.createElement("a"); link.href = url; link.download = `${contractData.contractNumber || "contract"}_preview.pdf`; link.click(); URL.revokeObjectURL(url);
+    const url = URL.createObjectURL(await docApi.previewContract({ ...contractData, cleanPlaceholderDecorations: true })); const link = document.createElement("a"); link.href = url; link.download = `${contractData.contractNumber || "contract"}_preview.pdf`; link.click(); URL.revokeObjectURL(url);
   };
 
   useEffect(() => {
@@ -70,19 +70,7 @@ export function ContractPreviewModal({ isOpen, onClose, contractData }: Contract
       setLoading(true);
       setError(null);
       try {
-        const response = await fetch("/api/v1/contracts/preview", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(contractData),
-        });
-
-        if (!response.ok) {
-          throw new Error(`Xử lý xem trước thất bại với mã lỗi HTTP ${response.status}`);
-        }
-
-        const blob = await response.blob();
+        const blob = await docApi.previewContract(contractData);
         if (isMounted) {
           const url = URL.createObjectURL(blob);
           setPdfUrl(url);
