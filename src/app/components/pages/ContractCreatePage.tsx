@@ -1,7 +1,6 @@
 import { createContext, useContext, useState, useEffect, useRef, type ReactNode } from "react";
 import {
   ArrowLeft,
-  CalendarDays,
   ChevronDown,
   Eye,
   FileText,
@@ -13,7 +12,7 @@ import { contractForm } from "../../data/contractMock";
 import { IconChevronRight, IconCircleCheck, IconCircleClose, IconCircleMinus } from "../icons";
 import { ApiError, docApi, type ContractTemplateOption } from "../../services/api";
 import { toast } from "sonner";
-import type { ContractClauseFieldDto, ContractClauseTemplateDto } from "../../data/apiModels";
+import type { ContractClauseFieldDto, ContractClauseTemplateDto, ContractTemplateSchemaDto } from "../../data/apiModels";
 
 type FieldProps = { label: string; required?: boolean; suffix?: string; placeholder?: string };
 type FormValues = Record<string, string>;
@@ -29,16 +28,6 @@ function Field({ label, required, suffix, placeholder = "Nhập thông tin" }: F
         <input value={values[label] || ""} onChange={(e) => setValue(label, e.target.value)} placeholder={placeholder} className="h-[38px] w-full rounded-[6px] border border-[#dbdade] bg-white px-3 text-[12px] text-[#393740] outline-none placeholder:text-[#c0bec5] focus:border-[#3f81ea]" />
         {suffix && <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[12px] text-[#5d586c]">{suffix}</span>}
       </span>
-    </label>
-  );
-}
-
-function TextArea({ label, required, placeholder = "Nhập các điều kiện thanh toán" }: Omit<FieldProps, "suffix">) {
-  const { values, setValue } = useForm();
-  return (
-    <label className="space-y-2 text-[14px] text-[#393740]">
-      <span>{label} {required && <b className="font-normal text-[#ff4c51]">*</b>}</span>
-      <textarea value={values[label] || ""} onChange={(e) => setValue(label, e.target.value)} placeholder={placeholder} className="min-h-[82px] w-full resize-y rounded-[6px] border border-[#dbdade] bg-white px-3 py-2 text-[12px] outline-none placeholder:text-[#c0bec5] focus:border-[#3f81ea]" />
     </label>
   );
 }
@@ -99,13 +88,13 @@ function ClauseAttachments() {
 }
 
 type SelectOption = string | { label: string; value: string };
-function SelectField({ label, value, required = false, options = [value], onChange }: { label: string; value: string; required?: boolean; options?: SelectOption[]; onChange?: (value: string) => void }) {
+function SelectField({ label, value, required = false, options = [value], onChange, disabled = false }: { label: string; value: string; required?: boolean; options?: SelectOption[]; onChange?: (value: string) => void; disabled?: boolean }) {
   const { values, setValue } = useForm();
   return (
     <label className="space-y-2 text-[14px] text-[#393740]">
       <span>{label} {required && <b className="font-normal text-[#ff4c51]">*</b>}</span>
       <span className="relative block">
-        <select value={values[label] || value} onChange={(e) => { setValue(label, e.target.value); onChange?.(e.target.value); }} className="h-[38px] w-full appearance-none rounded-[6px] border border-[#dbdade] bg-white px-3 pr-9 text-[12px] text-[#393740] outline-none focus:border-[#3f81ea]">
+        <select disabled={disabled} value={values[label] || value} onChange={(e) => { setValue(label, e.target.value); onChange?.(e.target.value); }} className="h-[38px] w-full appearance-none rounded-[6px] border border-[#dbdade] bg-white px-3 pr-9 text-[12px] text-[#393740] outline-none focus:border-[#3f81ea] disabled:bg-[#f3f2f5] disabled:text-[#6f6b7a]">
           {options.map((option) => { const item = typeof option === "string" ? { label: option, value: option } : option; return <option key={item.value} value={item.value}>{item.label || "Chọn giá trị"}</option>; })}
         </select>
         <ChevronDown className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-[#5d586c]" />
@@ -114,9 +103,9 @@ function SelectField({ label, value, required = false, options = [value], onChan
   );
 }
 
-function ClauseField({ clauseCode, field }: { clauseCode: string; field: ContractClauseFieldDto }) {
+function ClauseField({ clauseCode, field, prefix }: { clauseCode: string; field: ContractClauseFieldDto; prefix?: string }) {
   const { values, setValue } = useForm();
-  const key = `clause.${clauseCode}.${field.key}`;
+  const key = prefix ? `${prefix}.${field.key}` : `clause.${clauseCode}.${field.key}`;
   const current = values[key] || "";
   const common = "h-[38px] w-full rounded-[6px] border border-[#dbdade] bg-white px-3 text-[12px] text-[#393740] outline-none placeholder:text-[#c0bec5] focus:border-[#3f81ea]";
   const label = <span>{field.label} {field.required && <b className="font-normal text-[#ff4c51]">*</b>}</span>;
@@ -126,6 +115,22 @@ function ClauseField({ clauseCode, field }: { clauseCode: string; field: Contrac
   if (field.type === "checkboxList") return <fieldset className="space-y-2 text-[14px] text-[#393740]"><legend>{label}</legend>{(field.options || []).map((option) => { const selected = current.split(",").filter(Boolean).includes(option.value); return <label key={option.value} className="mr-4 inline-flex items-center gap-2"><input type="checkbox" checked={selected} onChange={(e) => { const next = new Set(current.split(",").filter(Boolean)); e.target.checked ? next.add(option.value) : next.delete(option.value); setValue(key, [...next].join(",")); }} className="size-4 accent-[#3f81ea]" />{option.label}</label>; })}</fieldset>;
   if (field.type === "documentLinks") return <label className="space-y-2 text-[14px] text-[#393740]"><span>{label}</span><textarea value={current} onChange={(e) => setValue(key, e.target.value)} placeholder={field.placeholder || "Nhập ID tài liệu, phân tách bằng dấu phẩy"} className="min-h-[70px] w-full resize-y rounded-[6px] border border-[#dbdade] bg-white px-3 py-2 text-[12px] outline-none placeholder:text-[#c0bec5] focus:border-[#3f81ea]" /></label>;
   return <label className="space-y-2 text-[14px] text-[#393740]"><span>{label}</span><span className="relative block"><input type={field.type === "date" ? "date" : field.type === "integer" || field.type === "decimal" ? "number" : "text"} step={field.type === "decimal" ? "0.01" : undefined} value={current} onChange={(e) => setValue(key, e.target.value)} placeholder={field.placeholder || "Nhập thông tin"} className={`${common} ${field.unit ? "pr-14" : ""}`} />{field.unit && <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[12px] text-[#5d586c]">{field.unit}</span>}</span></label>;
+}
+
+function DynamicPartyGroup({ block }: { block: Extract<import("../../data/apiModels").ContractTemplateBlockDto, { type: "partyGroup" }> }) {
+  const fields = block.fields || [];
+  return <Section title={block.title} defaultOpen><div className="space-y-4">{block.roles.map((role, index) => <Subsection key={role} title={`${index + 1}. ${role === "BUYER" ? "Bên mua" : "Bên bán"}`}><div className="grid gap-x-2 gap-y-3 md:grid-cols-2">{fields.map((field) => <ClauseField key={`${role}.${field.key}`} clauseCode="" prefix={`party.${role}`} field={field} />)}</div></Subsection>)}</div></Section>;
+}
+
+function DynamicItemTable({ block }: { block: Extract<import("../../data/apiModels").ContractTemplateBlockDto, { type: "itemTable" }> }) {
+  const { values, setValue } = useForm();
+  const count = Math.max(1, Number(values["items.rowCount"] || 1));
+  return <Section title={block.title} defaultOpen><div className="space-y-4">{Array.from({ length: count }, (_, index) => <div key={index} className="rounded border border-[#dbdade] p-3"><p className="mb-2 text-[12px] font-semibold text-slate-500">Dòng {index + 1}</p><div className="grid gap-x-2 gap-y-3 md:grid-cols-2">{block.columns.map((field) => <ClauseField key={field.key} clauseCode="" prefix={`item.${index}`} field={field} />)}</div></div>)}<button type="button" className="h-8 rounded border border-[#3f81ea] px-3 text-[12px] text-[#3f81ea]" onClick={() => setValue("items.rowCount", String(count + 1))}>+ Thêm dòng</button></div></Section>;
+}
+
+function DynamicSignatureGroup({ block }: { block: Extract<import("../../data/apiModels").ContractTemplateBlockDto, { type: "signatureGroup" }> }) {
+  const fields = block.fields || [];
+  return <Section title={block.title}><div className="grid gap-x-2 gap-y-3 md:grid-cols-2">{block.roles.map((role) => fields.map((field) => <ClauseField key={`${role}.${field.key}`} clauseCode="" prefix={`signature.${role}`} field={field} />))}</div></Section>;
 }
 
 function DynamicClauses({ clauses }: { clauses: ContractClauseTemplateDto[] }) {
@@ -139,33 +144,24 @@ function DynamicClauses({ clauses }: { clauses: ContractClauseTemplateDto[] }) {
   return <>{clauses.map((clause) => <Section key={clause.id} title={clause.title} status={status(clause)}><div className="space-y-4">{clause.uiSchema.groups.map((group) => <div key={group.code} className="space-y-3"><h3 className="px-3 text-[16px] font-bold text-[rgba(47,43,61,0.9)]">{group.title}</h3><div className="grid gap-x-2 gap-y-3 md:grid-cols-2">{group.fields.map((field) => <ClauseField key={field.key} clauseCode={clause.code} field={field} />)}</div></div>)}</div></Section>)}</>;
 }
 
-function ContractOverview() {
+function ContractOverview({ schema }: { schema?: ContractTemplateSchemaDto }) {
   const [proposalOptions, setProposalOptions] = useState<string[]>([contractForm.proposal]);
-  const [templateOptions, setTemplateOptions] = useState<Array<{ id: string; name: string }>>([]);
+  const [templateOptions, setTemplateOptions] = useState<Array<{ id: string; name: string; contractType: "GOODS" | "NON_CONSULTING_SERVICE" }>>([]);
   const { values, setValue } = useForm();
-  const contractType = (values["Loại hợp đồng"] || "Hợp đồng hàng hóa").toLowerCase().includes("phi") ? "NON_CONSULTING_SERVICE" : "GOODS";
+  const generalBlock = schema?.blocks.find((item) => item.type === "fieldSection");
   useEffect(() => { void docApi.getProposals({ page: 1, size: 100 }).then((result) => setProposalOptions(result.content.map((item) => `${item.code} - ${item.title}`))).catch(() => undefined); }, []);
-  useEffect(() => { void docApi.getContractTemplateVersions(contractType).then((result) => { const options = result.map((item) => ({ id: item.id, name: item.name })); setTemplateOptions(options); if (options[0] && !values["__templateVersionId"]) { setValue("__templateVersionId", options[0].id); setValue("Mẫu hợp đồng", options[0].name); } }).catch(() => undefined); }, [contractType]);
+  useEffect(() => { void docApi.getPublishedContractTemplates().then((templates) => { const options = templates.map((item) => ({ id: item.id, name: item.name, contractType: item.contractType })); setTemplateOptions(options); if (options[0] && !options.some((item) => item.id === values["__templateVersionId"])) { setValue("__templateVersionId", options[0].id); setValue("Mẫu hợp đồng", options[0].name); setValue("Loại hợp đồng", options[0].contractType === "GOODS" ? "Hợp đồng hàng hóa" : "Hợp đồng phi hàng hóa (dịch vụ)"); } }).catch(() => undefined); }, []);
   return (
     <section className="rounded-[6px] border border-[#dbdade] bg-white p-4">
       <h2 className="mb-4 px-1 text-[16px] font-bold text-[#393740]">Thông tin chung</h2>
       <Grid>
-        <Field label="Số hợp đồng" required placeholder={contractForm.number} />
-        <SelectField label="Mẫu hợp đồng" required value={values["Mẫu hợp đồng"] || contractForm.template} options={templateOptions.length ? templateOptions.map((item) => ({ label: item.name, value: item.name })) : [contractForm.template]} onChange={(name) => { const selected = templateOptions.find((item) => item.name === name); if (selected) setValue("__templateVersionId", selected.id); }} />
-        <SelectField label="Gói thầu" required value={contractForm.biddingPackage} options={[contractForm.biddingPackage, "Chưa chọn gói thầu"]} />
+        <SelectField label="Mẫu hợp đồng" required value={values["Mẫu hợp đồng"] || contractForm.template} options={templateOptions.length ? templateOptions.map((item) => ({ label: item.name, value: item.name })) : [contractForm.template]} onChange={(name) => { const selected = templateOptions.find((item) => item.name === name); if (selected) { setValue("__templateVersionId", selected.id); setValue("Loại hợp đồng", selected.contractType === "GOODS" ? "Hợp đồng hàng hóa" : "Hợp đồng phi hàng hóa (dịch vụ)"); } }} />
+        {generalBlock?.type === "fieldSection" ? generalBlock.fields.map((field) => <ClauseField key={field.key} clauseCode="" prefix="general" field={field} />) : <Field label="Số hợp đồng" required placeholder={contractForm.number} />}
         <SelectField label="Đề xuất mua sắm" required value={contractForm.proposal} options={proposalOptions} />
         <SelectField label="Nội dung Đề xuất" required value={contractForm.content} options={[contractForm.content, "Mua sắm hàng hóa", "Cung cấp dịch vụ"]} />
         <SelectField label="Kế hoạch" required value={contractForm.plan} options={[contractForm.plan, "Chưa chọn kế hoạch"]} />
-        <label className="space-y-2 text-[14px] text-[#393740]">
-          <span>Ngày ký <b className="font-normal text-[#ff4c51]">*</b></span>
-          <span className="relative block">
-            <input placeholder="DD.MM.YYYY" className="h-[38px] w-full rounded-[6px] border border-[#dbdade] bg-white px-3 pr-9 text-[12px] outline-none placeholder:text-[#c0bec5] focus:border-[#3f81ea]" />
-            <CalendarDays className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-[#393740]" />
-          </span>
-        </label>
-        <SelectField label="Loại hợp đồng" required value="Hợp đồng hàng hóa" options={["Hợp đồng hàng hóa", "Hợp đồng phi hàng hóa (dịch vụ)"]} />
+        <SelectField label="Loại hợp đồng" required disabled value={values["Loại hợp đồng"] || "Hợp đồng hàng hóa"} options={["Hợp đồng hàng hóa", "Hợp đồng phi hàng hóa (dịch vụ)"]} />
       </Grid>
-      <div className="mt-3"><TextArea label="Căn cứ pháp lý" placeholder={contractForm.legalBasis} /></div>
     </section>
   );
 }
@@ -189,6 +185,11 @@ function ContractPreview({ onOpenModal, previewData }: { onOpenModal: () => void
   const fetchPreviewPdf = async () => {
     setLoading(true);
     setError(null);
+    if (!previewData.templateId) {
+      setLoading(false);
+      setError("Đang tải mẫu hợp đồng...");
+      return;
+    }
     try {
       const blob = await docApi.previewContract(previewData);
       const url = URL.createObjectURL(blob);
@@ -260,12 +261,43 @@ export function ContractCreatePage({ onBack }: { onBack: () => void }) {
   const [version, setVersion] = useState(0);
   const [saving, setSaving] = useState(false);
   const [clauses, setClauses] = useState<ContractClauseTemplateDto[]>([]);
+  const [templateSchema, setTemplateSchema] = useState<ContractTemplateSchemaDto>();
+  const [draftReady, setDraftReady] = useState(false);
   const previousTemplateId = useRef<string | undefined>(undefined);
+  const draftCreateInFlight = useRef(false);
+  const draftSaveTimer = useRef<number | undefined>(undefined);
   const setValue = (key: string, value: string) => setValues((current) => ({ ...current, [key]: value }));
-  const value = (key: string) => values[key] || "";
+  const value = (key: string) => values[key] || ({ "Số hợp đồng": "general.contractNumber", "Mã gói": "general.packageCode", "Gói thầu": "general.packageName", "Ngày ký": "general.signingDate", "Căn cứ pháp lý": "general.legalBasisSummary" }[key] ? values[{ "Số hợp đồng": "general.contractNumber", "Mã gói": "general.packageCode", "Gói thầu": "general.packageName", "Ngày ký": "general.signingDate", "Căn cứ pháp lý": "general.legalBasisSummary" }[key]!] : "") || "";
+  const partyValue = (role: "BUYER" | "VENDOR", key: string, legacy: string) => values[`party.${role}.${key}`] || value(legacy);
+  const itemValueAt = (index: number, key: string, legacy = "") => values[`item.${index}.${key}`] || (index === 0 ? value(legacy) : "");
+  const itemValue = (key: string, legacy: string) => itemValueAt(0, key, legacy);
+  const itemRows = () => Array.from({ length: Math.max(1, Number(values["items.rowCount"] || 1)) }, (_, index) => ({ itemCategory: contractType === "GOODS" ? "GOODS" : "SERVICE", itemName: itemValueAt(index, "itemName", "Tên hàng hóa") || clauseValue("SCOPE", "goodsName") || value("Đối tượng dịch vụ"), description: itemValueAt(index, "description", "Phạm vi công việc") || clauseValue("SCOPE", "scopeSummary"), unit: itemValueAt(index, "unit", "Đơn vị") || "Gói", quantity: Number(itemValueAt(index, "quantity", "Số lượng")) || 1, unitPrice: index === 0 ? amount("Giá hợp đồng (đã bao gồm thuế)") : Number(itemValueAt(index, "unitPrice")) || 0, taxRate: 0 }));
   const clauseValue = (code: string, key: string) => values[`clause.${code}.${key}`] || "";
   const templateVersionId = values["__templateVersionId"];
-  useEffect(() => { if (!templateVersionId) return; if (previousTemplateId.current && previousTemplateId.current !== templateVersionId) toast.warning("Đã đổi mẫu hợp đồng; dữ liệu điều khoản cũ sẽ được thay thế, thông tin chung và các bên được giữ lại."); previousTemplateId.current = templateVersionId; void docApi.getContractTemplateClauses(templateVersionId).then(setClauses).catch(() => setClauses([])); }, [templateVersionId]);
+  useEffect(() => {
+    if (!templateVersionId) return;
+    const changed = Boolean(previousTemplateId.current && previousTemplateId.current !== templateVersionId);
+    if (changed) {
+      toast.warning("Đã đổi mẫu hợp đồng; dữ liệu điều khoản cũ sẽ được thay thế, thông tin chung và các bên được giữ lại.");
+      setValues((current) => Object.fromEntries(Object.entries(current).filter(([key]) => !key.startsWith("clause."))));
+      if (contractId) {
+        void docApi.updateContract(contractId, { templateVersionId, version }).then((result) => setVersion(result.version)).catch(() => undefined);
+      }
+    }
+    previousTemplateId.current = templateVersionId;
+    setTemplateSchema(undefined);
+    void docApi.getContractTemplate(templateVersionId).then((template) => {
+      setTemplateSchema(template.formSchema);
+      const block = template.formSchema?.blocks.find((item) => item.type === "clauseGroup");
+      if (block?.type === "clauseGroup") {
+        setClauses(block.clauses.map((clause, index) => ({ ...clause, id: clause.id || `schema-${templateVersionId}-${index}`, templateVersionId })));
+      } else setClauses([]);
+    }).catch(() => { setTemplateSchema(undefined); setClauses([]); });
+    if (!contractId && !draftCreateInFlight.current) {
+      draftCreateInFlight.current = true;
+      void docApi.createContractDraft(templateVersionId).then((draft) => { setContractId(draft.id); setVersion(draft.version); setDraftReady(true); }).catch(() => undefined).finally(() => { draftCreateInFlight.current = false; });
+    }
+  }, [templateVersionId]);
   const isoDate = (raw: string) => { if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw; const parts = raw.split(/[./-]/).map(Number); return parts.length === 3 && parts[2] > 31 ? `${parts[2]}-${String(parts[1]).padStart(2, "0")}-${String(parts[0]).padStart(2, "0")}` : undefined; };
   const amount = (key: string) => Number(value(key).replace(/[^0-9,.-]/g, "").replace(/\./g, "").replace(",", ".")) || 0;
   const contractType = value("Loại hợp đồng").toLowerCase().includes("phi") ? "NON_CONSULTING_SERVICE" : "GOODS";
@@ -280,10 +312,26 @@ export function ContractCreatePage({ onBack }: { onBack: () => void }) {
   const previewData = {
     templateId: values["__templateVersionId"], templateKey: value("Mẫu hợp đồng"), contractNumber: value("Số hợp đồng"), packageName: value("Gói thầu"), packageCode: value("Mã gói"), contractForm: value("Mẫu hợp đồng"), clauseValues,
     signingDay: value("Ngày ký").split(/[./-]/)[0], signingMonth: value("Ngày ký").split(/[./-]/)[1], signingYear: value("Ngày ký").split(/[./-]/)[2],
-    partyAName: value("Tên chủ đầu tư"), partyAAddress: value("Địa chỉ bên mua"), partyATaxCode: value("Mã số thuế bên mua"), partyARepresentative: value("Đại diện bên mua"), partyBName: value("Tên nhà thầu"), partyBAddress: value("Địa chỉ bên bán"), partyBTaxCode: value("Mã số thuế bên bán"), partyBPhone: value("Điện thoại bên bán"), partyBRepresentative: value("Đại diện bên bán"), partyBTitle: value("Chức vụ bên bán"), totalAmount: amount("Giá hợp đồng (đã bao gồm thuế)"), totalAmountText: value("Giá hợp đồng (bằng chữ)"), currency: "VND",
+    partyAName: partyValue("BUYER", "name", "Tên chủ đầu tư"), partyAAddress: partyValue("BUYER", "address", "Địa chỉ bên mua"), partyATaxCode: partyValue("BUYER", "taxCode", "Mã số thuế bên mua"), partyARepresentative: partyValue("BUYER", "representativeName", "Đại diện bên mua"), partyBName: partyValue("VENDOR", "name", "Tên nhà thầu"), partyBAddress: partyValue("VENDOR", "address", "Địa chỉ bên bán"), partyBTaxCode: partyValue("VENDOR", "taxCode", "Mã số thuế bên bán"), partyBPhone: partyValue("VENDOR", "phone", "Điện thoại bên bán"), partyBRepresentative: partyValue("VENDOR", "representativeName", "Đại diện bên bán"), partyBTitle: partyValue("VENDOR", "representativeTitle", "Chức vụ bên bán"), totalAmount: amount("Giá hợp đồng (đã bao gồm thuế)"), totalAmountText: value("Giá hợp đồng (bằng chữ)"), currency: "VND",
   };
-  const payload = () => ({ templateVersionId: values["__templateVersionId"], clauseValues, contractType, sourceType: "MANUAL_ENTRY", departmentId: "10000000-0000-0000-0000-000000000001", ownerUserId: "20000000-0000-0000-0000-000000000001", contractNumber: value("Số hợp đồng"), contractForm: value("Mẫu hợp đồng") || "TRON_GOI", packageCode: value("Mã gói"), packageName: value("Gói thầu"), signingDate: isoDate(value("Ngày ký")), executionPeriodDays: Number(clauseValue("DELIVERY", "executionPeriodDays") || value("Thời gian thực hiện hợp đồng")) || undefined, amountInWords: clauseValue("PAYMENT", "totalAmountText") || value("Giá hợp đồng (bằng chữ)"), paymentTermsSummary: clauseValue("PAYMENT", "paymentTermsSummary") || value("Điều kiện thanh toán"), legalBasisSummary: value("Căn cứ pháp lý"), scopeSummary: clauseValue("SCOPE", "scopeSummary") || value("Cam kết của bên bán"), deliveryDays: Number(clauseValue("DELIVERY", "deliveryDays") || value("Thời gian giao hàng")) || undefined, deliveryCondition: clauseValue("DELIVERY", "deliveryCondition") || value("Điều kiện giao hàng thành công"), deliveryLocation: clauseValue("DELIVERY", "deliveryLocation") || value("Địa điểm giao hàng"), acceptanceSummary: clauseValue("ACCEPTANCE", "acceptanceSummary") || value("Thời hạn xử lý khi hàng hóa không đạt yêu cầu"), warrantyMonths: Number(clauseValue("WARRANTY", "warrantyMonths") || value("Thời gian bảo hành")) || undefined, warrantySummary: clauseValue("WARRANTY", "warrantySummary") || value("Điều khoản bảo hành & hỗ trợ kỹ thuật"), advancePercent: Number(clauseValue("PAYMENT", "advancePercent") || value("Tạm ứng")) || undefined, advancePaymentDays: Number(clauseValue("PAYMENT", "advancePaymentDays") || value("Số ngày thanh toán tạm ứng")) || undefined, remainingPaymentPercent: Number(clauseValue("PAYMENT", "remainingPaymentPercent") || value("Thanh toán còn lại")) || undefined, remainingPaymentDays: Number(clauseValue("PAYMENT", "remainingPaymentDays") || value("Số ngày thanh toán sau nghiệm thu")) || undefined, penaltyRate: Number(clauseValue("PENALTY", "penaltyRate") || value("Mức phạt (% phạt/ngày)")) || undefined, penaltyCap: Number(clauseValue("PENALTY", "penaltyCap") || value("Mức trần phạt")) || undefined, terminationNoticeDays: Number(clauseValue("TERMINATION", "terminationNoticeDays") || value("Thời hạn thông báo chấm dứt hợp đồng")) || undefined, generalTermsSummary: clauseValue("GENERAL", "generalTermsSummary") || value("Nội dung điều khoản chung"), items: [{ itemCategory: contractType === "GOODS" ? "GOODS" : "SERVICE", itemName: clauseValue("SCOPE", "goodsName") || value("Tên hàng hóa") || value("Đối tượng dịch vụ"), description: clauseValue("SCOPE", "scopeSummary") || value("Cam kết của bên bán") || value("Phạm vi công việc"), unit: "Gói", quantity: 1, unitPrice: amount("Giá hợp đồng (đã bao gồm thuế)"), taxRate: 0 }], parties: [{ partyRole: "BUYER", name: value("Tên chủ đầu tư"), address: value("Địa chỉ bên mua"), taxCode: value("Mã số thuế bên mua"), representativeName: value("Đại diện bên mua"), representativeTitle: value("Chức vụ bên mua") }, { partyRole: "VENDOR", name: value("Tên nhà thầu"), address: value("Địa chỉ bên bán"), phone: value("Điện thoại bên bán"), taxCode: value("Mã số thuế bên bán"), representativeName: value("Đại diện bên bán"), representativeTitle: value("Chức vụ bên bán") }] });
-  function applyImported(contract: Awaited<ReturnType<typeof docApi.getContract>>) { const next: FormValues = {}; const put = (key: string, val: unknown) => { if (val !== undefined && val !== null && val !== "") next[key] = String(val); }; put("Số hợp đồng", contract.contractNumber); put("Mẫu hợp đồng", contract.contractForm); put("Gói thầu", contract.packageName); put("Tên hàng hóa", contract.items?.[0]?.itemName); const buyer = contract.parties?.find((p) => p.partyRole === "BUYER"); const vendor = contract.parties?.find((p) => p.partyRole === "VENDOR"); put("Tên chủ đầu tư", buyer?.name); put("Địa chỉ bên mua", buyer?.address); put("Mã số thuế bên mua", buyer?.taxCode); put("Đại diện bên mua", buyer?.representativeName); put("Tên nhà thầu", vendor?.name); put("Địa chỉ bên bán", vendor?.address); put("Mã số thuế bên bán", vendor?.taxCode); put("Điện thoại bên bán", vendor?.phone); put("Đại diện bên bán", vendor?.representativeName); put("Chức vụ bên bán", vendor?.representativeTitle); setValues((current) => ({ ...current, ...next })); setContractId(contract.id); setVersion(contract.version); }
+  const payload = () => ({ templateVersionId: values["__templateVersionId"], clauseValues, contractType, sourceType: "MANUAL_ENTRY", departmentId: "10000000-0000-0000-0000-000000000001", ownerUserId: "20000000-0000-0000-0000-000000000001", contractNumber: value("Số hợp đồng"), contractForm: value("Mẫu hợp đồng") || "TRON_GOI", packageCode: value("Mã gói"), packageName: value("Gói thầu"), signingDate: isoDate(value("Ngày ký")), executionPeriodDays: Number(clauseValue("DELIVERY", "executionPeriodDays") || value("Thời gian thực hiện hợp đồng")) || undefined, amountInWords: clauseValue("PAYMENT", "totalAmountText") || value("Giá hợp đồng (bằng chữ)"), paymentTermsSummary: clauseValue("PAYMENT", "paymentTermsSummary") || value("Điều kiện thanh toán"), legalBasisSummary: value("Căn cứ pháp lý"), scopeSummary: clauseValue("SCOPE", "scopeSummary") || value("Cam kết của bên bán"), deliveryDays: Number(clauseValue("DELIVERY", "deliveryDays") || value("Thời gian giao hàng")) || undefined, deliveryCondition: clauseValue("DELIVERY", "deliveryCondition") || value("Điều kiện giao hàng thành công"), deliveryLocation: clauseValue("DELIVERY", "deliveryLocation") || value("Địa điểm giao hàng"), acceptanceSummary: clauseValue("ACCEPTANCE", "acceptanceSummary") || value("Thời hạn xử lý khi hàng hóa không đạt yêu cầu"), warrantyMonths: Number(clauseValue("WARRANTY", "warrantyMonths") || value("Thời gian bảo hành")) || undefined, warrantySummary: clauseValue("WARRANTY", "warrantySummary") || value("Điều khoản bảo hành & hỗ trợ kỹ thuật"), advancePercent: Number(clauseValue("PAYMENT", "advancePercent") || value("Tạm ứng")) || undefined, advancePaymentDays: Number(clauseValue("PAYMENT", "advancePaymentDays") || value("Số ngày thanh toán tạm ứng")) || undefined, remainingPaymentPercent: Number(clauseValue("PAYMENT", "remainingPaymentPercent") || value("Thanh toán còn lại")) || undefined, remainingPaymentDays: Number(clauseValue("PAYMENT", "remainingPaymentDays") || value("Số ngày thanh toán sau nghiệm thu")) || undefined, penaltyRate: Number(clauseValue("PENALTY", "penaltyRate") || value("Mức phạt (% phạt/ngày)")) || undefined, penaltyCap: Number(clauseValue("PENALTY", "penaltyCap") || value("Mức trần phạt")) || undefined, terminationNoticeDays: Number(clauseValue("TERMINATION", "terminationNoticeDays") || value("Thời hạn thông báo chấm dứt hợp đồng")) || undefined, generalTermsSummary: clauseValue("GENERAL", "generalTermsSummary") || value("Nội dung điều khoản chung"), items: [{ itemCategory: contractType === "GOODS" ? "GOODS" : "SERVICE", itemName: itemValue("itemName", "Tên hàng hóa") || clauseValue("SCOPE", "goodsName") || value("Đối tượng dịch vụ"), description: itemValue("description", "Phạm vi công việc") || clauseValue("SCOPE", "scopeSummary"), unit: itemValue("unit", "Đơn vị") || "Gói", quantity: Number(itemValue("quantity", "Số lượng")) || 1, unitPrice: amount("Giá hợp đồng (đã bao gồm thuế)"), taxRate: 0 }], parties: [{ partyRole: "BUYER", name: partyValue("BUYER", "name", "Tên chủ đầu tư"), address: partyValue("BUYER", "address", "Địa chỉ bên mua"), taxCode: partyValue("BUYER", "taxCode", "Mã số thuế bên mua"), representativeName: partyValue("BUYER", "representativeName", "Đại diện bên mua"), representativeTitle: partyValue("BUYER", "representativeTitle", "Chức vụ bên mua") }, { partyRole: "VENDOR", name: partyValue("VENDOR", "name", "Tên nhà thầu"), address: partyValue("VENDOR", "address", "Địa chỉ bên bán"), phone: partyValue("VENDOR", "phone", "Điện thoại bên bán"), taxCode: partyValue("VENDOR", "taxCode", "Mã số thuế bên bán"), representativeName: partyValue("VENDOR", "representativeName", "Đại diện bên bán"), representativeTitle: partyValue("VENDOR", "representativeTitle", "Chức vụ bên bán") }] });
+  const draftData = (): Record<string, unknown> => ({
+    general: { contractNumber: value("Số hợp đồng"), contractForm: value("Mẫu hợp đồng"), packageCode: value("Mã gói"), packageName: value("Gói thầu"), signingDate: isoDate(value("Ngày ký")), legalBasisSummary: value("Căn cứ pháp lý") },
+    parties: { BUYER: { name: partyValue("BUYER", "name", "Tên chủ đầu tư"), address: partyValue("BUYER", "address", "Địa chỉ bên mua"), taxCode: partyValue("BUYER", "taxCode", "Mã số thuế bên mua"), representativeName: partyValue("BUYER", "representativeName", "Đại diện bên mua"), representativeTitle: partyValue("BUYER", "representativeTitle", "Chức vụ bên mua") }, VENDOR: { name: partyValue("VENDOR", "name", "Tên nhà thầu"), address: partyValue("VENDOR", "address", "Địa chỉ bên bán"), phone: partyValue("VENDOR", "phone", "Điện thoại bên bán"), taxCode: partyValue("VENDOR", "taxCode", "Mã số thuế bên bán"), representativeName: partyValue("VENDOR", "representativeName", "Đại diện bên bán"), representativeTitle: partyValue("VENDOR", "representativeTitle", "Chức vụ bên bán") } },
+    items: itemRows(),
+    clauses: clauseValues,
+    attachments: [],
+    signatures: { BUYER: { signerName: values["signature.BUYER.signerName"] || "", signerTitle: values["signature.BUYER.signerTitle"] || "" }, VENDOR: { signerName: values["signature.VENDOR.signerName"] || "", signerTitle: values["signature.VENDOR.signerTitle"] || "" } },
+  });
+  useEffect(() => {
+    if (!contractId || !draftReady || !templateVersionId) return;
+    window.clearTimeout(draftSaveTimer.current);
+    draftSaveTimer.current = window.setTimeout(() => {
+      void docApi.saveContractDraft(contractId, draftData(), version).then((result) => setVersion(result.version)).catch((error) => { if (error instanceof ApiError && error.status === 409) toast.error("Bản nháp đã được thay đổi ở tab khác; hãy tải lại trang."); });
+    }, 1500);
+    return () => window.clearTimeout(draftSaveTimer.current);
+  }, [values, contractId, draftReady, templateVersionId]);
+  function applyImported(contract: Awaited<ReturnType<typeof docApi.getContract>>) { const next: FormValues = {}; const put = (key: string, val: unknown) => { if (val !== undefined && val !== null && val !== "") next[key] = String(val); }; put("Số hợp đồng", contract.contractNumber); put("general.contractNumber", contract.contractNumber); put("Mẫu hợp đồng", contract.contractForm); put("Gói thầu", contract.packageName); put("general.packageName", contract.packageName); put("Tên hàng hóa", contract.items?.[0]?.itemName); const buyer = contract.parties?.find((p) => p.partyRole === "BUYER"); const vendor = contract.parties?.find((p) => p.partyRole === "VENDOR"); put("Tên chủ đầu tư", buyer?.name); put("party.BUYER.name", buyer?.name); put("Địa chỉ bên mua", buyer?.address); put("party.BUYER.address", buyer?.address); put("Mã số thuế bên mua", buyer?.taxCode); put("party.BUYER.taxCode", buyer?.taxCode); put("Đại diện bên mua", buyer?.representativeName); put("party.BUYER.representativeName", buyer?.representativeName); put("Tên nhà thầu", vendor?.name); put("party.VENDOR.name", vendor?.name); put("Địa chỉ bên bán", vendor?.address); put("party.VENDOR.address", vendor?.address); put("Mã số thuế bên bán", vendor?.taxCode); put("party.VENDOR.taxCode", vendor?.taxCode); put("Điện thoại bên bán", vendor?.phone); put("party.VENDOR.phone", vendor?.phone); put("Đại diện bên bán", vendor?.representativeName); put("party.VENDOR.representativeName", vendor?.representativeName); put("Chức vụ bên bán", vendor?.representativeTitle); put("party.VENDOR.representativeTitle", vendor?.representativeTitle); setValues((current) => ({ ...current, ...next })); setContractId(contract.id); setVersion(contract.version); setDraftReady(true); }
   async function importFromSource() { const source = window.prompt("Nguồn dữ liệu: proposal, extraction hoặc bidding", "proposal")?.trim().toLowerCase(); if (!source) return; try { let imported; if (source === "proposal") { const id = window.prompt("Nhập Proposal ID"); if (!id) return; imported = await docApi.contractFromProposal(id); } else if (source === "extraction") { const id = window.prompt("Nhập Extraction Result ID"); if (!id) return; imported = await docApi.contractFromExtraction(id); } else if (source === "bidding") { toast.info("Nguồn bidding cần payload nhà thầu và hạng mục; dùng API adapter để nạp dữ liệu."); return; } else { toast.error("Nguồn không hợp lệ"); return; } applyImported(imported); toast.success("Đã nạp dữ liệu từ nguồn"); } catch (error) { toast.error(error instanceof ApiError ? error.message : "Không thể nạp dữ liệu từ nguồn"); } }
   async function save(submit = false) { if (!value("Tên nhà thầu") || !value("Tên hàng hóa") && !value("Đối tượng dịch vụ")) { toast.error("Vui lòng nhập nhà thầu và hạng mục hợp đồng"); return; } setSaving(true); try { const result = contractId ? await docApi.updateContract(contractId, { ...payload(), version }) : await docApi.createContract(payload()); setContractId(result.id); setVersion(result.version); toast.success("Đã lưu hợp đồng nháp"); if (submit) { const submitted = await docApi.contractAction(result.id, "submit"); setVersion(submitted.version); toast.success("Đã trình phê duyệt hợp đồng"); } } catch (error) { toast.error(error instanceof ApiError ? error.message : "Không thể lưu hợp đồng"); } finally { setSaving(false); } }
 
@@ -304,7 +352,7 @@ export function ContractCreatePage({ onBack }: { onBack: () => void }) {
       </div>
 
       <div className="grid gap-4 xl:grid-cols-2">
-        <ContractOverview />
+        <ContractOverview schema={templateSchema} />
         <ContractPreview onOpenModal={() => setIsModalOpen(true)} previewData={previewData} />
       </div>
 
@@ -314,10 +362,13 @@ export function ContractCreatePage({ onBack }: { onBack: () => void }) {
         contractData={previewData}
       />
 
-      <Section title="Thông tin các bên"><Subsection title="1. Bên mua"><Grid><Field label="Tên chủ đầu tư" required placeholder="CÔNG TY TNHH MTV AN NINH MẠNG VIETTEL" /><Field label="Địa chỉ" required placeholder="Tầng 41-43, tòa nhà Keangnam Landmark 72, đường Phạm Hùng, Phường Từ Liêm, Thành phố Hà Nội, Việt Nam" /><Field label="Điện thoại" required placeholder="024.66628811" /><Field label="Mã số thuế" required placeholder="0110939642" /><Field label="Đại diện bên mua" required placeholder="Nhập Họ và tên người đại diện" /><Field label="Chức vụ" required placeholder="Nhập chức vụ của người đại diện" /><Field label="Số giấy ủy quyền" placeholder="Nhập số giấy ủy quyền" /><Field label="Ngày ủy quyền" placeholder="DD.MM.YYYY" /></Grid></Subsection><Subsection title="2. Bên bán"><Grid><Field label="Tên nhà thầu" required placeholder="Nhập tên nhà thầu" /><Field label="Địa chỉ" required placeholder="Nhập địa chỉ của nhà thầu" /><Field label="Điện thoại" required /><Field label="Mã số thuế" required /><Field label="Đại diện bên bán" required /><Field label="Chức vụ" required /><Field label="Số giấy ủy quyền" /><Field label="Ngày ủy quyền" placeholder="DD.MM.YYYY" /></Grid></Subsection></Section>
-      {clauses.length ? <DynamicClauses clauses={clauses} /> : <p className="rounded-[6px] border border-dashed border-[#dbdade] bg-white p-6 text-center text-[12px] text-slate-500">Đang tải cấu hình điều khoản...</p>}
-      <Attachments />
-      <Section title="Ký duyệt & phát hành"><p className="mb-3 px-2 text-[14px]">Liệt kê danh sách ký duyệt</p><div className="space-y-3">{["A", "B"].map((party) => <div key={party} className="rounded-[4px] border border-[#dbdade] p-4"><h3 className="mb-3 text-[16px] font-bold">Đại diện bên {party}</h3><Grid><Field label="Người ký duyệt" placeholder="Nguyễn Văn A" /><Field label="Chức vụ của người ký duyệt" placeholder="Giám đốc" /></Grid></div>)}</div></Section>
+      {templateSchema ? templateSchema.blocks.filter((block) => block.type !== "fieldSection").map((block) => {
+        if (block.type === "partyGroup") return <DynamicPartyGroup key={block.code} block={block} />;
+        if (block.type === "itemTable") return <DynamicItemTable key={block.code} block={block} />;
+        if (block.type === "clauseGroup") return clauses.length ? <DynamicClauses key={block.code} clauses={clauses} /> : null;
+        if (block.type === "attachmentList") return <Attachments key={block.code} />;
+        return <DynamicSignatureGroup key={block.code} block={block} />;
+      }) : <p className="rounded-[6px] border border-dashed border-[#dbdade] bg-white p-6 text-center text-[12px] text-slate-500">Đang tải cấu hình điều khoản...</p>}
       <div className="flex justify-end gap-3 pb-4"><button disabled={saving} onClick={() => void save(false)} className="h-9 rounded-[4px] border border-slate-300 bg-white px-4 text-[12px] disabled:opacity-50">{saving ? "Đang lưu..." : "Lưu nháp"}</button><button disabled={saving} onClick={() => void save(true)} className="h-9 rounded-[4px] bg-[#ff4c51] px-4 text-[12px] text-white disabled:opacity-50">Trình duyệt</button></div>
       </FormContext.Provider>
     </div>
