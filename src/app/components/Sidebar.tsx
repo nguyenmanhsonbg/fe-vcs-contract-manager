@@ -17,7 +17,16 @@ import {
 } from "./icons";
 import imgAvatar from "../../imports/SốHoaTaiLiệu-1/420fce61b2448c9eab5d25435a5e458a011f53b7.png";
 
-export type PageKey = "overview" | "list" | "product" | "proposal" | "contract" | "login";
+export type PageKey =
+  | "overview"
+  | "list"
+  | "product"
+  | "proposal"
+  | "contract"
+  | "business-plan"
+  | "acceptance"
+  | "reconciliation"
+  | "login";
 
 export interface NavItem {
   key?: PageKey;
@@ -55,9 +64,9 @@ export const SECTIONS: NavItem[] = [
     label: "Phương án kinh doanh",
     icon: IconPhuongAnKinhDoanh,
     children: [
-      { label: "Quản lý phương án kinh doanh" },
-      { label: "Phân bổ ngân sách" },
-      { label: "Quản lý nghiệm thu" },
+      { key: "business-plan", label: "Quản lý phương án kinh doanh" },
+      { key: "acceptance", label: "Quản lý nghiệm thu" },
+      { key: "reconciliation", label: "Đối sánh nghiệm thu" },
     ],
   },
   {

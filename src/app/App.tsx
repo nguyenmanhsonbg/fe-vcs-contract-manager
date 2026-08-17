@@ -3,6 +3,7 @@ import { Sidebar, PageKey } from "./components/Sidebar";
 import { TopBar } from "./components/TopBar";
 import { DocumentDetailPage } from "./components/pages/DocumentDetailPage";
 import { ProposalDetailPage } from "./components/pages/ProposalDetailPage";
+import { BusinessPlanDetailPage } from "./components/pages/BusinessPlanDetailPage";
 import { OriginalDocView } from "./components/pages/OriginalDocView";
 import { UploadModal } from "./components/modals/UploadModal";
 import { DigitizedDoc } from "./data/models";
@@ -62,6 +63,7 @@ export default function App() {
   const [page, setPage] = useState<PageKey>(() => parseHashRoute(window.location.hash).page);
   const [openDoc, setOpenDoc] = useState<DigitizedDoc | null>(null);
   const [originalDoc, setOriginalDoc] = useState<DigitizedDoc | null>(null);
+  const [businessPlanDetailId, setBusinessPlanDetailId] = useState<string | null>(null);
   const [uploadModalOpen, setUploadModalOpen] = useState(false);
   const [documentRefreshToken, setDocumentRefreshToken] = useState(0);
 
@@ -70,6 +72,15 @@ export default function App() {
     async function syncStateFromHash() {
       const parsed = parseHashRoute(window.location.hash);
       setPage(parsed.page);
+
+      if (parsed.page === "business-plan" && parsed.subType === "detail" && parsed.docId) {
+        setBusinessPlanDetailId(decodeURIComponent(parsed.docId));
+        setOpenDoc(null);
+        setOriginalDoc(null);
+        return;
+      } else {
+        setBusinessPlanDetailId(null);
+      }
 
       if (parsed.subType === "detail" && parsed.docId) {
         if (!openDoc || openDoc.id !== parsed.docId) {
@@ -128,12 +139,14 @@ export default function App() {
   const handleOpenDoc = (doc: DigitizedDoc) => {
     setOpenDoc(doc);
     setOriginalDoc(null);
+    setBusinessPlanDetailId(null);
     const routePrefix = page === "proposal" ? "#/proposals" : "#/documents";
     window.location.hash = `${routePrefix}/detail/${doc.id}`;
   };
 
   const handleViewOriginalDoc = (doc: DigitizedDoc) => {
     setOriginalDoc(doc);
+    setBusinessPlanDetailId(null);
     const routePrefix = page === "proposal" ? "#/proposals" : "#/documents";
     window.location.hash = `${routePrefix}/original/${doc.id}`;
   };
@@ -153,6 +166,7 @@ export default function App() {
   const handleBackFromSubPage = () => {
     setOpenDoc(null);
     setOriginalDoc(null);
+    setBusinessPlanDetailId(null);
     const mainHash = getRouteByKey(page).hash;
     window.location.hash = mainHash;
   };
@@ -160,6 +174,7 @@ export default function App() {
   function navigate(p: PageKey) {
     setOpenDoc(null);
     setOriginalDoc(null);
+    setBusinessPlanDetailId(null);
     setPage(p);
     const targetRoute = getRouteByKey(p);
     window.location.hash = targetRoute.hash;
@@ -173,6 +188,8 @@ export default function App() {
     ? page === "proposal"
       ? ["Trang chủ", "Quản trị dữ liệu", "Quản lý tờ trình", "Chi tiết tờ trình"]
       : ["Trang chủ", "Quản trị dữ liệu", "Số hoá tài liệu", "Chi tiết số hóa"]
+    : page === "business-plan" && businessPlanDetailId
+    ? ["Trang chủ", "Quản lý Phương án kinh doanh", "Chi tiết Phương án kinh doanh"]
     : currentRoute.breadcrumb;
 
   if (currentRoute.key === "login") {
@@ -217,6 +234,13 @@ export default function App() {
                   refreshToken={documentRefreshToken}
                 />
               )
+            ) : page === "business-plan" && businessPlanDetailId ? (
+              <BusinessPlanDetailPage
+                planId={businessPlanDetailId}
+                onBack={() => {
+                  window.location.hash = "#/business-plans";
+                }}
+              />
             ) : (
               currentRoute.render({
                 onOpenDoc: handleOpenDoc,

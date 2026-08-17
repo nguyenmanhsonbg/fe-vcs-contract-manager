@@ -6,6 +6,9 @@ import { ContractListPage } from "../components/pages/ContractListPage";
 import { ProposalListPage } from "../components/pages/ProposalListPage";
 import { ProductLookupPage } from "../components/pages/ProductLookupPage";
 import { LoginPage } from "../components/pages/LoginPage";
+import { BusinessPlanListPage } from "../components/pages/BusinessPlanListPage";
+import { AcceptanceListPage } from "../components/pages/AcceptanceListPage";
+import { AcceptanceReconciliationPage } from "../components/pages/AcceptanceReconciliationPage";
 import { DigitizedDoc } from "../data/models";
 
 export interface RouteComponentProps {
@@ -73,6 +76,30 @@ export const ROUTES: RouteDefinition[] = [
         }}
       />
     ),
+  },
+  {
+    key: "business-plan",
+    hash: "#/business-plans",
+    breadcrumb: ["Trang chủ", "Phương án kinh doanh", "Quản lý phương án kinh doanh"],
+    render: () => (
+      <BusinessPlanListPage
+        onSelectPlan={(id) => {
+          window.location.hash = `#/business-plans/detail/${encodeURIComponent(id)}`;
+        }}
+      />
+    ),
+  },
+  {
+    key: "acceptance",
+    hash: "#/acceptance",
+    breadcrumb: ["Trang chủ", "Phương án kinh doanh", "Quản lý nghiệm thu"],
+    render: () => <AcceptanceListPage />,
+  },
+  {
+    key: "reconciliation",
+    hash: "#/reconciliation",
+    breadcrumb: ["Trang chủ", "Phương án kinh doanh", "Đối sánh nghiệm thu"],
+    render: () => <AcceptanceReconciliationPage />,
   },
 ];
 
