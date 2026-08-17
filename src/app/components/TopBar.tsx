@@ -43,12 +43,6 @@ export function TopBar({ breadcrumb }: { breadcrumb: string[] }) {
             <span className="absolute right-1.5 top-1.5 size-2 rounded-full bg-[#ff4c51] ring-2 ring-white" />
           </button>
 
-          {/* Vietnam Flag Language Selector */}
-          <div className="flex items-center gap-1.5 cursor-pointer hover:opacity-80 transition-opacity">
-            <IconFlagVietnam className="w-5 h-3.5 shadow-xs rounded-2xs" />
-            <ChevronDown className="size-3.5 text-slate-500" />
-          </div>
-
           {/* User Profile Avatar Circle with Chevron */}
           <div className="flex items-center gap-1.5 cursor-pointer hover:opacity-80 transition-opacity">
             <div className="flex size-7.5 items-center justify-center rounded-full border border-[#ff4c51] text-[#ff4c51] font-bold text-xs bg-red-50/40 shadow-2xs">

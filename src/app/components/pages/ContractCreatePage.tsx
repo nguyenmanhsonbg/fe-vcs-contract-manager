@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect, useRef, type ReactNode } from "react";
 import {
   ArrowLeft,
+  Calendar,
   ChevronDown,
   Eye,
   FileText,
@@ -28,6 +29,39 @@ function Field({ label, required, suffix, placeholder = "Nhập thông tin" }: F
         <input value={values[label] || ""} onChange={(e) => setValue(label, e.target.value)} placeholder={placeholder} className="h-[38px] w-full rounded-[6px] border border-[#dbdade] bg-white px-3 text-[12px] text-[#393740] outline-none placeholder:text-[#c0bec5] focus:border-[#3f81ea]" />
         {suffix && <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[12px] text-[#5d586c]">{suffix}</span>}
       </span>
+    </label>
+  );
+}
+
+function DateField({ label, required, placeholder = "DD.MM.YYYY" }: { label: string; required?: boolean; placeholder?: string }) {
+  const { values, setValue } = useForm();
+  return (
+    <label className="space-y-2 text-[14px] text-[#393740]">
+      <span>{label} {required && <b className="font-normal text-[#ff4c51]">*</b>}</span>
+      <span className="relative block">
+        <input
+          value={values[label] || ""}
+          onChange={(e) => setValue(label, e.target.value)}
+          placeholder={placeholder}
+          className="h-[38px] w-full rounded-[6px] border border-[#dbdade] bg-white px-3 pr-10 text-[12px] text-[#393740] outline-none placeholder:text-[#c0bec5] focus:border-[#3f81ea]"
+        />
+        <Calendar className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-[#5d586c]" />
+      </span>
+    </label>
+  );
+}
+
+function TextareaField({ label, required, placeholder = "Nhập thông tin" }: { label: string; required?: boolean; placeholder?: string }) {
+  const { values, setValue } = useForm();
+  return (
+    <label className="space-y-2 text-[14px] text-[#393740]">
+      <span>{label} {required && <b className="font-normal text-[#ff4c51]">*</b>}</span>
+      <textarea
+        value={values[label] || ""}
+        onChange={(e) => setValue(label, e.target.value)}
+        placeholder={placeholder}
+        className="min-h-[96px] w-full resize-y rounded-[6px] border border-[#dbdade] bg-white px-3 py-2 text-[12px] text-[#393740] outline-none placeholder:text-[#c0bec5] focus:border-[#3f81ea]"
+      />
     </label>
   );
 }
@@ -144,24 +178,114 @@ function DynamicClauses({ clauses }: { clauses: ContractClauseTemplateDto[] }) {
   return <>{clauses.map((clause) => <Section key={clause.id} title={clause.title} status={status(clause)}><div className="space-y-4">{clause.uiSchema.groups.map((group) => <div key={group.code} className="space-y-3"><h3 className="px-3 text-[16px] font-bold text-[rgba(47,43,61,0.9)]">{group.title}</h3><div className="grid gap-x-2 gap-y-3 md:grid-cols-2">{group.fields.map((field) => <ClauseField key={field.key} clauseCode={clause.code} field={field} />)}</div></div>)}</div></Section>)}</>;
 }
 
-function ContractOverview({ schema }: { schema?: ContractTemplateSchemaDto }) {
+function ContractOverview({ schema: _schema }: { schema?: ContractTemplateSchemaDto }) {
   const [proposalOptions, setProposalOptions] = useState<string[]>([contractForm.proposal]);
   const [templateOptions, setTemplateOptions] = useState<Array<{ id: string; name: string; contractType: "GOODS" | "NON_CONSULTING_SERVICE" }>>([]);
   const { values, setValue } = useForm();
-  const generalBlock = schema?.blocks.find((item) => item.type === "fieldSection");
-  useEffect(() => { void docApi.getProposals({ page: 1, size: 100 }).then((result) => setProposalOptions(result.content.map((item) => `${item.code} - ${item.title}`))).catch(() => undefined); }, []);
-  useEffect(() => { void docApi.getPublishedContractTemplates().then((templates) => { const options = templates.map((item) => ({ id: item.id, name: item.name, contractType: item.contractType })); setTemplateOptions(options); if (options[0] && !options.some((item) => item.id === values["__templateVersionId"])) { setValue("__templateVersionId", options[0].id); setValue("Mẫu hợp đồng", options[0].name); setValue("Loại hợp đồng", options[0].contractType === "GOODS" ? "Hợp đồng hàng hóa" : "Hợp đồng phi hàng hóa (dịch vụ)"); } }).catch(() => undefined); }, []);
+
+  useEffect(() => {
+    void docApi.getProposals({ page: 1, size: 100 })
+      .then((result) => {
+        if (result.content?.length) {
+          setProposalOptions(result.content.map((item) => `${item.code} - ${item.title}`));
+        }
+      })
+      .catch(() => undefined);
+  }, []);
+
+  useEffect(() => {
+    void docApi.getPublishedContractTemplates()
+      .then((templates) => {
+        const options = templates.map((item) => ({ id: item.id, name: item.name, contractType: item.contractType }));
+        setTemplateOptions(options);
+        if (options[0] && !values["__templateVersionId"]) {
+          setValue("__templateVersionId", options[0].id);
+          if (!values["Mẫu hợp đồng"]) setValue("Mẫu hợp đồng", options[0].name);
+        }
+      })
+      .catch(() => undefined);
+  }, []);
+
   return (
-    <section className="rounded-[6px] border border-[#dbdade] bg-white p-4">
-      <h2 className="mb-4 px-1 text-[16px] font-bold text-[#393740]">Thông tin chung</h2>
-      <Grid>
-        <SelectField label="Mẫu hợp đồng" required value={values["Mẫu hợp đồng"] || contractForm.template} options={templateOptions.length ? templateOptions.map((item) => ({ label: item.name, value: item.name })) : [contractForm.template]} onChange={(name) => { const selected = templateOptions.find((item) => item.name === name); if (selected) { setValue("__templateVersionId", selected.id); setValue("Loại hợp đồng", selected.contractType === "GOODS" ? "Hợp đồng hàng hóa" : "Hợp đồng phi hàng hóa (dịch vụ)"); } }} />
-        {generalBlock?.type === "fieldSection" ? generalBlock.fields.map((field) => <ClauseField key={field.key} clauseCode="" prefix="general" field={field} />) : <Field label="Số hợp đồng" required placeholder={contractForm.number} />}
-        <SelectField label="Đề xuất mua sắm" required value={contractForm.proposal} options={proposalOptions} />
-        <SelectField label="Nội dung Đề xuất" required value={contractForm.content} options={[contractForm.content, "Mua sắm hàng hóa", "Cung cấp dịch vụ"]} />
-        <SelectField label="Kế hoạch" required value={contractForm.plan} options={[contractForm.plan, "Chưa chọn kế hoạch"]} />
-        <SelectField label="Loại hợp đồng" required disabled value={values["Loại hợp đồng"] || "Hợp đồng hàng hóa"} options={["Hợp đồng hàng hóa", "Hợp đồng phi hàng hóa (dịch vụ)"]} />
-      </Grid>
+    <section className="rounded-[6px] border border-[#dbdade] bg-white p-5 shadow-[0_2px_6px_rgba(47,43,61,0.08)]">
+      <h2 className="mb-4 text-[16px] font-bold text-[#393740]">Thông tin chung</h2>
+      <div className="space-y-3.5">
+        <div className="grid gap-x-4 gap-y-3.5 md:grid-cols-2">
+          {/* Row 1 */}
+          <Field
+            label="Số hợp đồng"
+            required
+            placeholder={contractForm.number}
+          />
+          <SelectField
+            label="Mẫu hợp đồng"
+            required
+            value={values["Mẫu hợp đồng"] || contractForm.template}
+            options={templateOptions.length ? templateOptions.map((item) => ({ label: item.name, value: item.name })) : [contractForm.template, "Hợp đồng hàng hóa", "Hợp đồng dịch vụ phi tư vấn"]}
+            onChange={(name) => {
+              const selected = templateOptions.find((item) => item.name === name);
+              if (selected) {
+                setValue("__templateVersionId", selected.id);
+                setValue("Loại hợp đồng", selected.contractType === "GOODS" ? "Hợp đồng trọn gói" : "Hợp đồng đơn giá cố định");
+              }
+            }}
+          />
+
+          {/* Row 2 */}
+          <SelectField
+            label="Gói thầu"
+            required
+            value={values["Gói thầu"] || contractForm.biddingPackage}
+            options={[contractForm.biddingPackage, "VT-CNTT-2025-016 - Cung cấp thiết bị mạng", "VT-CNTT-2025-017 - Bảo trì phần mềm"]}
+            onChange={(val) => setValue("Gói thầu", val)}
+          />
+          <SelectField
+            label="Đề xuất mua sắm"
+            required
+            value={values["Đề xuất mua sắm"] || contractForm.proposal}
+            options={proposalOptions.length ? proposalOptions : [contractForm.proposal]}
+            onChange={(val) => setValue("Đề xuất mua sắm", val)}
+          />
+
+          {/* Row 3 */}
+          <SelectField
+            label="Nội dung Đề xuất"
+            required
+            value={values["Nội dung Đề xuất"] || contractForm.content}
+            options={[contractForm.content, "Mua sắm hàng hóa", "Cung cấp dịch vụ"]}
+            onChange={(val) => setValue("Nội dung Đề xuất", val)}
+          />
+          <SelectField
+            label="Kế hoạch"
+            required
+            value={values["Kế hoạch"] || contractForm.plan}
+            options={[contractForm.plan, "KH mua sắm sản phẩm CNTT năm 2025", "KH mua sắm thiết bị năm 2025", "Chưa chọn kế hoạch"]}
+            onChange={(val) => setValue("Kế hoạch", val)}
+          />
+
+          {/* Row 4 */}
+          <DateField
+            label="Ngày ký"
+            required
+            placeholder={contractForm.datePlaceholder || "DD.MM.YYYY"}
+          />
+          <SelectField
+            label="Loại hợp đồng"
+            required
+            value={values["Loại hợp đồng"] || contractForm.contractType}
+            options={[contractForm.contractType, "Hợp đồng trọn gói", "Hợp đồng đơn giá cố định", "Hợp đồng theo thời gian", "Hợp đồng theo đơn giá điều chỉnh"]}
+            onChange={(val) => setValue("Loại hợp đồng", val)}
+          />
+        </div>
+
+        {/* Row 5: Căn cứ pháp lý (Full Width) */}
+        <div>
+          <TextareaField
+            label="Căn cứ pháp lý"
+            placeholder={contractForm.legalBasis || "Nhập căn cứ pháp lý"}
+          />
+        </div>
+      </div>
     </section>
   );
 }

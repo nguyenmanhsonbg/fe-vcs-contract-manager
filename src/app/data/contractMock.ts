@@ -1,7 +1,20 @@
 import type { LucideIcon } from "lucide-react";
 import { FilePlus2, FileText, Pencil, Upload } from "lucide-react";
 
-export type ContractStatus = "Đang thực hiện" | "Đã nghiệm thu" | "Đã thanh toán" | "Chờ phê duyệt";
+export type ContractStatus =
+  | "Lưu nháp"
+  | "Chờ phê duyệt"
+  | "Yêu cầu chỉnh sửa"
+  | "Đã duyệt"
+  | "Từ chối"
+  | "Đã ký"
+  | "Đang thực hiện"
+  | "Đã giao hàng"
+  | "Đã nghiệm thu"
+  | "Đã thanh toán"
+  | "Thanh lý"
+  | "Hủy"
+  | string;
 export type ClauseStatus = "done" | "missing" | "disabled";
 
 export interface ContractItem {
