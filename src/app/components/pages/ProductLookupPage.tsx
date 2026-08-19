@@ -24,15 +24,16 @@ const PRICE_MIN_OPTIONS = [{ value: 0, label: "Từ" }, { value: 10000000, label
 const PRICE_MAX_OPTIONS = [{ value: 0, label: "Đến" }, { value: 25000000, label: "25.000.000 VNĐ" }, { value: 50000000, label: "50.000.000 VNĐ" }];
 
 interface ProductLookupPageProps {
-  onOpenDoc: (doc: DigitizedDoc) => void;
+  onViewDocument: (doc: DigitizedDoc) => void;
 }
 
-export function ProductLookupPage({ onOpenDoc }: ProductLookupPageProps) {
+export function ProductLookupPage({ onViewDocument }: ProductLookupPageProps) {
   // Trạng thái tìm kiếm & Bộ lọc
   const [searchQuery, setSearchQuery] = useState("");
   const [searchHistory, setSearchHistory] = useState<SearchHistoryItem[]>([]);
   const [showHistoryDropdown, setShowHistoryDropdown] = useState(false);
   const searchContainerRef = useRef<HTMLDivElement>(null);
+  const searchInputRef = useRef<HTMLTextAreaElement>(null);
   const [aiMode, setAiMode] = useState(true);
   const [timeRange, setTimeRange] = useState("12_months");
   const [priceMin, setPriceMin] = useState(0);
@@ -49,10 +50,27 @@ export function ProductLookupPage({ onOpenDoc }: ProductLookupPageProps) {
   const [totalElements, setTotalElements] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(false);
+  useEffect(() => {
+    const input = searchInputRef.current;
+    if (!input) return;
+    input.style.height = "auto";
+    input.style.height = `${Math.min(input.scrollHeight, 96)}px`;
+  }, [searchQuery]);
+
+  async function saveSearchHistory(query: string) {
+    if (!query.trim()) return;
+    try {
+      setSearchHistory(await docApi.saveSearchQuery(query));
+    } catch (err) {
+      console.error("Lỗi khi lưu lịch sử tìm kiếm:", err);
+    }
+  }
 
   // Tải lịch sử tìm kiếm ban đầu & Xử lý click ra ngoài để đóng dropdown
   useEffect(() => {
-    docApi.getSearchHistory().then(setSearchHistory);
+    docApi.getSearchHistory().then(setSearchHistory).catch((err) => {
+      console.error("Lỗi khi tải lịch sử tìm kiếm:", err);
+    });
 
     function handleClickOutside(event: MouseEvent) {
       if (searchContainerRef.current && !searchContainerRef.current.contains(event.target as Node)) {
@@ -118,7 +136,7 @@ export function ProductLookupPage({ onOpenDoc }: ProductLookupPageProps) {
     if (!docId) return;
     const doc = await docApi.getDocumentById(docId);
     if (doc) {
-      onOpenDoc(doc);
+      onViewDocument(doc);
     } else {
     }
   }
@@ -138,10 +156,11 @@ export function ProductLookupPage({ onOpenDoc }: ProductLookupPageProps) {
       <div className="rounded-lg border border-slate-200/80 bg-white p-4 shadow-xs space-y-3">
         <div className="flex items-center gap-3">
           <div ref={searchContainerRef} className="relative flex-1">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-slate-400 z-10" />
-            <input
-              type="text"
+            <Search className="absolute left-3.5 top-3 size-4 text-slate-400 z-10" />
+            <textarea
+              ref={searchInputRef}
               value={searchQuery}
+              rows={1}
               onFocus={() => setShowHistoryDropdown(true)}
               onChange={(e) => {
                 setSearchQuery(e.target.value);
@@ -149,14 +168,14 @@ export function ProductLookupPage({ onOpenDoc }: ProductLookupPageProps) {
                 setShowHistoryDropdown(true);
               }}
               onKeyDown={async (e) => {
-                if (e.key === "Enter" && searchQuery.trim()) {
-                  const updated = await docApi.saveSearchQuery(searchQuery);
-                  setSearchHistory(updated);
+                if (e.key === "Enter" && !e.shiftKey && searchQuery.trim()) {
+                  e.preventDefault();
+                  await saveSearchHistory(searchQuery);
                   setShowHistoryDropdown(false);
                 }
               }}
-              placeholder="Nhập từ khóa tìm kiếm"
-              className="w-full h-10 rounded-md border border-slate-200/90 pl-10 pr-8 text-xs text-slate-800 placeholder:text-slate-400 outline-none focus:border-red-400 transition-colors shadow-2xs"
+              placeholder="Nhập từ khóa; dùng dấu phẩy hoặc Shift+Enter để xuống dòng"
+              className="w-full min-h-10 max-h-24 resize-none overflow-y-auto rounded-md border border-slate-200/90 py-2 pl-10 pr-8 text-xs text-slate-800 placeholder:text-slate-400 outline-none focus:border-red-400 transition-colors shadow-2xs"
             />
             {searchQuery && (
               <button
@@ -179,12 +198,10 @@ export function ProductLookupPage({ onOpenDoc }: ProductLookupPageProps) {
                     {searchHistory.map((item, index) => (
                       <div
                         key={item.id}
-                        onClick={async () => {
+                        onClick={() => {
                           setSearchQuery(item.query);
                           setPage(1);
                           setShowHistoryDropdown(false);
-                          const updated = await docApi.saveSearchQuery(item.query);
-                          setSearchHistory(updated);
                         }}
                         className={`flex items-center justify-between h-10 px-3.5 rounded-lg text-[13px] cursor-pointer transition-colors ${
                           index === 0
@@ -199,8 +216,11 @@ export function ProductLookupPage({ onOpenDoc }: ProductLookupPageProps) {
                         <button
                           onClick={async (e) => {
                             e.stopPropagation();
-                            const updated = await docApi.removeSearchQuery(item.id);
-                            setSearchHistory(updated);
+                            try {
+                              setSearchHistory(await docApi.removeSearchQuery(item.id));
+                            } catch (err) {
+                              console.error("Lỗi khi xóa lịch sử tìm kiếm:", err);
+                            }
                           }}
                           className="text-slate-500 hover:text-slate-800 transition-colors p-1 shrink-0 ml-2"
                           title="Xóa mục lịch sử này"

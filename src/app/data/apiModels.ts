@@ -11,6 +11,7 @@ export interface ProductSearchResultItem {
   sourceDocId?: string;
   sourceDocType?: string;
   confirmed?: boolean;
+  isHighlighted?: boolean;
 }
 
 export interface Product {

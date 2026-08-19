@@ -9,7 +9,7 @@ import { UploadModal } from "./components/modals/UploadModal";
 import { DigitizedDoc } from "./data/models";
 import { docApi } from "./services/api";
 import { Toaster } from "./components/ui/sonner";
-import { getRouteByKey, parseHashRoute } from "./config/routes";
+import { getDocumentRoutePrefix, getRouteByKey, parseHashRoute } from "./config/routes";
 
 interface ErrorBoundaryProps {
   children: ReactNode;
@@ -140,23 +140,29 @@ export default function App() {
     setOpenDoc(doc);
     setOriginalDoc(null);
     setBusinessPlanDetailId(null);
-    const routePrefix = page === "proposal" ? "#/proposals" : "#/documents";
+    const routePrefix = getDocumentRoutePrefix(page);
     window.location.hash = `${routePrefix}/detail/${doc.id}`;
   };
 
   const handleViewOriginalDoc = (doc: DigitizedDoc) => {
     setOriginalDoc(doc);
     setBusinessPlanDetailId(null);
-    const routePrefix = page === "proposal" ? "#/proposals" : "#/documents";
+    const routePrefix = getDocumentRoutePrefix(page);
     window.location.hash = `${routePrefix}/original/${doc.id}`;
   };
 
   const handleBackFromOriginalDoc = () => {
     if (originalDoc) {
+      if (page === "product") {
+        setOriginalDoc(null);
+        setOpenDoc(null);
+        window.location.hash = getRouteByKey("product").hash;
+        return;
+      }
       const doc = originalDoc;
       setOriginalDoc(null);
       setOpenDoc(doc);
-      const routePrefix = page === "proposal" ? "#/proposals" : "#/documents";
+      const routePrefix = getDocumentRoutePrefix(page);
       window.location.hash = `${routePrefix}/detail/${doc.id}`;
     } else {
       handleBackFromSubPage();
@@ -183,7 +189,9 @@ export default function App() {
   const currentRoute = getRouteByKey(page);
 
   const breadcrumb = originalDoc
-    ? ["Trang chủ", "Quản trị dữ liệu", page === "proposal" ? "Quản lý tờ trình" : "Số hoá tài liệu", "Chi tiết tài liệu gốc"]
+    ? page === "product"
+      ? ["Trang chủ", "Tìm kiếm sản phẩm"]
+      : ["Trang chủ", "Quản trị dữ liệu", page === "proposal" ? "Quản lý tờ trình" : "Số hoá tài liệu", "Chi tiết tài liệu gốc"]
     : openDoc
     ? page === "proposal"
       ? ["Trang chủ", "Quản trị dữ liệu", "Quản lý tờ trình", "Chi tiết tờ trình"]

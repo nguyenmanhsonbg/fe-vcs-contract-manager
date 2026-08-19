@@ -67,13 +67,10 @@ export const ROUTES: RouteDefinition[] = [
   {
     key: "product",
     hash: "#/products",
-    breadcrumb: ["Trang chủ", "Quản trị dữ liệu", "Tìm kiếm sản phẩm"],
+    breadcrumb: ["Trang chủ", "Tìm kiếm sản phẩm"],
     render: (props) => (
       <ProductLookupPage
-        onOpenDoc={(doc) => {
-          window.location.hash = "#/documents";
-          props.onOpenDoc(doc);
-        }}
+        onViewDocument={props.onViewOriginalDoc}
       />
     ),
   },
@@ -106,6 +103,12 @@ export const ROUTES: RouteDefinition[] = [
 /** Lấy thông tin Route theo Key */
 export function getRouteByKey(key: PageKey): RouteDefinition {
   return ROUTES.find((r) => r.key === key) || ROUTES[0];
+}
+
+export function getDocumentRoutePrefix(page: PageKey): string {
+  if (page === "proposal") return "#/proposals";
+  if (page === "product") return "#/products";
+  return "#/documents";
 }
 
 /** Lấy thông tin Route theo Hash URL */

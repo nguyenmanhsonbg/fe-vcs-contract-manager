@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { DigitizedDoc, DOC_TYPE_LABELS, ExtractedField } from "../../data/models";
+import { DigitizedDoc, DOC_TYPE_LABELS, ExtractedField, LineItem } from "../../data/models";
 import { ApiError, docApi } from "../../services/api";
 import { toast } from "sonner";
 import { DocumentCanvas } from "../DocumentCanvas";
@@ -45,6 +45,109 @@ export function getFieldLabel(labelOrKey: string): string {
 
 const ZOOM_OPTIONS = [25, 50, 75, 100, 125, 150, 200, 250, 300, 400, 500];
 
+function formatLineItemAmount(value: string): string {
+  const amount = Number(value);
+  return Number.isFinite(amount) ? amount.toLocaleString("vi-VN") : value;
+}
+
+function splitLineItemName(value: string): { name: string; specification: string } {
+  const [name, ...specification] = value.split(",");
+  return { name: name.trim(), specification: specification.join(",").trim() || value };
+}
+
+function lineItemField(item: LineItem, key: string, label: string, value: string): ExtractedField {
+  return { id: `line-item-${item.no}-${key}`, label, value, confidence: item.confidence, region: item.region };
+}
+
+interface ProductFieldRowProps {
+  field: ExtractedField;
+  header?: boolean;
+  expanded?: boolean;
+  editing: boolean;
+  draft: string;
+  edited: boolean;
+  selected?: boolean;
+  onToggle?: () => void;
+  onSelect: () => void;
+  onStartEdit: () => void;
+  onDraftChange: (value: string) => void;
+  onCommit: () => void;
+}
+
+function ProductFieldRow({
+  field,
+  header = false,
+  expanded = false,
+  editing,
+  draft,
+  edited,
+  selected = false,
+  onToggle,
+  onSelect,
+  onStartEdit,
+  onDraftChange,
+  onCommit,
+}: ProductFieldRowProps) {
+  const isLow = field.confidence < 70;
+  const isMedium = field.confidence >= 70 && field.confidence < 85;
+  const isWarning = isLow || isMedium;
+
+  if (header) {
+    return (
+      <div className="flex items-center gap-1 px-1 py-1 rounded-[4px]">
+        <button type="button" onClick={onToggle} className="size-6 shrink-0 text-[#393740]" title={expanded ? "Thu gọn" : "Mở rộng"}>
+          <ChevronDown className={`size-5 transition-transform ${expanded ? "" : "-rotate-90"}`} />
+        </button>
+        <span className="w-[150px] shrink-0 px-0.5 text-sm font-semibold text-[rgba(47,43,61,0.9)]">{field.label}</span>
+        <div className="flex-1 min-w-0 px-0.5">
+          {editing ? (
+            <input value={draft} autoFocus onChange={(e) => onDraftChange(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") onCommit(); if (e.key === "Escape") onStartEdit(); }} className="h-8 w-full rounded border border-[#3f81ea] px-1 text-sm outline-none" />
+          ) : (
+            <span className="block truncate px-0.5 text-sm text-[rgba(47,43,61,0.9)]">{field.value}</span>
+          )}
+        </div>
+        <span className="rounded-[4px] bg-[#e8fadf] px-2.5 py-1 text-[13px] font-medium text-[#28c76f]">{field.confidence}%</span>
+        <button type="button" onClick={onStartEdit} className="p-1 text-slate-600 hover:text-[#3f81ea]" title="Chỉnh sửa">
+          <IconPencil className="size-4" />
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div
+      onClick={onSelect}
+      className={`rounded-[4px] transition-colors ${isWarning ? `border-[0.5px] ${isLow ? "border-[#ff4c51] bg-[#ffdbdc]" : "border-[#ff9f43] bg-[#ffecd9]"} px-1 py-1` : `px-1 py-1 ${selected ? "bg-blue-50/70" : "hover:bg-slate-50"}`}`}
+    >
+      <div className={`flex items-center gap-1 ${isWarning ? "pl-7" : ""}`}>
+        <span className="w-[150px] shrink-0 px-0.5 text-sm font-semibold text-[rgba(47,43,61,0.9)]">{field.label}</span>
+        <div className="flex-1 min-w-0 px-0.5" onClick={(e) => e.stopPropagation()}>
+          {isWarning || editing ? (
+            <input
+              value={editing ? draft : field.value}
+              onChange={(e) => editing && onDraftChange(e.target.value)}
+              onFocus={onStartEdit}
+              className={`h-8 w-full rounded-[4px] border bg-white px-1 text-sm text-[rgba(47,43,61,0.9)] outline-none ${isLow ? "border-[#ff4c51]" : isMedium ? "border-[#ff9f43]" : "border-[#3f81ea]"}`}
+            />
+          ) : (
+            <span className="block truncate px-0.5 text-sm text-[rgba(47,43,61,0.9)]">{field.value}</span>
+          )}
+        </div>
+        <div className="flex w-[100px] shrink-0 items-center justify-end gap-2">
+          {isWarning && <IconAlertTriangle className={`size-4 shrink-0 ${isLow ? "text-[#ff4c51]" : "text-[#ff9f43]"}`} />}
+          <span className={`rounded-[4px] px-2.5 py-1 text-[13px] font-medium ${isLow ? "bg-[#ffbfc1] text-[#ea5455]" : isMedium ? "bg-[#ffe0bf] text-[#ff9f43]" : "bg-[#e8fadf] text-[#28c76f]"}`}>{field.confidence}%</span>
+          {isWarning || editing ? (
+            <button type="button" onClick={(e) => { e.stopPropagation(); onCommit(); }} className="p-1 text-[#28c76f]" title="Xác nhận"><IconCheck className="size-4" /></button>
+          ) : (
+            <button type="button" onClick={(e) => { e.stopPropagation(); onStartEdit(); }} className="p-1 text-slate-600 hover:text-[#3f81ea]" title="Chỉnh sửa"><IconPencil className="size-4" /></button>
+          )}
+        </div>
+      </div>
+      {isWarning && edited && <div className="flex items-center gap-1 pl-7 pt-1 text-[11px] text-slate-500"><span>Đã chỉnh sửa</span><span>◷</span></div>}
+    </div>
+  );
+}
+
 function getNextZoom(current: number, direction: "in" | "out"): number {
   if (direction === "in") {
     const match = ZOOM_OPTIONS.find((z) => z > current);
@@ -58,6 +161,10 @@ function getNextZoom(current: number, direction: "in" | "out"): number {
 export function DocumentDetailPage({ doc, onBack, onViewOriginalDoc }: DocumentDetailPageProps) {
   const initialFields = doc?.fields || [];
   const [fields, setFields] = useState<ExtractedField[]>(initialFields);
+  const [lineItems, setLineItems] = useState<LineItem[]>(doc?.lineItems || []);
+  const [expandedLineItems, setExpandedLineItems] = useState<Set<string>>(
+    () => new Set(doc?.lineItems?.[0] ? [doc.lineItems[0].id] : []),
+  );
   const [editLog, setEditLog] = useState(doc?.editLog || []);
   const [ocr, setOcr] = useState(doc?.ocr || null);
   const [selectedId, setSelectedId] = useState<string | null>(initialFields[0]?.id || null);
@@ -188,6 +295,8 @@ export function DocumentDetailPage({ doc, onBack, onViewOriginalDoc }: DocumentD
       const latest = await docApi.getDocumentById(doc.id);
       if (!active || !latest) return;
       setFields(latest.fields || []);
+      setLineItems(latest.lineItems || []);
+      setExpandedLineItems((current) => current.size || !latest.lineItems?.length ? current : new Set([latest.lineItems[0].id]));
       setEditLog(latest.editLog || []);
       setOcr(latest.ocr || null);
 
@@ -243,6 +352,7 @@ export function DocumentDetailPage({ doc, onBack, onViewOriginalDoc }: DocumentD
     try {
       const updatedDoc = await docApi.updateDocumentField(doc.id, f.id, newValue, reason);
       setFields(updatedDoc.fields);
+      setLineItems(updatedDoc.lineItems || []);
       setEditLog(updatedDoc.editLog);
       toast.success(`Đã cập nhật trường "${f.label}"`);
     } catch (error) {
@@ -279,6 +389,7 @@ export function DocumentDetailPage({ doc, onBack, onViewOriginalDoc }: DocumentD
       toast.success("Đã đưa tài liệu vào tiến trình quét OCR.");
       if (resDoc) {
         setFields(resDoc.fields || []);
+        setLineItems(resDoc.lineItems || []);
         setOcr(resDoc.ocr || null);
         if (resDoc.editLog) setEditLog(resDoc.editLog);
       }
@@ -290,6 +401,7 @@ export function DocumentDetailPage({ doc, onBack, onViewOriginalDoc }: DocumentD
           const latest = await docApi.getDocumentById(doc.id);
           if (latest) {
             setFields(latest.fields || []);
+            setLineItems(latest.lineItems || []);
             setOcr(latest.ocr || null);
             setEditLog(latest.editLog || []);
             if (latest.ocr?.pages?.length && !(latest.fields || []).length) {
@@ -314,6 +426,66 @@ export function DocumentDetailPage({ doc, onBack, onViewOriginalDoc }: DocumentD
       setScanning(false);
       toast.error("Không thể quét lại tài liệu.");
     }
+  }
+
+  function toggleLineItem(id: string) {
+    setExpandedLineItems((current) => {
+      const next = new Set(current);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  function renderLineItem(item: LineItem) {
+    const parts = splitLineItemName(item.name);
+    const headerField = lineItemField(item, "name", "Tên hàng", parts.name);
+    const itemFields = [
+      lineItemField(item, "code", "Mã hàng", item.code || "—"),
+      lineItemField(item, "specification", "Thông số kỹ thuật", parts.specification),
+      lineItemField(item, "unit", "Đơn vị tính", item.unit || "—"),
+      lineItemField(item, "quantity", "Số lượng", item.qty),
+      lineItemField(item, "unitPrice", "Đơn giá (VND)", formatLineItemAmount(item.unitPrice)),
+      lineItemField(item, "total", "Tổng giá trị (VND)", formatLineItemAmount(item.total)),
+    ];
+    const isExpanded = expandedLineItems.has(item.id);
+
+    return (
+      <div key={item.id} className="rounded-[4px]">
+        <ProductFieldRow
+          field={headerField}
+          header
+          expanded={isExpanded}
+          editing={editingId === headerField.id}
+          draft={draft}
+          edited={editLog.some((log) => log.id === headerField.id || log.field === headerField.label)}
+          selected={selectedId === headerField.id}
+          onToggle={() => toggleLineItem(item.id)}
+          onSelect={() => handleSelectField(headerField)}
+          onStartEdit={() => startEditing(headerField)}
+          onDraftChange={setDraft}
+          onCommit={() => commitFieldEdit(headerField)}
+        />
+        {isExpanded && (
+          <div className="space-y-0">
+            {itemFields.map((field) => (
+              <ProductFieldRow
+                key={field.id}
+                field={field}
+                editing={editingId === field.id}
+                draft={draft}
+                edited={editLog.some((log) => log.id === field.id || log.field === field.label)}
+                selected={selectedId === field.id}
+                onSelect={() => handleSelectField(field)}
+                onStartEdit={() => startEditing(field)}
+                onDraftChange={setDraft}
+                onCommit={() => commitFieldEdit(field)}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+    );
   }
 
   return (
@@ -482,6 +654,7 @@ export function DocumentDetailPage({ doc, onBack, onViewOriginalDoc }: DocumentD
               {/* Extracted Fields List */}
               <div className="space-y-2.5 max-h-[580px] overflow-y-auto pr-1 custom-scrollbar">
                 {fields.map((f) => {
+                  if (lineItems.length > 0 && f.id === "lineItems") return null;
                   const isSelected = f.id === selectedId;
                   const isEditing = f.id === editingId;
                   const isLow = f.confidence < 70;
@@ -664,6 +837,11 @@ export function DocumentDetailPage({ doc, onBack, onViewOriginalDoc }: DocumentD
                     </div>
                   );
                 })}
+                {lineItems.length > 0 && (
+                  <div className="space-y-2.5 border-t border-slate-100 pt-2">
+                    {lineItems.map(renderLineItem)}
+                  </div>
+                )}
               </div>
 
               {/* Confidence Legend Footer */}
