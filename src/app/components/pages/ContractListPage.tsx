@@ -16,7 +16,7 @@ import { SelectFilter } from "../common/SelectFilter";
 import { SearchInput } from "../common/SearchInput";
 import { DatePickerInput } from "../common/DatePickerInput";
 import { IconEye, IconFilter, IconMoreVertical, IconPencil } from "../icons";
-import { contracts as mockContracts, type ContractItem } from "../../data/contractMock";
+import { type ContractItem } from "../../data/contractMock";
 import { ApiError, docApi } from "../../services/api";
 import type { ContractActivityDto, ContractSummaryDto } from "../../data/apiModels";
 import { toast } from "sonner";
@@ -128,23 +128,9 @@ export function ContractListPage() {
         setTotalElements(list.value.totalElements);
         setTotalPages(list.value.totalPages);
       } else {
-        // Fallback to mock contracts if backend is unreachable
-        const filtered = mockContracts.filter((item) => {
-          if (goodsType !== "all" && item.goodsType !== goodsType) return false;
-          if (status !== "all" && item.status !== status) return false;
-          if (contractType !== "all" && item.contractType !== contractType) return false;
-          if (query.trim()) {
-            const q = query.trim().toLowerCase();
-            if (![item.id, item.goodsName, item.partner, item.source].some((val) => val.toLowerCase().includes(q))) {
-              return false;
-            }
-          }
-          return true;
-        });
-        const from = (currentPage - 1) * pageSize;
-        setApiContracts(filtered.slice(from, from + pageSize));
-        setTotalElements(filtered.length);
-        setTotalPages(Math.max(1, Math.ceil(filtered.length / pageSize)));
+        setApiContracts([]);
+        setTotalElements(0);
+        setTotalPages(1);
         toast.error(list.reason instanceof ApiError ? list.reason.message : "Không thể tải danh sách hợp đồng");
       }
 
