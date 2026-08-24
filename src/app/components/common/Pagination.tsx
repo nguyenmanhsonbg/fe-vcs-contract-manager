@@ -9,6 +9,8 @@ export interface PaginationProps {
   onPageChange: (page: number) => void;
   onPageSizeChange?: (pageSize: number) => void;
   pageSizeOptions?: number[];
+  pageSizeLabel?: string;
+  variant?: "default" | "blue-bordered";
   className?: string;
 }
 
@@ -20,6 +22,8 @@ export function Pagination({
   onPageChange,
   onPageSizeChange,
   pageSizeOptions = [5, 10, 20, 50],
+  pageSizeLabel = "Số dòng/trang:",
+  variant = "default",
   className = "",
 }: PaginationProps) {
   const startIndex = totalElements > 0 ? (currentPage - 1) * pageSize : 0;
@@ -55,7 +59,7 @@ export function Pagination({
 
         {onPageSizeChange && (
           <div className="flex items-center gap-2 text-xs text-[#5d586c]">
-            <span>Số dòng/trang:</span>
+            <span>{pageSizeLabel}</span>
             <div className="relative inline-flex items-center">
               <select
                 value={pageSize}
@@ -82,6 +86,8 @@ export function Pagination({
           className={`size-8 rounded-[6px] flex items-center justify-center text-xs font-medium transition-colors ${
             currentPage === 1
               ? "text-slate-300 bg-transparent cursor-not-allowed"
+              : variant === "blue-bordered"
+              ? "border border-slate-200/80 bg-slate-100/60 text-[#5d586c] hover:bg-slate-200/60"
               : "border border-slate-200/80 bg-white text-[#5d586c] hover:bg-slate-50"
           }`}
         >
@@ -97,13 +103,18 @@ export function Pagination({
             );
           }
           const pageNum = Number(p);
+          const isActive = currentPage === pageNum;
           return (
             <button
               key={pageNum}
               onClick={() => onPageChange(pageNum)}
-              className={`size-8 rounded-[6px] font-semibold flex items-center justify-center text-xs transition-all ${
-                currentPage === pageNum
-                  ? "bg-[#ff4c51] text-white shadow-2xs"
+              className={`size-8 rounded-[6px] font-medium flex items-center justify-center text-xs transition-all ${
+                isActive
+                  ? variant === "blue-bordered"
+                    ? "border border-[#3f81ea] bg-white text-[#3f81ea]"
+                    : "bg-[#ff4c51] text-white shadow-2xs"
+                  : variant === "blue-bordered"
+                  ? "border border-slate-200/80 bg-slate-100/60 text-[#5d586c] hover:bg-slate-200/60"
                   : "border border-slate-200/80 bg-white text-[#5d586c] hover:bg-slate-50"
               }`}
             >
@@ -119,6 +130,8 @@ export function Pagination({
           className={`size-8 rounded-[6px] flex items-center justify-center text-xs font-medium transition-colors ${
             currentPage >= maxPage || totalElements === 0
               ? "text-slate-300 bg-transparent cursor-not-allowed"
+              : variant === "blue-bordered"
+              ? "border border-slate-200/80 bg-slate-100/60 text-[#5d586c] hover:bg-slate-200/60"
               : "border border-slate-200/80 bg-white text-[#5d586c] hover:bg-slate-50"
           }`}
         >

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { DigitizedDoc, DOC_TYPE_LABELS, DocType } from "../../data/models";
+import { DigitizedDoc } from "../../data/models";
 import { docApi } from "../../services/api";
 import {
   IconCalendar,
@@ -18,6 +18,32 @@ import { SearchInput } from "../common/SearchInput";
 import { StatCard } from "../common/StatCard";
 
 const today = () => new Date().toISOString().slice(0, 10);
+
+const EXTRACTED_DOCUMENT_TYPE_LABELS: Record<string, string> = {
+  proposal: "Tờ trình",
+  tờ_trình: "Tờ trình",
+  quotation: "Báo giá",
+  báo_giá: "Báo giá",
+  quotation_goods: "Báo giá hàng hóa",
+  goods_quotation: "Báo giá hàng hóa",
+  báo_giá_hàng_hóa: "Báo giá hàng hóa",
+  quotation_service: "Báo giá dịch vụ",
+  service_quotation: "Báo giá dịch vụ",
+  báo_giá_dịch_vụ: "Báo giá dịch vụ",
+  goods_contract: "Hợp đồng hàng hoá",
+  service_contract: "Hợp đồng dịch vụ",
+  contract: "Hợp đồng",
+  acceptance: "Biên bản nghiệm thu",
+  bidding: "Hồ sơ mời thầu",
+};
+
+function getDocumentTypeLabel(document: DigitizedDoc): string {
+  const field = document.fields?.find((item) => item.id === "documentType" || item.label === "Loại tài liệu");
+  const value = field?.value?.trim();
+  if (!value) return "...";
+  const key = value.toLowerCase().replace(/[\s-]+/g, "_");
+  return EXTRACTED_DOCUMENT_TYPE_LABELS[key] || value;
+}
 
 interface DocumentListPageProps {
   onOpenDoc: (doc: DigitizedDoc) => void;
@@ -261,7 +287,7 @@ export function DocumentListPage({
                   <td className="py-2.5 px-3">
                     <p className="font-normal text-[#393740] truncate max-w-[280px] text-[12px] leading-[17px]" title={d.fileName}>{d.fileName}</p>
                   </td>
-                  <td className="py-2.5 px-3 text-[#393740] font-normal whitespace-nowrap text-[12px] leading-[17px]">{DOC_TYPE_LABELS[d.type as DocType] || d.type}</td>
+                  <td className="py-2.5 px-3 text-[#393740] font-normal whitespace-nowrap text-[12px] leading-[17px]">{getDocumentTypeLabel(d)}</td>
                   <td className="py-2.5 px-3 text-[#393740] font-normal whitespace-nowrap text-[12px] leading-[17px]">{d.uploadedBy}</td>
                   <td className="py-2.5 px-3 text-[#393740] font-normal whitespace-nowrap text-[12px] leading-[17px]">{d.uploadTime}</td>
                   <td className="py-2.5 px-3 whitespace-nowrap">

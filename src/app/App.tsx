@@ -63,6 +63,7 @@ export default function App() {
   const [page, setPage] = useState<PageKey>(() => parseHashRoute(window.location.hash).page);
   const [openDoc, setOpenDoc] = useState<DigitizedDoc | null>(null);
   const [originalDoc, setOriginalDoc] = useState<DigitizedDoc | null>(null);
+  const [proposalRoute, setProposalRoute] = useState<{ mode: "view" | "edit"; id: string } | null>(null);
   const [businessPlanDetailId, setBusinessPlanDetailId] = useState<string | null>(null);
   const [uploadModalOpen, setUploadModalOpen] = useState(false);
   const [documentRefreshToken, setDocumentRefreshToken] = useState(0);
@@ -72,6 +73,14 @@ export default function App() {
     async function syncStateFromHash() {
       const parsed = parseHashRoute(window.location.hash);
       setPage(parsed.page);
+
+      if (parsed.page === "proposal" && parsed.docId && (parsed.subType === "detail" || parsed.subType === "edit")) {
+        setProposalRoute({ mode: "view", id: parsed.docId });
+        setOpenDoc(null);
+        setOriginalDoc(null);
+        return;
+      }
+      setProposalRoute(null);
 
       if (parsed.page === "business-plan" && parsed.subType === "detail" && parsed.docId) {
         setBusinessPlanDetailId(decodeURIComponent(parsed.docId));
@@ -172,6 +181,7 @@ export default function App() {
   const handleBackFromSubPage = () => {
     setOpenDoc(null);
     setOriginalDoc(null);
+    setProposalRoute(null);
     setBusinessPlanDetailId(null);
     const mainHash = getRouteByKey(page).hash;
     window.location.hash = mainHash;
@@ -180,6 +190,7 @@ export default function App() {
   function navigate(p: PageKey) {
     setOpenDoc(null);
     setOriginalDoc(null);
+    setProposalRoute(null);
     setBusinessPlanDetailId(null);
     setPage(p);
     const targetRoute = getRouteByKey(p);
@@ -188,7 +199,9 @@ export default function App() {
 
   const currentRoute = getRouteByKey(page);
 
-  const breadcrumb = originalDoc
+  const breadcrumb = proposalRoute
+    ? ["Trang chủ", "Quản lý tờ trình", "Chi tiết tờ trình"]
+    : originalDoc
     ? page === "product"
       ? ["Trang chủ", "Tìm kiếm sản phẩm"]
       : ["Trang chủ", "Quản trị dữ liệu", page === "proposal" ? "Quản lý tờ trình" : "Số hoá tài liệu", "Chi tiết tài liệu gốc"]
@@ -225,16 +238,16 @@ export default function App() {
 
         <main className="min-h-0 flex-1 overflow-y-auto">
           <ErrorBoundary>
-            {originalDoc ? (
+            {proposalRoute ? (
+              <ProposalDetailPage
+                proposalId={proposalRoute.id}
+                mode={proposalRoute.mode}
+                onBack={handleBackFromSubPage}
+              />
+            ) : originalDoc ? (
               <OriginalDocView doc={originalDoc} onBack={handleBackFromOriginalDoc} />
             ) : openDoc ? (
-              page === "proposal" ? (
-                <ProposalDetailPage
-                  doc={openDoc}
-                  onBack={handleBackFromSubPage}
-                  onViewOriginalDoc={handleViewOriginalDoc}
-                />
-              ) : (
+              page === "proposal" ? null : (
                 <DocumentDetailPage
                   doc={openDoc}
                   onBack={handleBackFromSubPage}

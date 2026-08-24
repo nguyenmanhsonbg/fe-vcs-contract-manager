@@ -13,6 +13,7 @@ import { docApi } from "../../services/api";
 import { Pagination } from "../common/Pagination";
 import { PageHeader } from "../common/PageHeader";
 import { ProductSearchResultItem, SearchHistoryItem } from "../../data/apiModels";
+import { toast } from "sonner";
 
 const TIME_RANGE_OPTIONS = [
   { value: "12_months", label: "12 tháng gần đây" },
@@ -34,10 +35,11 @@ export function ProductLookupPage({ onViewDocument }: ProductLookupPageProps) {
   const [showHistoryDropdown, setShowHistoryDropdown] = useState(false);
   const searchContainerRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLTextAreaElement>(null);
-  const [aiMode, setAiMode] = useState(true);
   const [timeRange, setTimeRange] = useState("12_months");
   const [priceMin, setPriceMin] = useState(0);
   const [priceMax, setPriceMax] = useState(0);
+  const [supplier, setSupplier] = useState("all");
+  const [suppliers, setSuppliers] = useState<string[]>([]);
   const [sortField, setSortField] = useState<"unitPrice" | "quotationDate" | "name">("unitPrice");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
 
@@ -50,12 +52,17 @@ export function ProductLookupPage({ onViewDocument }: ProductLookupPageProps) {
   const [totalElements, setTotalElements] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(false);
+  const [exporting, setExporting] = useState(false);
   useEffect(() => {
     const input = searchInputRef.current;
     if (!input) return;
     input.style.height = "auto";
     input.style.height = `${Math.min(input.scrollHeight, 96)}px`;
   }, [searchQuery]);
+
+  useEffect(() => {
+    docApi.getProductSuppliers().then(setSuppliers).catch(() => setSuppliers([]));
+  }, []);
 
   async function saveSearchHistory(query: string) {
     if (!query.trim()) return;
@@ -91,6 +98,7 @@ export function ProductLookupPage({ onViewDocument }: ProductLookupPageProps) {
           timeRange,
           priceMin,
           priceMax,
+          supplier,
           sortBy: sortField,
           sortOrder,
           page,
@@ -108,7 +116,7 @@ export function ProductLookupPage({ onViewDocument }: ProductLookupPageProps) {
     }
 
     loadData();
-  }, [searchQuery, timeRange, priceMin, priceMax, sortField, sortOrder, page, pageSize]);
+  }, [searchQuery, timeRange, priceMin, priceMax, supplier, sortField, sortOrder, page, pageSize]);
 
   // Xóa bộ lọc về mặc định
   function handleClearFilters() {
@@ -116,9 +124,29 @@ export function ProductLookupPage({ onViewDocument }: ProductLookupPageProps) {
     setTimeRange("12_months");
     setPriceMin(0);
     setPriceMax(0);
+    setSupplier("all");
     setSortField("unitPrice");
     setSortOrder("asc");
     setPage(1);
+  }
+
+  async function handleExport() {
+    if (loading || exporting || totalElements === 0) return;
+    setExporting(true);
+    try {
+      const blob = await docApi.exportProducts({ query: searchQuery, timeRange, priceMin, priceMax, supplier, sortBy: sortField, sortOrder });
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = "ket-qua-tim-kiem-san-pham.xlsx";
+      anchor.click();
+      URL.revokeObjectURL(url);
+      toast.success("Đã xuất kết quả tìm kiếm ra Excel.");
+    } catch {
+      toast.error("Không thể xuất file Excel.");
+    } finally {
+      setExporting(false);
+    }
   }
 
   // Toggle sắp xếp
@@ -174,7 +202,7 @@ export function ProductLookupPage({ onViewDocument }: ProductLookupPageProps) {
                   setShowHistoryDropdown(false);
                 }
               }}
-              placeholder="Nhập từ khóa; dùng dấu phẩy hoặc Shift+Enter để xuống dòng"
+              placeholder="Nhập keyword; ngăn cách bằng dấu phẩy hoặc xuống dòng (AND)"
               className="w-full min-h-10 max-h-24 resize-none overflow-y-auto rounded-md border border-slate-200/90 py-2 pl-10 pr-8 text-xs text-slate-800 placeholder:text-slate-400 outline-none focus:border-red-400 transition-colors shadow-2xs"
             />
             {searchQuery && (
@@ -239,14 +267,11 @@ export function ProductLookupPage({ onViewDocument }: ProductLookupPageProps) {
 
           {/* Nút AI Mode */}
           <button
-            onClick={() => setAiMode(!aiMode)}
-            className={`h-10 px-4 rounded-full border text-xs font-semibold flex items-center gap-1.5 transition-all shadow-2xs ${
-              aiMode
-                ? "border-[#ff4d4f] text-[#ff4d4f] bg-white hover:bg-red-50/50"
-                : "border-slate-300 text-slate-500 hover:bg-slate-50"
-            }`}
+            disabled
+            title="Tìm kiếm bằng AI chưa được cấu hình"
+            className="h-10 px-4 rounded-full border border-slate-300 text-slate-400 bg-slate-50 text-xs font-semibold flex items-center gap-1.5 cursor-not-allowed shadow-2xs"
           >
-            <span className="text-sm">✨</span> AI Mode
+            <span className="text-sm">✨</span> AI Mode (sắp hỗ trợ)
           </button>
         </div>
 
@@ -255,6 +280,17 @@ export function ProductLookupPage({ onViewDocument }: ProductLookupPageProps) {
       {/* 3. Thẻ Bộ lọc */}
       <div className="rounded-lg border border-slate-200/80 bg-white p-4 shadow-xs flex flex-wrap items-center justify-between gap-4">
         <div className="flex flex-wrap items-center gap-6 text-xs">
+          <div className="flex items-center gap-2">
+            <span className="text-slate-600 font-medium">Nhà cung cấp</span>
+            <select
+              value={supplier}
+              onChange={(e) => { setSupplier(e.target.value); setPage(1); }}
+              className="h-9 max-w-[220px] px-3 pr-8 rounded-md border border-slate-200 bg-white text-slate-700 outline-none focus:border-red-400 transition-colors cursor-pointer"
+            >
+              <option value="all">{suppliers.length ? "Tất cả" : "Chưa có dữ liệu"}</option>
+              {suppliers.map((value) => <option key={value} value={value}>{value}</option>)}
+            </select>
+          </div>
           {/* Bộ lọc Khoảng thời gian */}
           <div className="flex items-center gap-2">
             <span className="text-slate-600 font-medium">Khoảng thời gian</span>
@@ -300,13 +336,22 @@ export function ProductLookupPage({ onViewDocument }: ProductLookupPageProps) {
         </div>
 
         {/* Nút Xóa bộ lọc */}
-        <button
-          onClick={handleClearFilters}
-          className="h-9 px-3.5 rounded-md border border-slate-200 text-slate-700 hover:bg-slate-50 text-xs font-medium flex items-center gap-1.5 transition-colors shadow-2xs"
-        >
-          <RotateCcw className="size-3.5 text-slate-500" />
-          Xóa bộ lọc
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleExport}
+            disabled={loading || exporting || totalElements === 0}
+            className="h-9 px-3.5 rounded-md border border-[#3f81ea] text-[#3f81ea] hover:bg-blue-50 text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-2xs"
+          >
+            {exporting ? "Đang xuất..." : "Xuất Excel"}
+          </button>
+          <button
+            onClick={handleClearFilters}
+            className="h-9 px-3.5 rounded-md border border-slate-200 text-slate-700 hover:bg-slate-50 text-xs font-medium flex items-center gap-1.5 transition-colors shadow-2xs"
+          >
+            <RotateCcw className="size-3.5 text-slate-500" />
+            Xóa bộ lọc
+          </button>
+        </div>
       </div>
 
       {/* 4. Thẻ Kết quả & Bảng dữ liệu */}
@@ -322,40 +367,51 @@ export function ProductLookupPage({ onViewDocument }: ProductLookupPageProps) {
         </div>
 
         {/* Bảng thông tin sản phẩm */}
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-[13px] border-collapse">
+        <div className="overflow-hidden">
+          <table className="w-full table-fixed text-left text-[13px] border-collapse">
+            <colgroup>
+              <col className="w-[11%]" />
+              <col className="w-[16%]" />
+              <col className="w-[11%]" />
+              <col className="w-[12%]" />
+              <col className="w-[8%]" />
+              <col className="w-[5%]" />
+              <col className="w-[12%]" />
+              <col className="w-[14%]" />
+              <col className="w-[11%]" />
+            </colgroup>
             <thead className="bg-white text-[#2f2b3d] font-bold border-b border-slate-200/80">
               <tr>
-                <th className="py-3 px-3 min-w-[150px] font-bold text-[#2f2b3d]">Tên HHDV</th>
-                <th className="py-3 px-3 min-w-[280px] font-bold text-[#2f2b3d]">Mô tả</th>
-                <th className="py-3 px-3 font-bold text-[#2f2b3d]">Mã hàng hóa</th>
-                <th className="py-3 px-3 font-bold text-[#2f2b3d] whitespace-nowrap">
-                  <div className="flex items-center gap-1 cursor-pointer select-none">
+                <th className="whitespace-nowrap py-3 px-3 font-bold text-[#2f2b3d]">Tên HHDV</th>
+                <th className="whitespace-nowrap py-3 px-3 font-bold text-[#2f2b3d]">Mô tả</th>
+                <th className="whitespace-nowrap py-3 px-3 font-bold text-[#2f2b3d]">Mã hàng hóa</th>
+                <th className="whitespace-nowrap py-3 px-3 font-bold text-[#2f2b3d]">
+                  <div className="flex items-center gap-1 cursor-pointer select-none whitespace-nowrap">
                     <span>Nhà cung cấp</span>
                     <ChevronDown className="size-3.5 text-[#2f2b3d]" />
                   </div>
                 </th>
-                <th className="py-3 px-3 font-bold text-[#2f2b3d] whitespace-nowrap">Xuất xứ</th>
-                <th className="py-3 px-3 font-bold text-[#2f2b3d] whitespace-nowrap">ĐVT</th>
-                <th className="py-3 px-3 font-bold text-[#2f2b3d] text-right whitespace-nowrap">
+                <th className="whitespace-nowrap py-3 px-3 font-bold text-[#2f2b3d]">Xuất xứ</th>
+                <th className="whitespace-nowrap py-3 px-3 font-bold text-[#2f2b3d]">ĐVT</th>
+                <th className="whitespace-nowrap py-3 px-3 font-bold text-[#2f2b3d] text-right">
                   <div
                     onClick={() => handleSort("unitPrice")}
-                    className="flex items-center justify-end gap-1 cursor-pointer select-none"
+                    className="flex items-center justify-end gap-1 cursor-pointer select-none whitespace-nowrap"
                   >
                     <span>Đơn giá (VND)</span>
-                    <ArrowDown className="size-3.5 text-[#3f81ea] stroke-[2.5]" />
+                    <ArrowDown className="size-3.5 shrink-0 text-[#3f81ea] stroke-[2.5]" />
                   </div>
                 </th>
-                <th className="py-3 px-3 font-bold text-[#2f2b3d] text-center whitespace-nowrap">
+                <th className="whitespace-nowrap py-3 px-3 font-bold text-[#2f2b3d] text-center">
                   <div
                     onClick={() => handleSort("quotationDate")}
-                    className="flex items-center justify-center gap-1 cursor-pointer select-none"
+                    className="flex items-center justify-center gap-1 cursor-pointer select-none whitespace-nowrap"
                   >
                     <span>Thời điểm báo giá</span>
-                    <ArrowDown className="size-3.5 text-[#2f2b3d] stroke-[2.5]" />
+                    <ArrowDown className="size-3.5 shrink-0 text-[#2f2b3d] stroke-[2.5]" />
                   </div>
                 </th>
-                <th className="py-3 px-3 font-bold text-[#2f2b3d] text-center whitespace-nowrap">Thao tác</th>
+                <th className="whitespace-nowrap py-3 px-3 font-bold text-[#2f2b3d] text-center">Thao tác</th>
               </tr>
             </thead>
 
@@ -380,53 +436,70 @@ export function ProductLookupPage({ onViewDocument }: ProductLookupPageProps) {
                     >
                       {/* Tên HHDV */}
                       <td className={`py-4 px-3 font-semibold ${isHighlighted ? "text-[#28c76f]" : "text-[#393740]"}`}>
-                        {item.name}
+                        <div className="block truncate" title={item.name}>
+                          {item.name}
+                        </div>
                       </td>
 
                       {/* Mô tả */}
                       <td className={`py-4 px-3 leading-relaxed text-[13px] ${isHighlighted ? "text-[#28c76f]" : "text-[#4b5563]"}`}>
-                        {item.description}
+                        <div className="block truncate" title={item.description}>
+                          {item.description}
+                        </div>
                       </td>
 
                       {/* Mã hàng hóa */}
                       <td className={`py-4 px-3 ${isHighlighted ? "text-[#28c76f]" : "text-[#393740]"}`}>
-                        {item.code}
+                        <div className="block truncate" title={item.code}>
+                          {item.code}
+                        </div>
                       </td>
 
                       {/* Nhà cung cấp */}
-                      <td className={`py-4 px-3 whitespace-nowrap ${isHighlighted ? "text-[#28c76f]" : "text-[#393740]"}`}>
-                        {item.supplier}
+                      <td className={`py-4 px-3 ${isHighlighted ? "text-[#28c76f]" : "text-[#393740]"}`}>
+                        <div className="block truncate" title={item.supplier}>
+                          {item.supplier}
+                        </div>
                       </td>
 
                       {/* Xuất xứ */}
-                      <td className={`py-4 px-3 whitespace-nowrap ${isHighlighted ? "text-[#28c76f]" : "text-[#393740]"}`}>
-                        {item.origin}
+                      <td className={`py-4 px-3 ${isHighlighted ? "text-[#28c76f]" : "text-[#393740]"}`}>
+                        <div className="block truncate" title={item.origin}>
+                          {item.origin}
+                        </div>
                       </td>
 
                       {/* ĐVT */}
-                      <td className={`py-4 px-3 whitespace-nowrap ${isHighlighted ? "text-[#28c76f]" : "text-[#393740]"}`}>
-                        {item.unit}
+                      <td className={`py-4 px-3 ${isHighlighted ? "text-[#28c76f]" : "text-[#393740]"}`}>
+                        <div className="block truncate" title={item.unit}>
+                          {item.unit}
+                        </div>
                       </td>
 
                       {/* Đơn giá (VND) */}
                       <td className={`py-4 px-3 text-right font-medium whitespace-nowrap ${isHighlighted ? "text-[#28c76f]" : "text-[#393740]"}`}>
-                        {item.unitPrice.toLocaleString("vi-VN")}
+                        <div className="block truncate" title={item.unitPrice.toLocaleString("vi-VN")}>
+                          {item.unitPrice.toLocaleString("vi-VN")}
+                        </div>
                       </td>
 
                       {/* Thời điểm báo giá */}
-                      <td className={`py-4 px-3 text-center whitespace-nowrap ${isHighlighted ? "text-[#28c76f]" : "text-[#393740]"}`}>
-                        {item.quotationDate}
+                      <td className={`py-4 px-3 text-center ${isHighlighted ? "text-[#28c76f]" : "text-[#393740]"}`}>
+                        <div className="block truncate" title={item.quotationDate}>
+                          {item.quotationDate}
+                        </div>
                       </td>
 
                       {/* Thao tác (Xem tài liệu) */}
-                      <td className="py-4 px-3 text-center whitespace-nowrap">
+                      <td className="py-4 px-3 text-center">
                         <button
                           onClick={() => handleViewDoc(item.sourceDocId)}
-                          className={`inline-flex items-center gap-1 font-medium hover:underline text-[13px] ${
+                          className={`inline-flex max-w-full items-center gap-1 font-medium hover:underline text-[13px] ${
                             isHighlighted ? "text-[#28c76f]" : "text-[#3f81ea] hover:text-blue-700"
                           }`}
                         >
-                          Xem tài liệu <ArrowRight className="size-3.5" />
+                          <span className="truncate">Xem tài liệu</span>
+                          <ArrowRight className="size-3.5 shrink-0" />
                         </button>
                       </td>
                     </tr>

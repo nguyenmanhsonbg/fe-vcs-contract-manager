@@ -61,9 +61,11 @@ export interface ProposalItem {
   code: string;
   title: string;
   category: string;
+  proposingUnit?: string;
   supplier: string;
   amount: number;
   createdAt: string;
+  proposalDate?: string;
 }
 
 export interface ProposalFilterOptions {
@@ -96,6 +98,26 @@ export interface ProposalLineItemDto {
   taxRate?: number;
   lineAmount?: number;
   lineTaxAmount?: number;
+  version?: number;
+}
+
+export interface ProposalQuotationDto {
+  id: string;
+  vendorNameRaw: string;
+  totalValue: number;
+  quotationDate?: string;
+  lowest: boolean;
+  selected: boolean;
+  selectionReason?: string;
+}
+
+export interface ProposalDocumentLinkDto {
+  id: string;
+  documentId: string;
+  documentVersionId: string;
+  documentRole: string;
+  requiredForSubmit: boolean;
+  notes?: string;
 }
 
 export interface ProposalDetailDto {
@@ -110,12 +132,19 @@ export interface ProposalDetailDto {
   totalValue?: number;
   proposalNumber?: string;
   proposalDate?: string;
+  proposingUnit?: string;
   proposalContent?: string;
   purpose?: string;
   legalBasis?: string;
   budgetSource?: string;
   executionPeriod?: string;
   items?: ProposalLineItemDto[];
+  quotations?: ProposalQuotationDto[];
+  documents?: ProposalDocumentLinkDto[];
+  sourceDocumentId?: string;
+  documentCount?: number;
+  quotationCount?: number;
+  version?: number;
 }
 
 export type ContractType = "GOODS" | "NON_CONSULTING_SERVICE";

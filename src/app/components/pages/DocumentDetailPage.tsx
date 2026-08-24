@@ -4,7 +4,7 @@ import { ApiError, docApi } from "../../services/api";
 import { toast } from "sonner";
 import { DocumentCanvas } from "../DocumentCanvas";
 import { IconAlertTriangle, IconPencil, IconCheck, IconScan, IconArrowsMaximize } from "../icons";
-import { RotateCw, Minus, Plus, Download, ChevronDown } from "lucide-react";
+import { RotateCw, Minus, Plus, Download, ChevronDown, Clock3 } from "lucide-react";
 
 interface DocumentDetailPageProps {
   doc: DigitizedDoc;
@@ -43,6 +43,35 @@ export function getFieldLabel(labelOrKey: string): string {
   return FIELD_LABEL_MAP[labelOrKey] || labelOrKey;
 }
 
+const DOCUMENT_TYPE_VALUE_LABELS: Record<string, string> = {
+  proposal: "Tờ trình",
+  quotation: "Báo giá",
+  quotation_goods: "Báo giá hàng hóa",
+  goods_quotation: "Báo giá hàng hóa",
+  quotation_service: "Báo giá dịch vụ",
+  service_quotation: "Báo giá dịch vụ",
+  goods_contract: "Hợp đồng hàng hóa",
+  service_contract: "Hợp đồng dịch vụ",
+  acceptance: "Biên bản nghiệm thu",
+  bidding: "Hồ sơ mời thầu",
+};
+
+function getFieldDisplayValue(field: ExtractedField): string {
+  if (!isDocumentTypeField(field)) return field.value;
+  const key = field.value.trim().toLowerCase().replace(/[\s-]+/g, "_");
+  return DOCUMENT_TYPE_VALUE_LABELS[key] || field.value;
+}
+
+function isDocumentTypeField(field: ExtractedField): boolean {
+  return field.id === "documentType" || field.id === "document_type" || field.label === "documentType" || field.label === "document_type" || field.label === "Loại tài liệu";
+}
+
+function isLongField(field: ExtractedField): boolean {
+  return ["rawText", "proposalContent", "purpose", "legalBasis", "specifications", "description"].some((key) =>
+    field.id.toLowerCase().includes(key.toLowerCase()) || field.label.toLowerCase().includes(key.toLowerCase()),
+  );
+}
+
 const ZOOM_OPTIONS = [25, 50, 75, 100, 125, 150, 200, 250, 300, 400, 500];
 
 function formatLineItemAmount(value: string): string {
@@ -70,6 +99,7 @@ interface ProductFieldRowProps {
   onToggle?: () => void;
   onSelect: () => void;
   onStartEdit: () => void;
+  onCancel: () => void;
   onDraftChange: (value: string) => void;
   onCommit: () => void;
 }
@@ -85,12 +115,14 @@ function ProductFieldRow({
   onToggle,
   onSelect,
   onStartEdit,
+  onCancel,
   onDraftChange,
   onCommit,
 }: ProductFieldRowProps) {
   const isLow = field.confidence < 70;
   const isMedium = field.confidence >= 70 && field.confidence < 85;
   const isWarning = isLow || isMedium;
+  const displayValue = getFieldDisplayValue(field);
 
   if (header) {
     return (
@@ -98,17 +130,21 @@ function ProductFieldRow({
         <button type="button" onClick={onToggle} className="size-6 shrink-0 text-[#393740]" title={expanded ? "Thu gọn" : "Mở rộng"}>
           <ChevronDown className={`size-5 transition-transform ${expanded ? "" : "-rotate-90"}`} />
         </button>
-        <span className="w-[150px] shrink-0 px-0.5 text-sm font-semibold text-[rgba(47,43,61,0.9)]">{field.label}</span>
+        <span className="w-[150px] shrink-0 px-0.5 text-sm font-semibold text-[rgba(47,43,61,0.9)]">{getFieldLabel(field.label)}</span>
         <div className="flex-1 min-w-0 px-0.5">
           {editing ? (
-            <input value={draft} autoFocus onChange={(e) => onDraftChange(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") onCommit(); if (e.key === "Escape") onStartEdit(); }} className="h-8 w-full rounded border border-[#3f81ea] px-1 text-sm outline-none" />
+            isLongField(field) ? (
+              <textarea value={draft} autoFocus rows={4} onChange={(e) => onDraftChange(e.target.value)} onKeyDown={(e) => { if (e.key === "Escape") onCancel(); }} className="w-full resize-y rounded border border-[#3f81ea] px-2 py-1 text-sm outline-none" />
+            ) : (
+              <input value={draft} autoFocus onChange={(e) => onDraftChange(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") onCommit(); if (e.key === "Escape") onCancel(); }} className="h-8 w-full rounded border border-[#3f81ea] px-2 text-sm outline-none" />
+            )
           ) : (
-            <span className="block truncate px-0.5 text-sm text-[rgba(47,43,61,0.9)]">{field.value}</span>
+            <span className={`${isDocumentTypeField(field) || isLongField(field) ? "block whitespace-pre-wrap break-words" : "block truncate"} px-0.5 text-sm text-[rgba(47,43,61,0.9)]`} title={displayValue}>{displayValue}</span>
           )}
         </div>
         <span className="rounded-[4px] bg-[#e8fadf] px-2.5 py-1 text-[13px] font-medium text-[#28c76f]">{field.confidence}%</span>
-        <button type="button" onClick={onStartEdit} className="p-1 text-slate-600 hover:text-[#3f81ea]" title="Chỉnh sửa">
-          <IconPencil className="size-4" />
+        <button type="button" onClick={(e) => { e.stopPropagation(); editing ? onCommit() : onStartEdit(); }} className={`p-1 ${editing ? "text-[#28c76f]" : "text-slate-600 hover:text-[#3f81ea]"}`} title={editing ? "Xác nhận" : "Chỉnh sửa"}>
+          {editing ? <IconCheck className="size-4" /> : <IconPencil className="size-4" />}
         </button>
       </div>
     );
@@ -119,31 +155,43 @@ function ProductFieldRow({
       onClick={onSelect}
       className={`rounded-[4px] transition-colors ${isWarning ? `border-[0.5px] ${isLow ? "border-[#ff4c51] bg-[#ffdbdc]" : "border-[#ff9f43] bg-[#ffecd9]"} px-1 py-1` : `px-1 py-1 ${selected ? "bg-blue-50/70" : "hover:bg-slate-50"}`}`}
     >
-      <div className={`flex items-center gap-1 ${isWarning ? "pl-7" : ""}`}>
-        <span className="w-[150px] shrink-0 px-0.5 text-sm font-semibold text-[rgba(47,43,61,0.9)]">{field.label}</span>
+      <div className="flex items-center gap-1 pl-7">
+        <span className="w-[150px] shrink-0 px-0.5 text-sm font-semibold text-[rgba(47,43,61,0.9)]">{getFieldLabel(field.label)}</span>
         <div className="flex-1 min-w-0 px-0.5" onClick={(e) => e.stopPropagation()}>
           {isWarning || editing ? (
-            <input
-              value={editing ? draft : field.value}
-              onChange={(e) => editing && onDraftChange(e.target.value)}
-              onFocus={onStartEdit}
-              className={`h-8 w-full rounded-[4px] border bg-white px-1 text-sm text-[rgba(47,43,61,0.9)] outline-none ${isLow ? "border-[#ff4c51]" : isMedium ? "border-[#ff9f43]" : "border-[#3f81ea]"}`}
-            />
+            isLongField(field) ? (
+              <textarea
+                value={editing ? draft : displayValue}
+                rows={4}
+                onChange={(e) => editing && onDraftChange(e.target.value)}
+                onFocus={onStartEdit}
+                className={`w-full resize-y rounded-[4px] border bg-white px-1 py-1 text-sm text-[rgba(47,43,61,0.9)] outline-none ${isLow ? "border-[#ff4c51]" : isMedium ? "border-[#ff9f43]" : "border-[#3f81ea]"}`}
+              />
+            ) : (
+              <input
+                value={editing ? draft : displayValue}
+                onChange={(e) => editing && onDraftChange(e.target.value)}
+                onFocus={onStartEdit}
+                className={`h-8 w-full rounded-[4px] border bg-white px-1 text-sm text-[rgba(47,43,61,0.9)] outline-none ${isLow ? "border-[#ff4c51]" : isMedium ? "border-[#ff9f43]" : "border-[#3f81ea]"}`}
+              />
+            )
           ) : (
-            <span className="block truncate px-0.5 text-sm text-[rgba(47,43,61,0.9)]">{field.value}</span>
+            <span className={`${isDocumentTypeField(field) || isLongField(field) ? "block whitespace-pre-wrap break-words" : "block truncate"} px-0.5 text-sm text-[rgba(47,43,61,0.9)]`} title={displayValue}>{displayValue}</span>
           )}
         </div>
-        <div className="flex w-[100px] shrink-0 items-center justify-end gap-2">
-          {isWarning && <IconAlertTriangle className={`size-4 shrink-0 ${isLow ? "text-[#ff4c51]" : "text-[#ff9f43]"}`} />}
-          <span className={`rounded-[4px] px-2.5 py-1 text-[13px] font-medium ${isLow ? "bg-[#ffbfc1] text-[#ea5455]" : isMedium ? "bg-[#ffe0bf] text-[#ff9f43]" : "bg-[#e8fadf] text-[#28c76f]"}`}>{field.confidence}%</span>
+        <div className={`shrink-0 ${isWarning ? "flex w-[132px] items-center" : "flex w-[100px] items-center justify-end gap-3"}`}>
+          {isWarning && <div className="flex w-[32px] items-center justify-center"><IconAlertTriangle className={`size-4 shrink-0 ${isLow ? "text-[#ff4c51]" : "text-[#ff9f43]"}`} /></div>}
+          <div className={`${isWarning ? "flex w-[100px] items-center gap-3 px-0.5" : "contents"}`}>
+          <span className={`rounded-[4px] px-2.5 py-1 text-[13px] font-medium ${isLow ? "bg-[#ffbfc1] text-[#ea5455]" : isMedium ? "bg-[#ffecd9] text-[#ff9f43]" : "bg-[#e8fadf] text-[#28c76f]"}`}>{field.confidence}%</span>
           {isWarning || editing ? (
-            <button type="button" onClick={(e) => { e.stopPropagation(); onCommit(); }} className="p-1 text-[#28c76f]" title="Xác nhận"><IconCheck className="size-4" /></button>
+            <button type="button" onClick={(e) => { e.stopPropagation(); editing ? onCommit() : onStartEdit(); }} className="p-1 text-[#28c76f]" title={editing ? "Xác nhận" : "Chỉnh sửa trường cảnh báo"}><IconCheck className="size-4" /></button>
           ) : (
             <button type="button" onClick={(e) => { e.stopPropagation(); onStartEdit(); }} className="p-1 text-slate-600 hover:text-[#3f81ea]" title="Chỉnh sửa"><IconPencil className="size-4" /></button>
           )}
+          </div>
         </div>
       </div>
-      {isWarning && edited && <div className="flex items-center gap-1 pl-7 pt-1 text-[11px] text-slate-500"><span>Đã chỉnh sửa</span><span>◷</span></div>}
+      {isWarning && edited && <div className="flex items-center gap-1 pl-7 pt-1 text-[11px] text-slate-500"><span>Đã chỉnh sửa</span><Clock3 className="size-3" /></div>}
     </div>
   );
 }
@@ -373,7 +421,9 @@ export function DocumentDetailPage({ doc, onBack, onViewOriginalDoc }: DocumentD
 
   async function handleConfirmDocument() {
     try {
-      await docApi.confirmDocument(doc.id);
+      const confirmedDoc = await docApi.confirmDocument(doc.id);
+      setFields(confirmedDoc.fields || []);
+      setLineItems(confirmedDoc.lineItems || []);
       setConfirmed(true);
       toast.success("Đã xác nhận hoàn tất tài liệu!");
     } catch (error) {
@@ -463,6 +513,7 @@ export function DocumentDetailPage({ doc, onBack, onViewOriginalDoc }: DocumentD
           onToggle={() => toggleLineItem(item.id)}
           onSelect={() => handleSelectField(headerField)}
           onStartEdit={() => startEditing(headerField)}
+          onCancel={() => setEditingId(null)}
           onDraftChange={setDraft}
           onCommit={() => commitFieldEdit(headerField)}
         />
@@ -478,6 +529,7 @@ export function DocumentDetailPage({ doc, onBack, onViewOriginalDoc }: DocumentD
                 selected={selectedId === field.id}
                 onSelect={() => handleSelectField(field)}
                 onStartEdit={() => startEditing(field)}
+                onCancel={() => setEditingId(null)}
                 onDraftChange={setDraft}
                 onCommit={() => commitFieldEdit(field)}
               />
@@ -652,195 +704,34 @@ export function DocumentDetailPage({ doc, onBack, onViewOriginalDoc }: DocumentD
               <h3 className="text-[17px] font-bold text-[#393740] pb-1">Dữ liệu đã bóc tách</h3>
 
               {/* Extracted Fields List */}
-              <div className="space-y-2.5 max-h-[580px] overflow-y-auto pr-1 custom-scrollbar">
-                {fields.map((f) => {
-                  if (lineItems.length > 0 && f.id === "lineItems") return null;
-                  const isSelected = f.id === selectedId;
-                  const isEditing = f.id === editingId;
-                  const isLow = f.confidence < 70;
-                  const isMedium = f.confidence >= 70 && f.confidence < 85;
-                  const isEdited = editLog.some((log) => log.field === f.label || log.id === f.id);
-
-                  if (isLow) {
-                    // Low confidence red warning box (e.g. Thông số kỹ thuật 68%)
-                    return (
-                      <div
-                        key={f.id}
-                        onClick={() => handleSelectField(f)}
-                        className={`rounded-[6px] border border-[#ffb3b5] bg-[#ffe8e8] p-3 transition-colors cursor-pointer ${
-                          isSelected ? "ring-2 ring-[#ff4c51]" : ""
-                        }`}
-                      >
-                        <div className="flex items-center justify-between gap-3">
-                          <div className="w-[140px] shrink-0">
-                            <p className="text-xs font-bold text-[#393740]">{getFieldLabel(f.label)}</p>
-                            {isEdited && (
-                              <p className="text-[11px] text-slate-500 mt-1 flex items-center gap-1">
-                                <span>Đã chỉnh sửa</span>
-                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
-                                  <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.75" />
-                                  <path d="M12 7V12L15 15" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" />
-                                </svg>
-                              </p>
-                            )}
-                          </div>
-
-                          {/* Input Box */}
-                          <div className="flex-1 min-w-0" onClick={(e) => e.stopPropagation()}>
-                            <input
-                              type="text"
-                              value={isEditing ? draft : f.value}
-                              onChange={(e) => {
-                                if (isEditing) setDraft(e.target.value);
-                              }}
-                              onFocus={() => {
-                                if (!isEditing) startEditing(f);
-                              }}
-                              className="w-full h-8 rounded-[4px] border border-[#ff4c51] bg-white px-2.5 text-xs text-[#393740] outline-none font-medium truncate"
-                            />
-                          </div>
-
-                          {/* Warning Icon + Percentage Badge + Check Icon */}
-                          <div className="flex items-center gap-2 shrink-0">
-                            <IconAlertTriangle className="size-4 text-[#ff4c51] shrink-0" />
-                            <span className="px-2 py-0.5 rounded-[4px] bg-[#ffdbdc] text-[#ff4c51] text-xs font-bold">
-                              {f.confidence}%
-                            </span>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                commitFieldEdit(f);
-                              }}
-                              className="text-[#28c76f] hover:text-[#22b061] p-0.5"
-                            >
-                              <IconCheck className="size-4 text-[#28c76f]" />
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  }
-
-                  if (isMedium) {
-                    // Medium confidence orange warning box (e.g. Mã hàng 72%)
-                    return (
-                      <div
-                        key={f.id}
-                        onClick={() => handleSelectField(f)}
-                        className={`rounded-[6px] border border-[#ffe0b2] bg-[#fff4e5] p-3 transition-colors cursor-pointer ${
-                          isSelected ? "ring-2 ring-[#ff9f43]" : ""
-                        }`}
-                      >
-                        <div className="flex items-center justify-between gap-3">
-                          <div className="w-[140px] shrink-0">
-                            <p className="text-xs font-bold text-[#393740]">{getFieldLabel(f.label)}</p>
-                            {isEdited && (
-                              <p className="text-[11px] text-slate-500 mt-1 flex items-center gap-1">
-                                <span>Đã chỉnh sửa</span>
-                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
-                                  <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.75" />
-                                  <path d="M12 7V12L15 15" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" />
-                                </svg>
-                              </p>
-                            )}
-                          </div>
-
-                          {/* Input Box */}
-                          <div className="flex-1 min-w-0" onClick={(e) => e.stopPropagation()}>
-                            <input
-                              type="text"
-                              value={isEditing ? draft : f.value}
-                              onChange={(e) => {
-                                if (isEditing) setDraft(e.target.value);
-                              }}
-                              onFocus={() => {
-                                if (!isEditing) startEditing(f);
-                              }}
-                              className="w-full h-8 rounded-[4px] border border-[#ff9f43] bg-white px-2.5 text-xs text-[#393740] outline-none font-medium truncate"
-                            />
-                          </div>
-
-                          {/* Warning Icon + Percentage Badge + Check Icon */}
-                          <div className="flex items-center gap-2 shrink-0">
-                            <IconAlertTriangle className="size-4 text-[#ff4c51] shrink-0" />
-                            <span className="px-2 py-0.5 rounded-[4px] bg-[#ffe2c8] text-[#ff9f43] text-xs font-bold">
-                              {f.confidence}%
-                            </span>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                commitFieldEdit(f);
-                              }}
-                              className="text-[#28c76f] hover:text-[#22b061] p-0.5"
-                            >
-                              <IconCheck className="size-4 text-[#28c76f]" />
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  }
-
-                  // Normal row (e.g. Loại tài liệu 96%, Mã tài liệu 98%...)
-                  return (
-                    <div
-                      key={f.id}
-                      onClick={() => handleSelectField(f)}
-                      className={`flex items-center justify-between py-2 px-2.5 rounded-[6px] transition-colors cursor-pointer ${
-                        isSelected ? "bg-blue-50/70" : "hover:bg-slate-50"
-                      }`}
-                    >
-                      <span className="w-[140px] text-xs font-bold text-[#393740] shrink-0">{getFieldLabel(f.label)}</span>
-
-                      {isEditing ? (
-                        <div className="flex-1 flex items-center gap-2 px-2" onClick={(e) => e.stopPropagation()}>
-                          <input
-                            type="text"
-                            value={draft}
-                            onChange={(e) => setDraft(e.target.value)}
-                            autoFocus
-                            onKeyDown={(e) => {
-                              if (e.key === "Enter") commitFieldEdit(f);
-                              if (e.key === "Escape") setEditingId(null);
-                            }}
-                            className="h-7 flex-1 rounded border border-[#3f81ea] bg-white px-2 text-xs text-[#393740] outline-none font-medium"
-                          />
-                          <button
-                            onClick={() => commitFieldEdit(f)}
-                            className="p-1 text-[#28c76f] hover:text-[#22b061] transition-colors"
-                            title="Xác nhận"
-                          >
-                            <IconCheck className="size-4 text-[#28c76f]" />
-                          </button>
-                        </div>
-                      ) : (
-                        <span className="flex-1 text-xs text-[#393740] font-normal truncate px-2">{f.value}</span>
-                      )}
-
-                      <div className="flex items-center gap-2.5 shrink-0">
-                        <span className="px-2.5 py-0.5 rounded-[4px] bg-[#e8fadf] text-[#28c76f] text-xs font-semibold">
-                          {f.confidence}%
-                        </span>
-                        {!isEditing && (
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              startEditing(f);
-                            }}
-                            className="text-slate-500 hover:text-[#3f81ea] p-1 transition-colors"
-                            title="Chỉnh sửa"
-                          >
-                            <IconPencil className="size-4 text-slate-600 hover:text-[#3f81ea]" />
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
+              <div className="space-y-1 max-h-[580px] overflow-y-auto pr-1 custom-scrollbar">
+                {fields
+                  .filter((field) => !(lineItems.length > 0 && field.id === "lineItems"))
+                  .map((field) => (
+                    <ProductFieldRow
+                      key={field.id}
+                      field={field}
+                      editing={editingId === field.id}
+                      draft={draft}
+                      edited={editLog.some((log) => log.field === field.label || log.id === field.id)}
+                      selected={selectedId === field.id}
+                      onSelect={() => handleSelectField(field)}
+                      onStartEdit={() => startEditing(field)}
+                      onCancel={() => setEditingId(null)}
+                      onDraftChange={setDraft}
+                      onCommit={() => commitFieldEdit(field)}
+                    />
+                  ))}
                 {lineItems.length > 0 && (
-                  <div className="space-y-2.5 border-t border-slate-100 pt-2">
+                  <div className="space-y-1 border-t border-slate-200 pt-2">
                     {lineItems.map(renderLineItem)}
                   </div>
+                )}
+                {ocr?.fullText && (
+                  <details className="border-t border-slate-200 pt-3">
+                    <summary className="cursor-pointer text-sm font-semibold text-[#393740]">Nội dung OCR đầy đủ</summary>
+                    <textarea readOnly value={ocr.fullText} rows={8} className="mt-2 w-full resize-y rounded border border-slate-200 bg-slate-50 p-2 text-sm leading-relaxed text-slate-700" />
+                  </details>
                 )}
               </div>
 

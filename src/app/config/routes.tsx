@@ -55,8 +55,8 @@ export const ROUTES: RouteDefinition[] = [
   {
     key: "proposal",
     hash: "#/proposals",
-    breadcrumb: ["Trang chủ", "Quản trị dữ liệu", "Quản lý tờ trình"],
-    render: (props) => <ProposalListPage onOpenDoc={props.onOpenDoc} />,
+    breadcrumb: ["Trang chủ", "Quản lý tờ trình"],
+    render: () => <ProposalListPage />,
   },
   {
     key: "contract",
@@ -144,6 +144,9 @@ export function parseHashRoute(hash: string): ParsedRoute {
   }
 
   if (parts.length === 2) {
+    if (matchedRoute.key === "proposal" && parts[1] === "new") {
+      return { page: matchedRoute.key };
+    }
     return {
       page: matchedRoute.key,
       subType: "detail",

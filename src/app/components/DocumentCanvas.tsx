@@ -20,6 +20,7 @@ interface DocumentCanvasProps {
   pdfUrl?: string;
   docId?: string;
   onPageCount?: (count: number) => void;
+  onError?: () => void;
   compact?: boolean;
 }
 
@@ -212,6 +213,7 @@ export function DocumentCanvas({
   pdfUrl,
   docId,
   onPageCount,
+  onError,
   compact = false,
 }: DocumentCanvasProps) {
   const streamUrl = pdfUrl || (docId ? `/api/v1/documents/${docId}/preview` : null);
@@ -244,7 +246,10 @@ export function DocumentCanvas({
               src={streamUrl}
               alt="Document"
               className="w-full h-auto object-contain rounded"
-              onError={() => setPdfError(true)}
+              onError={() => {
+                setPdfError(true);
+                onError?.();
+              }}
             />
             {region && (
               <div
@@ -259,7 +264,7 @@ export function DocumentCanvas({
             )}
           </div>
         ) : (
-          <PdfMultiPageViewer url={streamUrl} activePage={page} activeRegion={region} rotation={rotation} onError={() => setPdfError(true)} onPageCount={onPageCount} compact={compact} />
+          <PdfMultiPageViewer url={streamUrl} activePage={page} activeRegion={region} rotation={rotation} onError={() => { setPdfError(true); onError?.(); }} onPageCount={onPageCount} compact={compact} />
         )}
       </div>
     );
