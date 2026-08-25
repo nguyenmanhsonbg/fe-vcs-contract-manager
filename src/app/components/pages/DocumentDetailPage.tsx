@@ -40,7 +40,8 @@ export const FIELD_LABEL_MAP: Record<string, string> = {
 
 export function getFieldLabel(labelOrKey: string): string {
   if (!labelOrKey) return "Trường dữ liệu";
-  return FIELD_LABEL_MAP[labelOrKey] || labelOrKey;
+  const camelKey = labelOrKey.replace(/[_-](\w)/g, (_, character) => character.toUpperCase());
+  return FIELD_LABEL_MAP[labelOrKey] || FIELD_LABEL_MAP[camelKey] || labelOrKey;
 }
 
 const DOCUMENT_TYPE_VALUE_LABELS: Record<string, string> = {
@@ -130,7 +131,7 @@ function ProductFieldRow({
         <button type="button" onClick={onToggle} className="size-6 shrink-0 text-[#393740]" title={expanded ? "Thu gọn" : "Mở rộng"}>
           <ChevronDown className={`size-5 transition-transform ${expanded ? "" : "-rotate-90"}`} />
         </button>
-        <span className="w-[150px] shrink-0 px-0.5 text-sm font-semibold text-[rgba(47,43,61,0.9)]">{getFieldLabel(field.label)}</span>
+        <span className="w-[150px] shrink-0 px-0.5 text-sm font-semibold text-[rgba(47,43,61,0.9)]">{getFieldLabel(field.label || field.id)}</span>
         <div className="flex-1 min-w-0 px-0.5">
           {editing ? (
             isLongField(field) ? (
@@ -156,7 +157,7 @@ function ProductFieldRow({
       className={`rounded-[4px] transition-colors ${isWarning ? `border-[0.5px] ${isLow ? "border-[#ff4c51] bg-[#ffdbdc]" : "border-[#ff9f43] bg-[#ffecd9]"} px-1 py-1` : `px-1 py-1 ${selected ? "bg-blue-50/70" : "hover:bg-slate-50"}`}`}
     >
       <div className="flex items-center gap-1 pl-7">
-        <span className="w-[150px] shrink-0 px-0.5 text-sm font-semibold text-[rgba(47,43,61,0.9)]">{getFieldLabel(field.label)}</span>
+        <span className="w-[150px] shrink-0 px-0.5 text-sm font-semibold text-[rgba(47,43,61,0.9)]">{getFieldLabel(field.label || field.id)}</span>
         <div className="flex-1 min-w-0 px-0.5" onClick={(e) => e.stopPropagation()}>
           {isWarning || editing ? (
             isLongField(field) ? (
@@ -302,6 +303,7 @@ export function DocumentDetailPage({ doc, onBack, onViewOriginalDoc }: DocumentD
   }
   const [logExpanded, setLogExpanded] = useState(false);
   const [scanning, setScanning] = useState(false);
+  const [llmRequesting, setLlmRequesting] = useState(false);
 
   // Field Edit State
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -322,6 +324,7 @@ export function DocumentDetailPage({ doc, onBack, onViewOriginalDoc }: DocumentD
   async function requestLlmExtraction() {
     if (llmRequestedRef.current) return;
     llmRequestedRef.current = true;
+    setLlmRequesting(true);
     try {
       await docApi.extractFields(doc.id);
       toast.success("Đã gửi dữ liệu OCR sang LLM để bóc tách.");
@@ -329,6 +332,8 @@ export function DocumentDetailPage({ doc, onBack, onViewOriginalDoc }: DocumentD
       llmRequestedRef.current = false;
       if (error instanceof ApiError && error.status === 409) return;
       toast.error(error instanceof ApiError ? `Bóc tách LLM thất bại (${error.status}): ${error.message}` : "Không thể bóc tách dữ liệu bằng LLM.");
+    } finally {
+      setLlmRequesting(false);
     }
   }
 
@@ -352,7 +357,8 @@ export function DocumentDetailPage({ doc, onBack, onViewOriginalDoc }: DocumentD
       const isProcessing = latest.status === "ocr" || latest.status === "processing" || latest.status === "queued";
       const needsOcrResult = latest.status === "stored" && (!latest.fields || latest.fields.length === 0);
 
-      if (latest.ocr?.pages?.length && !(latest.fields || []).length) {
+      const hasOcr = Boolean(latest.ocr?.pages?.length || latest.ocr?.fullText?.trim());
+      if (hasOcr && !(latest.fields || []).length) {
         await requestLlmExtraction();
       }
 
@@ -454,7 +460,8 @@ export function DocumentDetailPage({ doc, onBack, onViewOriginalDoc }: DocumentD
             setLineItems(latest.lineItems || []);
             setOcr(latest.ocr || null);
             setEditLog(latest.editLog || []);
-            if (latest.ocr?.pages?.length && !(latest.fields || []).length) {
+            const hasOcr = Boolean(latest.ocr?.pages?.length || latest.ocr?.fullText?.trim());
+            if (hasOcr && !(latest.fields || []).length) {
               await requestLlmExtraction();
             }
             if (latest.status === "review" || latest.status === "confirmed" || (latest.fields && latest.fields.length > 0) || count >= 30) {
@@ -584,6 +591,14 @@ export function DocumentDetailPage({ doc, onBack, onViewOriginalDoc }: DocumentD
 
           {/* Action Buttons */}
           <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => void requestLlmExtraction()}
+              disabled={!ocr?.pages?.length || llmRequesting || fields.length > 0}
+              className="px-4 py-1.5 rounded-[6px] border border-[#3f81ea] bg-white text-xs font-medium text-[#3f81ea] hover:bg-blue-50 disabled:opacity-50 transition-colors shadow-2xs"
+            >
+              {llmRequesting ? "Đang bóc tách..." : "Bóc tách LLM"}
+            </button>
             <button className="px-4 py-1.5 rounded-[6px] border border-slate-300 bg-white text-xs font-medium text-[#393740] hover:bg-slate-50 transition-colors shadow-2xs">
               Lưu tạm
             </button>

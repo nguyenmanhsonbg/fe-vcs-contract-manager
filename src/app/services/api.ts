@@ -171,7 +171,7 @@ export const docApi = {
   async extractFields(docId: string, fields?: ExtractionFieldSpec[]): Promise<DigitizedDoc> {
     return apiFetch<DigitizedDoc>(`/documents/${docId}/extract-fields`, {
       method: "POST",
-      ...(fields?.length ? { body: JSON.stringify(fields) } : {}),
+      body: JSON.stringify(fields ?? []),
     });
   },
 
