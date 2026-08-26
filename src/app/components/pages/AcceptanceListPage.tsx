@@ -1,18 +1,18 @@
 import { useMemo, useState } from "react";
 import {
-  Calendar,
-  ChevronDown,
-  ChevronLeft,
-  ChevronRight,
-  ChevronsLeft,
-  ChevronsRight,
   Download,
   Filter,
   Plus,
   RotateCcw,
-  Search,
 } from "lucide-react";
 import { toast } from "sonner";
+import { PageHeader } from "../common/PageHeader";
+import { SearchInput } from "../common/SearchInput";
+import { SelectFilter } from "../common/SelectFilter";
+import { DatePickerInput } from "../common/DatePickerInput";
+import { StatusBadge } from "../common/StatusBadge";
+import { Pagination } from "../common/Pagination";
+import { BusinessPlanAcceptanceSideModal } from "../modals/BusinessPlanAcceptanceSideModal";
 
 // Tab 1 Data Model: Nghiệm thu theo Phương án kinh doanh (Figma Node 28260:17123)
 interface AcceptancePlanRow {
@@ -178,8 +178,16 @@ function formatCurrency(val: number): string {
   return new Intl.NumberFormat("vi-VN").format(val);
 }
 
-export function AcceptanceListPage() {
-  const [activeTab, setActiveTab] = useState<"plan" | "contract">("plan");
+interface AcceptanceListPageProps {
+  onSelectContractAcceptance?: (id: string) => void;
+  onSelectPlan?: (id: string) => void;
+}
+
+export function AcceptanceListPage({
+  onSelectContractAcceptance,
+  onSelectPlan,
+}: AcceptanceListPageProps = {}) {
+  const [activeTab, setActiveTab] = useState<"plan" | "contract">("contract");
 
   // Tab 1 state
   const [planSearchQuery, setPlanSearchQuery] = useState("");
@@ -197,6 +205,8 @@ export function AcceptanceListPage() {
 
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
+  const [sideModalOpen, setSideModalOpen] = useState(false);
+  const [selectedPlanForSideModal, setSelectedPlanForSideModal] = useState<string>("144/TTr-TTKDMB");
 
   // Tab 1 Filters Apply & Reset
   const handleApplyPlanFilter = () => {
@@ -297,30 +307,29 @@ export function AcceptanceListPage() {
 
   return (
     <div className="min-h-full w-full space-y-5 bg-[#f8f7fa] p-6 text-[#393740]">
-      {/* Top Header Bar */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <h1 className="text-[22px] font-bold leading-tight text-[#2f2b3d]">
-          Quản lý Nghiệm thu
-        </h1>
+      {/* Page Header (Reusing shared PageHeader component) */}
+      <PageHeader
+        title="Quản lý Nghiệm thu"
+        action={
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => toast.info("Mở form Khai báo nghiệm thu mới")}
+              className="inline-flex h-10 items-center gap-2 rounded-[6px] bg-[#ff4c51] px-4 text-[13px] font-medium text-white shadow-sm transition-colors hover:bg-[#e64449]"
+            >
+              <Plus className="size-4" />
+              Khai Báo Nghiệm Thu Mới
+            </button>
 
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => toast.info("Mở form Khai báo nghiệm thu mới")}
-            className="inline-flex h-10 items-center gap-2 rounded-[6px] bg-[#ff4c51] px-4 text-[13px] font-medium text-white shadow-sm transition-colors hover:bg-[#e64449]"
-          >
-            <Plus className="size-4" />
-            Khai Báo Nghiệm Thu Mới
-          </button>
-
-          <button
-            onClick={() => toast.success("Đang xuất báo cáo nghiệm thu (Excel)")}
-            className="inline-flex h-10 items-center gap-2 rounded-[6px] border border-slate-300 bg-white px-4 text-[13px] font-medium text-[#393740] shadow-xs transition-colors hover:bg-slate-50"
-          >
-            <Download className="size-4 text-slate-500" />
-            Xuất Báo Cáo
-          </button>
-        </div>
-      </div>
+            <button
+              onClick={() => toast.success("Đang xuất báo cáo nghiệm thu (Excel)")}
+              className="inline-flex h-10 items-center gap-2 rounded-[6px] border border-slate-300 bg-white px-4 text-[13px] font-medium text-[#393740] shadow-xs transition-colors hover:bg-slate-50"
+            >
+              <Download className="size-4 text-slate-500" />
+              Xuất Báo Cáo
+            </button>
+          </div>
+        }
+      />
 
       {/* Main Content Card with Tabs & Data Table */}
       <div className="rounded-[6px] border border-[#dbdade] bg-white p-6 shadow-[0_2px_8px_rgba(47,43,61,0.08)] space-y-6">
@@ -360,69 +369,47 @@ export function AcceptanceListPage() {
         {/* ========================================================================= */}
         {activeTab === "plan" && (
           <div className="space-y-6">
-            {/* Search & Filter Toolbar */}
+            {/* Search & Filter Toolbar (Reusing SearchInput, SelectFilter, DatePickerInput) */}
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_200px_200px_auto_auto] items-end">
-              <div className="relative">
-                <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
-                <input
-                  type="text"
-                  value={planSearchQuery}
-                  onChange={(e) => setPlanSearchQuery(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && handleApplyPlanFilter()}
-                  placeholder="Tìm bằng mã PAKD/Tên đối tác"
-                  className="h-10 w-full rounded-[6px] border border-slate-200 bg-white pl-9 pr-3 text-[13px] text-slate-800 placeholder-slate-400 outline-none transition-colors hover:border-slate-300 focus:border-[#ff4c51]"
-                />
-              </div>
+              <SearchInput
+                value={planSearchQuery}
+                onChange={setPlanSearchQuery}
+                placeholder="Tìm bằng mã PAKD/Tên đối tác"
+                className="w-full"
+              />
 
-              <div className="space-y-1">
-                <label className="text-[12px] font-medium text-slate-600 block">
-                  Trạng thái nghiệm thu
-                </label>
-                <div className="relative">
-                  <select
-                    value={planStatusFilter}
-                    onChange={(e) => setPlanStatusFilter(e.target.value)}
-                    className="h-10 w-full appearance-none rounded-[6px] border border-slate-200 bg-white px-3 pr-8 text-[13px] text-slate-700 outline-none hover:border-slate-300 focus:border-[#ff4c51]"
-                  >
-                    <option value="all">Tất cả</option>
-                    <option value="Nghiệm thu một phần">Nghiệm thu một phần</option>
-                    <option value="Đã nghiệm thu toàn bộ">Đã nghiệm thu toàn bộ</option>
-                    <option value="Chưa nghiệm thu">Chưa nghiệm thu</option>
-                  </select>
-                  <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
-                </div>
-              </div>
+              <SelectFilter
+                label="Trạng thái nghiệm thu"
+                value={planStatusFilter}
+                onChange={setPlanStatusFilter}
+                options={[
+                  { value: "all", label: "Tất cả" },
+                  { value: "Nghiệm thu một phần", label: "Nghiệm thu một phần" },
+                  { value: "Đã nghiệm thu toàn bộ", label: "Đã nghiệm thu toàn bộ" },
+                  { value: "Chưa nghiệm thu", label: "Chưa nghiệm thu" },
+                ]}
+              />
 
-              <div className="space-y-1">
-                <label className="text-[12px] font-medium text-slate-600 block">
-                  Thời gian cung cấp
-                </label>
-                <div className="relative">
-                  <input
-                    type="text"
-                    value={planDateFilter}
-                    onChange={(e) => setPlanDateFilter(e.target.value)}
-                    onKeyDown={(e) => e.key === "Enter" && handleApplyPlanFilter()}
-                    placeholder="dd.mm.yyyy"
-                    className="h-10 w-full rounded-[6px] border border-slate-200 bg-white px-3 pr-9 text-[13px] text-slate-800 placeholder-slate-400 outline-none hover:border-slate-300 focus:border-[#ff4c51]"
-                  />
-                  <Calendar className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
-                </div>
-              </div>
+              <DatePickerInput
+                label="Thời gian cung cấp"
+                value={planDateFilter}
+                onChange={setPlanDateFilter}
+                placeholder="dd.mm.yyyy"
+              />
 
               <button
                 onClick={handleApplyPlanFilter}
-                className="inline-flex h-10 items-center gap-1.5 rounded-[6px] border border-[#ff4c51] px-4 text-[13px] font-medium text-[#ff4c51] transition-colors hover:bg-[#ff4c51]/10"
+                className="inline-flex h-9 items-center gap-1.5 rounded-[6px] border border-[#ff4c51] px-4 text-xs font-medium text-[#ff4c51] transition-colors hover:bg-[#ff4c51]/10"
               >
-                <Filter className="size-4" />
+                <Filter className="size-3.5" />
                 Lọc
               </button>
 
               <button
                 onClick={handleResetPlanFilter}
-                className="inline-flex h-10 items-center gap-1.5 rounded-[6px] border border-slate-300 px-4 text-[13px] font-medium text-slate-700 transition-colors hover:bg-slate-50"
+                className="inline-flex h-9 items-center gap-1.5 rounded-[6px] border border-slate-300 px-4 text-xs font-medium text-slate-700 transition-colors hover:bg-slate-50"
               >
-                <RotateCcw className="size-4 text-slate-500" />
+                <RotateCcw className="size-3.5 text-slate-500" />
                 Đặt Lại
               </button>
             </div>
@@ -504,8 +491,17 @@ export function AcceptanceListPage() {
                         <td className="border-r border-slate-200 px-3 py-3 font-medium text-[#2f2b3d]">
                           {row.contractName}
                         </td>
-                        <td className="border-r border-slate-200 px-3 py-3 text-center text-[#3f81ea] font-medium">
-                          {row.planCode}
+                        <td className="border-r border-slate-200 px-3 py-3 text-center font-medium">
+                          <button
+                            onClick={() => {
+                              setSelectedPlanForSideModal(row.planCode);
+                              setSideModalOpen(true);
+                            }}
+                            className="text-[#3f81ea] hover:underline font-semibold"
+                            title="Xem chi tiết nghiệm thu theo PAKD"
+                          >
+                            {row.planCode}
+                          </button>
                         </td>
                         <td className="border-r border-slate-200 px-3 py-3 text-center text-slate-600">
                           {row.signDate}
@@ -529,17 +525,7 @@ export function AcceptanceListPage() {
                           {row.supplyPeriod}
                         </td>
                         <td className="border-r border-slate-200 px-3 py-3 text-center">
-                          <span
-                            className={`inline-flex items-center rounded px-2.5 py-1 text-[11px] font-medium ${
-                              row.status === "Đã nghiệm thu toàn bộ"
-                                ? "bg-[#e8f9ee] text-[#28c76f]"
-                                : row.status === "Nghiệm thu một phần"
-                                ? "bg-[#e8f4fd] text-[#3f81ea]"
-                                : "bg-slate-100 text-slate-600"
-                            }`}
-                          >
-                            {row.status}
-                          </span>
+                          <StatusBadge status={row.status} />
                         </td>
                         <td className="border-r border-slate-200 px-2 py-3 text-center font-medium">
                           {row.acceptedQty}
@@ -594,50 +580,35 @@ export function AcceptanceListPage() {
         {/* ========================================================================= */}
         {activeTab === "contract" && (
           <div className="space-y-6">
-            {/* Search & Filter Toolbar matching Node 28230:16721 */}
+            {/* Search & Filter Toolbar (Reusing SearchInput, DatePickerInput) */}
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_260px_auto_auto] items-end">
-              <div className="relative">
-                <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
-                <input
-                  type="text"
-                  value={contractSearchQuery}
-                  onChange={(e) => setContractSearchQuery(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && handleApplyContractFilter()}
-                  placeholder="Tìm bằng mã PAKD/Tên đối tác"
-                  className="h-10 w-full rounded-[6px] border border-slate-200 bg-white pl-9 pr-3 text-[13px] text-slate-800 placeholder-slate-400 outline-none transition-colors hover:border-slate-300 focus:border-[#ff4c51]"
-                />
-              </div>
+              <SearchInput
+                value={contractSearchQuery}
+                onChange={setContractSearchQuery}
+                placeholder="Tìm bằng mã PAKD/Tên đối tác"
+                className="w-full"
+              />
 
-              <div className="space-y-1">
-                <label className="text-[12px] font-medium text-slate-600 block">
-                  Ngày nghiệm thu
-                </label>
-                <div className="relative">
-                  <input
-                    type="text"
-                    value={contractDateFilter}
-                    onChange={(e) => setContractDateFilter(e.target.value)}
-                    onKeyDown={(e) => e.key === "Enter" && handleApplyContractFilter()}
-                    placeholder="dd.mm.yyyy"
-                    className="h-10 w-full rounded-[6px] border border-slate-200 bg-white px-3 pr-9 text-[13px] text-slate-800 placeholder-slate-400 outline-none hover:border-slate-300 focus:border-[#ff4c51]"
-                  />
-                  <Calendar className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
-                </div>
-              </div>
+              <DatePickerInput
+                label="Ngày nghiệm thu"
+                value={contractDateFilter}
+                onChange={setContractDateFilter}
+                placeholder="dd.mm.yyyy"
+              />
 
               <button
                 onClick={handleApplyContractFilter}
-                className="inline-flex h-10 items-center gap-1.5 rounded-[6px] border border-[#ff4c51] px-4 text-[13px] font-medium text-[#ff4c51] transition-colors hover:bg-[#ff4c51]/10"
+                className="inline-flex h-9 items-center gap-1.5 rounded-[6px] border border-[#ff4c51] px-4 text-xs font-medium text-[#ff4c51] transition-colors hover:bg-[#ff4c51]/10"
               >
-                <Filter className="size-4" />
+                <Filter className="size-3.5" />
                 Lọc
               </button>
 
               <button
                 onClick={handleResetContractFilter}
-                className="inline-flex h-10 items-center gap-1.5 rounded-[6px] border border-slate-300 px-4 text-[13px] font-medium text-slate-700 transition-colors hover:bg-slate-50"
+                className="inline-flex h-9 items-center gap-1.5 rounded-[6px] border border-slate-300 px-4 text-xs font-medium text-slate-700 transition-colors hover:bg-slate-50"
               >
-                <RotateCcw className="size-4 text-slate-500" />
+                <RotateCcw className="size-3.5 text-slate-500" />
                 Đặt Lại
               </button>
             </div>
@@ -711,7 +682,15 @@ export function AcceptanceListPage() {
                     paginatedContractList.map((row) => (
                       <tr key={row.id} className="hover:bg-slate-50/70 text-slate-700">
                         <td className="border-r border-slate-200 px-3 py-3 font-semibold text-[#3f81ea]">
-                          {row.contractCode}
+                          <button
+                            onClick={() => {
+                              if (onSelectContractAcceptance) onSelectContractAcceptance(row.contractCode);
+                              else window.location.hash = `#/acceptance/detail/${encodeURIComponent(row.contractCode)}`;
+                            }}
+                            className="hover:underline text-[#3f81ea] font-bold text-left"
+                          >
+                            {row.contractCode}
+                          </button>
                         </td>
                         <td className="border-r border-slate-200 px-3 py-3 text-center text-slate-600">
                           {row.signDate}
@@ -780,81 +759,33 @@ export function AcceptanceListPage() {
           </div>
         )}
 
-        {/* Footer Pagination Bar */}
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between text-[13px] text-slate-600 pt-2">
-          <div>
-            Hiển thị 1 đến {activeTab === "plan" ? paginatedPlanList.length : paginatedContractList.length} trong {currentDatasetLength} bản ghi
-          </div>
-
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-1.5">
-              <span>Hiển thị</span>
-              <select
-                value={pageSize}
-                onChange={(e) => {
-                  setPageSize(Number(e.target.value));
-                  setCurrentPage(1);
-                }}
-                className="h-8 rounded border border-slate-200 bg-white px-2 pr-6 text-[12px] outline-none hover:border-slate-300"
-              >
-                <option value={10}>10</option>
-                <option value={20}>20</option>
-                <option value={50}>50</option>
-              </select>
-            </div>
-
-            {/* Pagination Controls */}
-            <div className="flex items-center gap-1">
-              <button
-                disabled={currentPage <= 1}
-                onClick={() => setCurrentPage(1)}
-                className="flex size-8 items-center justify-center rounded border border-slate-200 hover:bg-slate-50 disabled:opacity-40"
-              >
-                <ChevronsLeft className="size-4" />
-              </button>
-              <button
-                disabled={currentPage <= 1}
-                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                className="flex size-8 items-center justify-center rounded border border-slate-200 hover:bg-slate-50 disabled:opacity-40"
-              >
-                <ChevronLeft className="size-4" />
-              </button>
-
-              {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                const pageNum = i + 1;
-                return (
-                  <button
-                    key={pageNum}
-                    onClick={() => setCurrentPage(pageNum)}
-                    className={`flex size-8 items-center justify-center rounded border text-[12px] font-medium transition-colors ${
-                      currentPage === pageNum
-                        ? "border-[#ff4c51] bg-[#ff4c51] text-white"
-                        : "border-slate-200 hover:bg-slate-50 text-slate-700"
-                    }`}
-                  >
-                    {pageNum}
-                  </button>
-                );
-              })}
-
-              <button
-                disabled={currentPage >= totalPages}
-                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                className="flex size-8 items-center justify-center rounded border border-slate-200 hover:bg-slate-50 disabled:opacity-40"
-              >
-                <ChevronRight className="size-4" />
-              </button>
-              <button
-                disabled={currentPage >= totalPages}
-                onClick={() => setCurrentPage(totalPages)}
-                className="flex size-8 items-center justify-center rounded border border-slate-200 hover:bg-slate-50 disabled:opacity-40"
-              >
-                <ChevronsRight className="size-4" />
-              </button>
-            </div>
-          </div>
-        </div>
+        {/* Footer Pagination (Reusing shared Pagination component) */}
+        <Pagination
+          currentPage={currentPage}
+          pageSize={pageSize}
+          totalElements={currentDatasetLength}
+          totalPages={totalPages}
+          pageSizeOptions={[10, 20, 50]}
+          pageSizeLabel="Hiển thị"
+          onPageChange={setCurrentPage}
+          onPageSizeChange={(size) => {
+            setPageSize(size);
+            setCurrentPage(1);
+          }}
+          renderSummary={(start, end, total) => (
+            <>
+              Hiển thị {start} đến {end} trong {total} bản ghi
+            </>
+          )}
+        />
       </div>
+
+      {/* Side Modal: Chi tiết nghiệm thu theo PAKD (Figma 28387-268503, 28387-270562, 28474-43523) */}
+      <BusinessPlanAcceptanceSideModal
+        open={sideModalOpen}
+        onOpenChange={setSideModalOpen}
+        planId={selectedPlanForSideModal}
+      />
     </div>
   );
 }

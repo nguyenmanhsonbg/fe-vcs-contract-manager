@@ -12,6 +12,7 @@ export interface PaginationProps {
   pageSizeLabel?: string;
   variant?: "default" | "blue-bordered";
   className?: string;
+  renderSummary?: (start: number, end: number, total: number) => React.ReactNode;
 }
 
 export function Pagination({
@@ -25,6 +26,7 @@ export function Pagination({
   pageSizeLabel = "Số dòng/trang:",
   variant = "default",
   className = "",
+  renderSummary,
 }: PaginationProps) {
   const startIndex = totalElements > 0 ? (currentPage - 1) * pageSize : 0;
   const endIndex = Math.min(startIndex + pageSize, totalElements);
@@ -48,7 +50,9 @@ export function Pagination({
     <div className={`flex items-center justify-between text-[13px] text-[#393740] leading-[20px] py-2 flex-wrap gap-3 bg-transparent border-t border-slate-100/80 ${className}`}>
       <div className="flex items-center gap-4">
         <p className="text-[#5d586c] font-normal">
-          {totalElements > 0 ? (
+          {renderSummary ? (
+            renderSummary(startIndex + 1, endIndex, totalElements)
+          ) : totalElements > 0 ? (
             <>
               Hiển thị <span className="font-semibold text-[#2f2b3d]">{startIndex + 1} - {endIndex}</span> của <span className="font-semibold text-[#2f2b3d]">{totalElements}</span> kết quả
             </>

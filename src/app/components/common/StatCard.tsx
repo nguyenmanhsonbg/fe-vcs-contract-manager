@@ -6,6 +6,7 @@ export interface StatCardProps {
   icon?: ElementType;
   iconBgClass?: string;
   valueClass?: string;
+  subtext?: ReactNode;
   trend?: ReactNode;
   trendSubtext?: string;
   trendUp?: boolean;
@@ -15,7 +16,7 @@ export interface StatCardProps {
   footerClass?: string;
   footerText?: ReactNode;
   className?: string;
-  variant?: "default" | "accent-bottom";
+  variant?: "default" | "accent-bottom" | "horizontal";
   accentColor?: string;
   extraContent?: ReactNode;
   onClick?: () => void;
@@ -27,6 +28,7 @@ export function StatCard({
   icon: Icon,
   iconBgClass = "bg-blue-50 text-blue-600",
   valueClass = "text-slate-800",
+  subtext,
   trend,
   trendSubtext,
   trendUp = true,
@@ -40,6 +42,30 @@ export function StatCard({
   extraContent,
   onClick,
 }: StatCardProps) {
+  if (variant === "horizontal") {
+    return (
+      <div
+        onClick={onClick}
+        className={`flex items-center gap-4 rounded-[8px] border border-slate-200 bg-white p-4 shadow-2xs ${className}`}
+      >
+        {Icon && (
+          <div className={`flex size-11 shrink-0 items-center justify-center rounded-[8px] ${iconBgClass}`}>
+            <Icon className="size-5" />
+          </div>
+        )}
+        <div className="min-w-0 flex-1">
+          <span className="text-xs font-medium text-slate-500 block truncate">{title}</span>
+          <div className="flex items-baseline gap-2 mt-1">
+            <span className={`text-2xl font-bold text-[#2f2b3d] leading-none ${valueClass}`}>
+              {value}
+            </span>
+            {subtext && <span className="text-[11px] text-slate-400 truncate">{subtext}</span>}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   if (variant === "accent-bottom") {
     return (
       <div

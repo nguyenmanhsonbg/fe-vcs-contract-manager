@@ -14,28 +14,69 @@ interface DocumentDetailPageProps {
 
 export const FIELD_LABEL_MAP: Record<string, string> = {
   documentType: "Loại tài liệu",
+  document_type: "Loại tài liệu",
   documentNumber: "Mã/Số tài liệu",
+  document_number: "Mã/Số tài liệu",
+  documentDate: "Ngày tài liệu",
+  document_date: "Ngày tài liệu",
   rawText: "Nội dung trích xuất",
+  raw_text: "Nội dung trích xuất",
   contractNumber: "Số hợp đồng",
+  contract_number: "Số hợp đồng",
   contractName: "Tên hợp đồng",
+  contract_name: "Tên hợp đồng",
   proposalNumber: "Số tờ trình",
+  proposal_number: "Số tờ trình",
   proposalDate: "Ngày lập tờ trình",
+  proposal_date: "Ngày lập tờ trình",
   title: "Tên hàng / Tiêu đề",
   signDate: "Ngày ký",
+  sign_date: "Ngày ký",
+  signingDate: "Ngày ký",
+  signing_date: "Ngày ký",
   effectiveDate: "Ngày hiệu lực",
+  effective_date: "Ngày hiệu lực",
   expiryDate: "Ngày hết hạn",
+  expiry_date: "Ngày hết hạn",
   partyAName: "Bên A (Chủ đầu tư)",
+  party_a_name: "Bên A (Chủ đầu tư)",
   partyARepresentative: "Đại diện bên A",
+  party_a_representative: "Đại diện bên A",
   partyBName: "Bên B (Nhà thầu)",
+  party_b_name: "Bên B (Nhà thầu)",
   partyBRepresentative: "Đại diện bên B",
+  party_b_representative: "Đại diện bên B",
+  supplierName: "Nhà cung cấp",
+  supplier_name: "Nhà cung cấp",
   supplierTaxCode: "Mã số thuế",
+  supplier_tax_code: "Mã số thuế",
+  supplierAddress: "Địa chỉ nhà cung cấp",
+  supplier_address: "Địa chỉ nhà cung cấp",
+  recipientName: "Đơn vị nhận",
+  recipient_name: "Đơn vị nhận",
+  recipientAddress: "Địa chỉ đơn vị nhận",
+  recipient_address: "Địa chỉ đơn vị nhận",
   contractValue: "Tổng giá trị hợp đồng",
+  contract_value: "Tổng giá trị hợp đồng",
+  grandTotal: "Tổng giá trị (VND)",
+  grand_total: "Tổng giá trị (VND)",
   totalAmount: "Tổng giá trị (VND)",
+  total_amount: "Tổng giá trị (VND)",
+  subtotal: "Tạm tính",
+  vatRate: "Thuế GTGT",
+  vat_rate: "Thuế GTGT",
+  vatAmount: "Tiền thuế GTGT",
+  vat_amount: "Tiền thuế GTGT",
   unitPrice: "Đơn giá (VND)",
+  unit_price: "Đơn giá (VND)",
   quantity: "Số lượng",
   unit: "Đơn vị tính",
   specifications: "Thông số kỹ thuật",
+  specification: "Thông số kỹ thuật",
+  description: "Mô tả / Thông số kỹ thuật",
   partner: "Đối tác",
+  lineItems: "Danh mục hàng hóa",
+  line_items: "Danh mục hàng hóa",
 };
 
 export function getFieldLabel(labelOrKey: string): string {
@@ -44,27 +85,208 @@ export function getFieldLabel(labelOrKey: string): string {
   return FIELD_LABEL_MAP[labelOrKey] || FIELD_LABEL_MAP[camelKey] || labelOrKey;
 }
 
-const DOCUMENT_TYPE_VALUE_LABELS: Record<string, string> = {
-  proposal: "Tờ trình",
+export const DOCUMENT_TYPE_VALUE_LABELS: Record<string, string> = {
   quotation: "Báo giá",
+  quotations: "Báo giá",
+  bao_gia: "Báo giá",
   quotation_goods: "Báo giá hàng hóa",
   goods_quotation: "Báo giá hàng hóa",
+  bao_gia_hang_hoa: "Báo giá hàng hóa",
   quotation_service: "Báo giá dịch vụ",
   service_quotation: "Báo giá dịch vụ",
+  bao_gia_dich_vu: "Báo giá dịch vụ",
+  proposal: "Tờ trình",
+  proposals: "Tờ trình",
+  ttr: "Tờ trình",
+  to_trinh: "Tờ trình",
+  proposal_goods: "Tờ trình hàng hóa",
+  goods_proposal: "Tờ trình hàng hóa",
+  to_trinh_hang_hoa: "Tờ trình hàng hóa",
+  proposal_service: "Tờ trình dịch vụ",
+  service_proposal: "Tờ trình dịch vụ",
+  to_trinh_dich_vu: "Tờ trình dịch vụ",
+  contract: "Hợp đồng",
+  contracts: "Hợp đồng",
+  hop_dong: "Hợp đồng",
+  contract_goods: "Hợp đồng hàng hóa",
   goods_contract: "Hợp đồng hàng hóa",
+  hop_dong_hang_hoa: "Hợp đồng hàng hóa",
+  contract_service: "Hợp đồng dịch vụ",
   service_contract: "Hợp đồng dịch vụ",
+  contract_services: "Hợp đồng dịch vụ",
+  hop_dong_dich_vu: "Hợp đồng dịch vụ",
   acceptance: "Biên bản nghiệm thu",
+  bbnt: "Biên bản nghiệm thu",
+  bien_ban_nghiem_thu: "Biên bản nghiệm thu",
   bidding: "Hồ sơ mời thầu",
+  hsmt: "Hồ sơ mời thầu",
+  ho_so_moi_thau: "Hồ sơ mời thầu",
+  invoice: "Hóa đơn GTGT",
+  vat_invoice: "Hóa đơn GTGT",
+  hoa_don: "Hóa đơn GTGT",
 };
 
+export function normalizeDocTypeLabel(value: string): string {
+  if (!value) return "";
+  const trimmed = value.trim();
+  const normalizedKey = trimmed
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/đ/g, "d")
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "");
+
+  if (DOCUMENT_TYPE_VALUE_LABELS[normalizedKey]) {
+    return DOCUMENT_TYPE_VALUE_LABELS[normalizedKey];
+  }
+  const simpleKey = trimmed.toLowerCase().replace(/[\s-]+/g, "_");
+  if (DOCUMENT_TYPE_VALUE_LABELS[simpleKey]) {
+    return DOCUMENT_TYPE_VALUE_LABELS[simpleKey];
+  }
+
+  if (normalizedKey.includes("hop_dong_dich_vu") || normalizedKey.includes("contract_service") || normalizedKey.includes("service_contract")) {
+    return "Hợp đồng dịch vụ";
+  }
+  if (normalizedKey.includes("hop_dong_hang_hoa") || normalizedKey.includes("contract_good") || normalizedKey.includes("goods_contract")) {
+    return "Hợp đồng hàng hóa";
+  }
+  if (normalizedKey.includes("hop_dong") || normalizedKey.includes("contract")) {
+    return "Hợp đồng";
+  }
+  if (normalizedKey.includes("to_trinh_dich_vu") || normalizedKey.includes("proposal_service") || normalizedKey.includes("service_proposal")) {
+    return "Tờ trình dịch vụ";
+  }
+  if (normalizedKey.includes("to_trinh_hang_hoa") || normalizedKey.includes("proposal_good") || normalizedKey.includes("goods_proposal")) {
+    return "Tờ trình hàng hóa";
+  }
+  if (normalizedKey.includes("to_trinh") || normalizedKey.includes("proposal")) {
+    return "Tờ trình";
+  }
+  if (normalizedKey.includes("bao_gia_dich_vu") || normalizedKey.includes("quotation_service") || normalizedKey.includes("service_quotation")) {
+    return "Báo giá dịch vụ";
+  }
+  if (normalizedKey.includes("bao_gia_hang_hoa") || normalizedKey.includes("quotation_good") || normalizedKey.includes("goods_quotation")) {
+    return "Báo giá hàng hóa";
+  }
+  if (normalizedKey.includes("bao_gia") || normalizedKey.includes("quotation")) {
+    return "Báo giá";
+  }
+  if (normalizedKey.includes("nghiem_thu") || normalizedKey.includes("acceptance")) {
+    return "Biên bản nghiệm thu";
+  }
+  if (normalizedKey.includes("moi_thau") || normalizedKey.includes("bidding")) {
+    return "Hồ sơ mời thầu";
+  }
+
+  return trimmed;
+}
+
+export function parseNumericAmount(val: string | number | null | undefined): number | null {
+  if (val === null || val === undefined) return null;
+  if (typeof val === "number") return Number.isFinite(val) ? val : null;
+  const str = String(val).trim();
+  if (!str) return null;
+  const cleanStr = str.replace(/\s*(VND|VNĐ|đ|dong|đồng)\s*/gi, "").trim();
+  if (!cleanStr) return null;
+
+  const dotCount = (cleanStr.match(/\./g) || []).length;
+  const commaCount = (cleanStr.match(/,/g) || []).length;
+
+  let normalized = cleanStr;
+  if (dotCount > 1 || commaCount > 1) {
+    normalized = cleanStr.replace(/[.,]/g, "");
+  } else if (dotCount === 1 && commaCount === 1) {
+    const lastDot = cleanStr.lastIndexOf(".");
+    const lastComma = cleanStr.lastIndexOf(",");
+    if (lastDot > lastComma) {
+      normalized = cleanStr.replace(/,/g, "");
+    } else {
+      normalized = cleanStr.replace(/\./g, "").replace(",", ".");
+    }
+  } else if (dotCount === 1 && commaCount === 0) {
+    const afterDot = cleanStr.length - cleanStr.indexOf(".") - 1;
+    if (afterDot === 3 && Number(cleanStr.replace(".", "")) >= 1000) {
+      normalized = cleanStr.replace(".", "");
+    }
+  } else if (commaCount === 1 && dotCount === 0) {
+    const afterComma = cleanStr.length - cleanStr.indexOf(",") - 1;
+    if (afterComma === 3 && Number(cleanStr.replace(",", "")) >= 1000) {
+      normalized = cleanStr.replace(",", "");
+    }
+  }
+
+  const num = Number(normalized);
+  return Number.isFinite(num) ? num : null;
+}
+
+export function formatLineItemAmount(value: string | number | null | undefined): string {
+  const num = parseNumericAmount(value);
+  return num !== null ? num.toLocaleString("vi-VN") : String(value ?? "");
+}
+
+export function isMoneyField(field: ExtractedField): boolean {
+  const key = (field.id || "").toLowerCase();
+  const label = (field.label || "").toLowerCase();
+  const moneyKeys = [
+    "grandtotal",
+    "grand_total",
+    "totalamount",
+    "total_amount",
+    "contractvalue",
+    "contract_value",
+    "subtotal",
+    "vatamount",
+    "vat_amount",
+    "unitprice",
+    "unit_price",
+    "amount",
+    "total",
+    "tongtien",
+    "tong_tien",
+    "thanhtien",
+    "thanh_tien",
+    "dongia",
+    "don_gia",
+  ];
+  return (
+    moneyKeys.some((k) => key === k || key.includes(k)) ||
+    label.includes("giá trị") ||
+    label.includes("thành tiền") ||
+    label.includes("tổng tiền") ||
+    label.includes("đơn giá") ||
+    label.includes("tạm tính") ||
+    label.includes("tiền thuế") ||
+    label.includes("(vnd)")
+  );
+}
+
 function getFieldDisplayValue(field: ExtractedField): string {
-  if (!isDocumentTypeField(field)) return field.value;
-  const key = field.value.trim().toLowerCase().replace(/[\s-]+/g, "_");
-  return DOCUMENT_TYPE_VALUE_LABELS[key] || field.value;
+  if (isDocumentTypeField(field)) {
+    return normalizeDocTypeLabel(field.value);
+  }
+  if (isMoneyField(field)) {
+    const num = parseNumericAmount(field.value);
+    if (num !== null) {
+      return num.toLocaleString("vi-VN");
+    }
+  }
+  return field.value;
 }
 
 function isDocumentTypeField(field: ExtractedField): boolean {
-  return field.id === "documentType" || field.id === "document_type" || field.label === "documentType" || field.label === "document_type" || field.label === "Loại tài liệu";
+  const id = (field.id || "").toLowerCase().replace(/[\s_-]+/g, "");
+  const label = (field.label || "").toLowerCase().replace(/[\s_-]+/g, "");
+  return (
+    id === "documenttype" ||
+    id === "doctype" ||
+    id === "type" ||
+    id === "loaitailieu" ||
+    label === "documenttype" ||
+    label === "doctype" ||
+    label === "loaitailieu" ||
+    field.label === "Loại tài liệu"
+  );
 }
 
 function isLongField(field: ExtractedField): boolean {
@@ -74,16 +296,6 @@ function isLongField(field: ExtractedField): boolean {
 }
 
 const ZOOM_OPTIONS = [25, 50, 75, 100, 125, 150, 200, 250, 300, 400, 500];
-
-function formatLineItemAmount(value: string): string {
-  const amount = Number(value);
-  return Number.isFinite(amount) ? amount.toLocaleString("vi-VN") : value;
-}
-
-function splitLineItemName(value: string): { name: string; specification: string } {
-  const [name, ...specification] = value.split(",");
-  return { name: name.trim(), specification: specification.join(",").trim() || value };
-}
 
 function lineItemField(item: LineItem, key: string, label: string, value: string): ExtractedField {
   return { id: `line-item-${item.no}-${key}`, label, value, confidence: item.confidence, region: item.region };
@@ -495,13 +707,12 @@ export function DocumentDetailPage({ doc, onBack, onViewOriginalDoc }: DocumentD
   }
 
   function renderLineItem(item: LineItem) {
-    const parts = splitLineItemName(item.name);
-    const headerField = lineItemField(item, "name", "Tên hàng", parts.name);
+    const headerField = lineItemField(item, "name", "Tên hàng", item.name);
     const itemFields = [
       lineItemField(item, "code", "Mã hàng", item.code || "—"),
-      lineItemField(item, "specification", "Thông số kỹ thuật", parts.specification),
+      lineItemField(item, "specification", "Thông số kỹ thuật", item.specification || item.description || "—"),
       lineItemField(item, "unit", "Đơn vị tính", item.unit || "—"),
-      lineItemField(item, "quantity", "Số lượng", item.qty),
+      lineItemField(item, "quantity", "Số lượng", String(item.qty ?? "—")),
       lineItemField(item, "unitPrice", "Đơn giá (VND)", formatLineItemAmount(item.unitPrice)),
       lineItemField(item, "total", "Tổng giá trị (VND)", formatLineItemAmount(item.total)),
     ];

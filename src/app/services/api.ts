@@ -18,6 +18,8 @@ import {
 } from "../data/apiModels";
 
 import { sampleProposals } from "../data/proposalMock";
+import { BusinessPlanItem, BusinessPlanFilterOptions, sampleBusinessPlans } from "../data/businessPlanMock";
+import { AcceptanceContractDetail, sampleAcceptanceContractDetails, AcceptanceDocument } from "../data/acceptanceMock";
 
 // ponytail: Base API URL với fallback /api/v1 cho local dev proxy
 const API_BASE = import.meta.env.VITE_API_BASE_URL || "/api/v1";
@@ -394,4 +396,250 @@ export const docApi = {
   async contractFromBidding(data: unknown): Promise<ContractDetailDto> { return apiFetch<ContractDetailDto>("/contracts/from-bidding-result", { method: "POST", body: JSON.stringify(data) }); },
   async contractAction(id: string, action: string, body?: unknown): Promise<ContractDetailDto> { return apiFetch<ContractDetailDto>(`/contracts/${id}/${action}`, { method: "POST", body: body === undefined ? undefined : JSON.stringify(body) }); },
   async contractApproval(id: string, body: unknown): Promise<ContractDetailDto> { return apiFetch<ContractDetailDto>(`/contracts/${id}/approval-actions`, { method: "POST", body: JSON.stringify(body) }); },
+
+  /** Danh sách Phương án kinh doanh */
+  async getBusinessPlans(filters: BusinessPlanFilterOptions = {}): Promise<PageResponse<BusinessPlanItem>> {
+    try {
+      return await apiFetch<PageResponse<BusinessPlanItem>>("/business-plans/search", {
+        method: "POST",
+        body: JSON.stringify(filters),
+      });
+    } catch {
+      let list = [...sampleBusinessPlans];
+      if (filters.status && filters.status !== "all") {
+        list = list.filter((item) => item.status === filters.status);
+      }
+      if (filters.dateRange && filters.dateRange.trim()) {
+        const norm = filters.dateRange.trim().toLowerCase();
+        list = list.filter((item) => item.planDate.toLowerCase().includes(norm));
+      }
+      if (filters.search && filters.search.trim()) {
+        const q = filters.search.trim().toLowerCase();
+        list = list.filter(
+          (item) =>
+            item.id.toLowerCase().includes(q) ||
+            item.code.toLowerCase().includes(q) ||
+            item.title.toLowerCase().includes(q) ||
+            item.partner.toLowerCase().includes(q)
+        );
+      }
+      const page = filters.page || 1;
+      const size = filters.size || 10;
+      const totalElements = list.length;
+      const totalPages = Math.max(1, Math.ceil(totalElements / size));
+      const start = (page - 1) * size;
+      const content = list.slice(start, start + size);
+      return { content, page, size, totalElements, totalPages };
+    }
+  },
+
+  /** Chi tiết Phương án kinh doanh theo ID */
+  async getBusinessPlanById(id: string): Promise<BusinessPlanItem | null> {
+    try {
+      return await apiFetch<BusinessPlanItem>(`/business-plans/${encodeURIComponent(id)}`);
+    } catch {
+      const found = sampleBusinessPlans.find((p) => p.id === id);
+      return found || sampleBusinessPlans[0] || null;
+    }
+  },
+
+  /** Tạo mới Phương án kinh doanh */
+  async createBusinessPlan(data: Partial<BusinessPlanItem>): Promise<BusinessPlanItem> {
+    try {
+      return await apiFetch<BusinessPlanItem>("/business-plans", {
+        method: "POST",
+        body: JSON.stringify(data),
+      });
+    } catch {
+      const newPlan: BusinessPlanItem = {
+        id: data.id || `${Math.floor(100 + Math.random() * 900)}/TTr-TTKDMB`,
+        code: data.code || `TT - 2026 - ${Math.floor(100 + Math.random() * 900)}`,
+        title: data.title || "Phương án kinh doanh mới",
+        planDate: data.planDate || new Date().toLocaleDateString("vi-VN"),
+        partner: data.partner || "Chưa xác định",
+        executionPeriod: data.executionPeriod || "2026",
+        totalAmount: data.totalAmount || 0,
+        totalAmountWithVat: data.totalAmountWithVat || (data.totalAmount ? data.totalAmount * 1.1 : 0),
+        amountInWords: data.amountInWords || "",
+        status: data.status || "Chờ phê duyệt",
+        createdBy: "Người dùng hiện tại",
+        updatedBy: "Người dùng hiện tại",
+        updatedAt: new Date().toLocaleString("vi-VN"),
+        lineItems: data.lineItems || [],
+        financial: data.financial || {
+          revenue: (data.totalAmount || 0) * 1.25,
+          revenueVat: (data.totalAmount || 0) * 0.125,
+          revenueWithVat: (data.totalAmount || 0) * 1.375,
+          cost: data.totalAmount || 0,
+          costVat: (data.totalAmount || 0) * 0.1,
+          costWithVat: (data.totalAmount || 0) * 1.1,
+          procurementCost: data.totalAmount || 0,
+          procurementCostVat: (data.totalAmount || 0) * 0.1,
+          procurementCostWithVat: (data.totalAmount || 0) * 1.1,
+          generalAdminCost: (data.totalAmount || 0) * 0.001,
+          grossProfit: (data.totalAmount || 0) * 0.25,
+          corporateTax: (data.totalAmount || 0) * 0.05,
+          netProfit: (data.totalAmount || 0) * 0.2,
+          profitOnCostRatio: 20,
+          profitOnRevenueRatio: 20,
+        },
+        appendices: data.appendices || [],
+        activities: [
+          {
+            id: `act-${Date.now()}`,
+            title: "Tạo mới phương án kinh doanh",
+            user: "Người dùng hiện tại",
+            time: new Date().toLocaleString("vi-VN"),
+            type: "created",
+          },
+        ],
+      };
+      sampleBusinessPlans.unshift(newPlan);
+      return newPlan;
+    }
+  },
+
+  /** Cập nhật trạng thái Phương án kinh doanh */
+  async updateBusinessPlanStatus(id: string, status: BusinessPlanItem["status"]): Promise<BusinessPlanItem> {
+    try {
+      return await apiFetch<BusinessPlanItem>(`/business-plans/${encodeURIComponent(id)}/status`, {
+        method: "PATCH",
+        body: JSON.stringify({ status }),
+      });
+    } catch {
+      const item = sampleBusinessPlans.find((p) => p.id === id);
+      if (item) {
+        item.status = status;
+        item.updatedAt = new Date().toLocaleString("vi-VN");
+        item.activities.unshift({
+          id: `act-${Date.now()}`,
+          title: `Cập nhật trạng thái sang "${status}"`,
+          user: "Người dùng hiện tại",
+          time: new Date().toLocaleString("vi-VN"),
+          type: status === "Đã duyệt" ? "approved" : "updated",
+        });
+        return item;
+      }
+      throw new Error("Không tìm thấy phương án kinh doanh");
+    }
+  },
+
+  /** Lấy chi tiết Nghiệm thu Hợp đồng theo Contract Code / ID */
+  async getAcceptanceContractById(id: string): Promise<AcceptanceContractDetail | null> {
+    try {
+      return await apiFetch<AcceptanceContractDetail>(`/acceptance/contracts/${encodeURIComponent(id)}`);
+    } catch {
+      const found = sampleAcceptanceContractDetails.find(
+        (c) => c.id.toLowerCase() === id.toLowerCase() || c.contractCode.toLowerCase() === id.toLowerCase()
+      );
+      return found || sampleAcceptanceContractDetails[0] || null;
+    }
+  },
+
+  /** Tạo đợt nghiệm thu mới cho Hợp đồng */
+  async createAcceptancePeriod(
+    contractId: string,
+    periodData: {
+      periodName: string;
+      date: string;
+      documentNo: string;
+      items: { itemId: string; qty: number; unitPrice: number; notes?: string }[];
+    }
+  ): Promise<AcceptanceContractDetail> {
+    try {
+      return await apiFetch<AcceptanceContractDetail>(`/acceptance/contracts/${encodeURIComponent(contractId)}/periods`, {
+        method: "POST",
+        body: JSON.stringify(periodData),
+      });
+    } catch {
+      const contract = sampleAcceptanceContractDetails.find(
+        (c) => c.id.toLowerCase() === contractId.toLowerCase() || c.contractCode.toLowerCase() === contractId.toLowerCase()
+      ) || sampleAcceptanceContractDetails[0];
+
+      const newPeriodKey = `period${contract.activePeriods.length + 1}`;
+      contract.activePeriods.push({
+        id: newPeriodKey,
+        name: periodData.periodName || `Đợt ${contract.activePeriods.length + 1}`,
+      });
+
+      let addedTotalValue = 0;
+      periodData.items.forEach((pItem) => {
+        const item = contract.items.find((i) => i.id === pItem.itemId);
+        if (item) {
+          const itemVal = pItem.qty * (pItem.unitPrice || item.contractUnitPrice);
+          addedTotalValue += itemVal;
+          item.periods[newPeriodKey] = {
+            periodNo: contract.activePeriods.length,
+            periodName: periodData.periodName,
+            qty: pItem.qty,
+            unitPrice: pItem.unitPrice || item.contractUnitPrice,
+            value: itemVal,
+            date: periodData.date,
+            documentNo: periodData.documentNo,
+            status: "Đã nghiệm thu",
+            executor: "Người dùng hiện tại",
+            notes: pItem.notes,
+          };
+          item.totalAcceptedQty += pItem.qty;
+          item.totalAcceptedValue += itemVal;
+          item.remainingQty = Math.max(0, item.contractQty - item.totalAcceptedQty);
+          item.remainingValue = Math.max(0, item.contractValue - item.totalAcceptedValue);
+        }
+      });
+
+      contract.acceptedValue += addedTotalValue;
+      contract.remainingValue = Math.max(0, contract.contractValue - contract.acceptedValue);
+      contract.completionPercent = Math.min(100, Math.round((contract.acceptedValue / contract.contractValue) * 100));
+      contract.status = contract.remainingValue === 0 ? "Đã nghiệm thu toàn bộ" : "Nghiệm thu một phần";
+
+      contract.activities.unshift({
+        id: `act-${Date.now()}`,
+        action: `Nghiệm thu ${periodData.periodName} (${new Intl.NumberFormat("vi-VN").format(addedTotalValue)} VNĐ)`,
+        user: "Người dùng hiện tại",
+        timestamp: new Date().toLocaleString("vi-VN"),
+        type: "approved",
+      });
+
+      return { ...contract };
+    }
+  },
+
+  /** Tải lên tài liệu biên bản nghiệm thu */
+  async uploadAcceptanceDocument(
+    contractId: string,
+    docData: { fileName: string; type: AcceptanceDocument["type"]; period?: string }
+  ): Promise<AcceptanceDocument> {
+    try {
+      return await apiFetch<AcceptanceDocument>(`/acceptance/contracts/${encodeURIComponent(contractId)}/documents`, {
+        method: "POST",
+        body: JSON.stringify(docData),
+      });
+    } catch {
+      const contract = sampleAcceptanceContractDetails.find(
+        (c) => c.id.toLowerCase() === contractId.toLowerCase() || c.contractCode.toLowerCase() === contractId.toLowerCase()
+      ) || sampleAcceptanceContractDetails[0];
+
+      const newDoc: AcceptanceDocument = {
+        id: `doc-${Date.now()}`,
+        fileName: docData.fileName,
+        type: docData.type,
+        fileSize: "2.1 MB",
+        uploadedBy: "Người dùng hiện tại",
+        uploadedAt: new Date().toLocaleString("vi-VN"),
+        period: docData.period || "Đợt mới",
+      };
+
+      contract.documents.unshift(newDoc);
+      contract.activities.unshift({
+        id: `act-${Date.now()}`,
+        action: `Tải lên ${docData.type}: ${docData.fileName}`,
+        user: "Người dùng hiện tại",
+        timestamp: new Date().toLocaleString("vi-VN"),
+        type: "uploaded",
+      });
+
+      return newDoc;
+    }
+  },
 };
+

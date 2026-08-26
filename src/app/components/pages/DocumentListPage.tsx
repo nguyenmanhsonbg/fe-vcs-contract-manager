@@ -17,32 +17,17 @@ import { UploadDropzone } from "../common/UploadDropzone";
 import { SearchInput } from "../common/SearchInput";
 import { StatCard } from "../common/StatCard";
 
+import { normalizeDocTypeLabel } from "./DocumentDetailPage";
+
 const today = () => new Date().toISOString().slice(0, 10);
 
-const EXTRACTED_DOCUMENT_TYPE_LABELS: Record<string, string> = {
-  proposal: "Tờ trình",
-  tờ_trình: "Tờ trình",
-  quotation: "Báo giá",
-  báo_giá: "Báo giá",
-  quotation_goods: "Báo giá hàng hóa",
-  goods_quotation: "Báo giá hàng hóa",
-  báo_giá_hàng_hóa: "Báo giá hàng hóa",
-  quotation_service: "Báo giá dịch vụ",
-  service_quotation: "Báo giá dịch vụ",
-  báo_giá_dịch_vụ: "Báo giá dịch vụ",
-  goods_contract: "Hợp đồng hàng hoá",
-  service_contract: "Hợp đồng dịch vụ",
-  contract: "Hợp đồng",
-  acceptance: "Biên bản nghiệm thu",
-  bidding: "Hồ sơ mời thầu",
-};
-
 function getDocumentTypeLabel(document: DigitizedDoc): string {
-  const field = document.fields?.find((item) => item.id === "documentType" || item.label === "Loại tài liệu");
-  const value = field?.value?.trim();
+  const field = document.fields?.find(
+    (item) => item.id === "documentType" || item.id === "document_type" || item.label === "Loại tài liệu" || item.label === "documentType",
+  );
+  const value = field?.value?.trim() || document.type;
   if (!value) return "...";
-  const key = value.toLowerCase().replace(/[\s-]+/g, "_");
-  return EXTRACTED_DOCUMENT_TYPE_LABELS[key] || value;
+  return normalizeDocTypeLabel(value);
 }
 
 interface DocumentListPageProps {

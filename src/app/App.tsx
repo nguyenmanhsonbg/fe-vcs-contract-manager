@@ -4,6 +4,7 @@ import { TopBar } from "./components/TopBar";
 import { DocumentDetailPage } from "./components/pages/DocumentDetailPage";
 import { ProposalDetailPage } from "./components/pages/ProposalDetailPage";
 import { BusinessPlanDetailPage } from "./components/pages/BusinessPlanDetailPage";
+import { ContractAcceptanceDetailPage } from "./components/pages/ContractAcceptanceDetailPage";
 import { OriginalDocView } from "./components/pages/OriginalDocView";
 import { UploadModal } from "./components/modals/UploadModal";
 import { DigitizedDoc } from "./data/models";
@@ -65,6 +66,7 @@ export default function App() {
   const [originalDoc, setOriginalDoc] = useState<DigitizedDoc | null>(null);
   const [proposalRoute, setProposalRoute] = useState<{ mode: "view" | "edit"; id: string } | null>(null);
   const [businessPlanDetailId, setBusinessPlanDetailId] = useState<string | null>(null);
+  const [contractAcceptanceDetailId, setContractAcceptanceDetailId] = useState<string | null>(null);
   const [uploadModalOpen, setUploadModalOpen] = useState(false);
   const [documentRefreshToken, setDocumentRefreshToken] = useState(0);
 
@@ -89,6 +91,15 @@ export default function App() {
         return;
       } else {
         setBusinessPlanDetailId(null);
+      }
+
+      if (parsed.page === "acceptance" && parsed.subType === "detail" && parsed.docId) {
+        setContractAcceptanceDetailId(decodeURIComponent(parsed.docId));
+        setOpenDoc(null);
+        setOriginalDoc(null);
+        return;
+      } else {
+        setContractAcceptanceDetailId(null);
       }
 
       if (parsed.subType === "detail" && parsed.docId) {
@@ -149,6 +160,7 @@ export default function App() {
     setOpenDoc(doc);
     setOriginalDoc(null);
     setBusinessPlanDetailId(null);
+    setContractAcceptanceDetailId(null);
     const routePrefix = getDocumentRoutePrefix(page);
     window.location.hash = `${routePrefix}/detail/${doc.id}`;
   };
@@ -156,6 +168,7 @@ export default function App() {
   const handleViewOriginalDoc = (doc: DigitizedDoc) => {
     setOriginalDoc(doc);
     setBusinessPlanDetailId(null);
+    setContractAcceptanceDetailId(null);
     const routePrefix = getDocumentRoutePrefix(page);
     window.location.hash = `${routePrefix}/original/${doc.id}`;
   };
@@ -183,6 +196,7 @@ export default function App() {
     setOriginalDoc(null);
     setProposalRoute(null);
     setBusinessPlanDetailId(null);
+    setContractAcceptanceDetailId(null);
     const mainHash = getRouteByKey(page).hash;
     window.location.hash = mainHash;
   };
@@ -192,6 +206,7 @@ export default function App() {
     setOriginalDoc(null);
     setProposalRoute(null);
     setBusinessPlanDetailId(null);
+    setContractAcceptanceDetailId(null);
     setPage(p);
     const targetRoute = getRouteByKey(p);
     window.location.hash = targetRoute.hash;
@@ -211,6 +226,8 @@ export default function App() {
       : ["Trang chủ", "Quản trị dữ liệu", "Số hoá tài liệu", "Chi tiết số hóa"]
     : page === "business-plan" && businessPlanDetailId
     ? ["Trang chủ", "Quản lý Phương án kinh doanh", "Chi tiết Phương án kinh doanh"]
+    : page === "acceptance" && contractAcceptanceDetailId
+    ? ["Trang chủ", "Phương án kinh doanh", "Quản lý nghiệm thu", "Chi tiết nghiệm thu Hợp đồng"]
     : currentRoute.breadcrumb;
 
   if (currentRoute.key === "login") {
@@ -260,6 +277,13 @@ export default function App() {
                 planId={businessPlanDetailId}
                 onBack={() => {
                   window.location.hash = "#/business-plans";
+                }}
+              />
+            ) : page === "acceptance" && contractAcceptanceDetailId ? (
+              <ContractAcceptanceDetailPage
+                contractId={contractAcceptanceDetailId}
+                onBack={() => {
+                  window.location.hash = "#/acceptance";
                 }}
               />
             ) : (

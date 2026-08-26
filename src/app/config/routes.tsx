@@ -90,7 +90,16 @@ export const ROUTES: RouteDefinition[] = [
     key: "acceptance",
     hash: "#/acceptance",
     breadcrumb: ["Trang chủ", "Phương án kinh doanh", "Quản lý nghiệm thu"],
-    render: () => <AcceptanceListPage />,
+    render: () => (
+      <AcceptanceListPage
+        onSelectContractAcceptance={(id) => {
+          window.location.hash = `#/acceptance/detail/${encodeURIComponent(id)}`;
+        }}
+        onSelectPlan={(id) => {
+          window.location.hash = `#/business-plans/detail/${encodeURIComponent(id)}`;
+        }}
+      />
+    ),
   },
   {
     key: "reconciliation",

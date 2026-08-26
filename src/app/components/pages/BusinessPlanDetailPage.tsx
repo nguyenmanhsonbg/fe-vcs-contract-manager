@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   ArrowLeft,
   ChevronDown,
@@ -11,8 +11,13 @@ import {
   Minus,
   Plus,
   RotateCcw,
+  CheckCircle,
+  Edit3,
+  History,
 } from "lucide-react";
 import { BusinessPlanItem, sampleBusinessPlans } from "../../data/businessPlanMock";
+import { StatusBadge } from "../common/StatusBadge";
+import { docApi } from "../../services/api";
 import { toast } from "sonner";
 
 interface BusinessPlanDetailPageProps {
@@ -20,7 +25,8 @@ interface BusinessPlanDetailPageProps {
   onBack: () => void;
 }
 
-function formatCurrency(val: number): string {
+function formatCurrency(val?: number): string {
+  if (val === undefined || val === null) return "0";
   return new Intl.NumberFormat("vi-VN").format(val);
 }
 
@@ -28,26 +34,81 @@ export function BusinessPlanDetailPage({
   planId = "144/TTr-TTKDMB",
   onBack,
 }: BusinessPlanDetailPageProps) {
-  const plan: BusinessPlanItem =
-    sampleBusinessPlans.find((p) => p.id === planId) || sampleBusinessPlans[0];
+  const [plan, setPlan] = useState<BusinessPlanItem | null>(null);
+  const [loading, setLoading] = useState(false);
 
   const [zoom, setZoom] = useState(100);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages] = useState(12);
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const [itemsSectionOpen, setItemsSectionOpen] = useState(false);
-  const [financialSectionOpen, setFinancialSectionOpen] = useState(false);
+  const [itemsSectionOpen, setItemsSectionOpen] = useState(true);
+  const [financialSectionOpen, setFinancialSectionOpen] = useState(true);
+
+  const loadPlanDetail = async () => {
+    try {
+      setLoading(true);
+      const res = await docApi.getBusinessPlanById(planId);
+      if (res) {
+        setPlan(res);
+      } else {
+        const fallback = sampleBusinessPlans.find((p) => p.id === planId) || sampleBusinessPlans[0];
+        setPlan(fallback);
+      }
+    } catch {
+      const fallback = sampleBusinessPlans.find((p) => p.id === planId) || sampleBusinessPlans[0];
+      setPlan(fallback);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadPlanDetail();
+  }, [planId]);
+
+  if (loading || !plan) {
+    return (
+      <div className="flex h-64 w-full items-center justify-center text-slate-400">
+        <div className="inline-flex items-center gap-2">
+          <div className="size-5 animate-spin rounded-full border-2 border-[#ff4c51] border-t-transparent" />
+          <span>Đang tải thông tin chi tiết phương án kinh doanh...</span>
+        </div>
+      </div>
+    );
+  }
 
   const handleDownloadPdf = () => {
-    toast.success(`Đang tải xuống Phương án kinh doanh ${plan.id}.pdf`);
+    toast.success(`Đang tải xuống tài liệu Phương án kinh doanh ${plan.id}.pdf`);
   };
 
   const handleDownloadAppendix = (name: string) => {
     toast.success(`Đang tải xuống tệp ${name}`);
   };
 
+  const handleApprovePlan = async () => {
+    try {
+      await docApi.updateBusinessPlanStatus(plan.id, "Đã duyệt");
+      toast.success("Phê duyệt Phương án kinh doanh thành công!");
+      loadPlanDetail();
+    } catch (err: any) {
+      toast.error(err.message || "Không thể phê duyệt phương án");
+    }
+  };
+
+  // Group line items by group (Group I, Group II)
+  const group1Items = plan.lineItems.filter((i) => i.group === "I" || !i.group);
+  const group2Items = plan.lineItems.filter((i) => i.group === "II");
+
+  const group1Total = group1Items.reduce((acc, cur) => acc + cur.totalAmount, 0);
+  const group1Vat = group1Items.reduce((acc, cur) => acc + (cur.vatAmount || 0), 0);
+  const group1TotalWithVat = group1Items.reduce((acc, cur) => acc + (cur.totalAmountWithVat || cur.totalAmount), 0);
+
+  const group2Total = group2Items.reduce((acc, cur) => acc + cur.totalAmount, 0);
+  const group2Vat = group2Items.reduce((acc, cur) => acc + (cur.vatAmount || 0), 0);
+  const group2TotalWithVat = group2Items.reduce((acc, cur) => acc + (cur.totalAmountWithVat || cur.totalAmount), 0);
+
   return (
-    <div className="min-h-full w-full space-y-5 bg-[#f8f7fa] p-6 text-[#393740]">
+    <div className="min-h-full w-full space-y-6 bg-[#f8f7fa] p-6 text-[#393740]">
       {/* Top Header */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
@@ -59,75 +120,108 @@ export function BusinessPlanDetailPage({
             <ArrowLeft className="size-4" />
           </button>
           <div>
-            <h1 className="text-[20px] font-bold leading-tight text-[#2f2b3d]">
-              Chi tiết Phương án kinh doanh
-            </h1>
+            <div className="flex items-center gap-2.5">
+              <h1 className="text-[20px] font-bold leading-tight text-[#2f2b3d]">
+                Chi tiết Phương án kinh doanh
+              </h1>
+              <StatusBadge status={plan.status} />
+            </div>
           </div>
         </div>
 
-        <button
-          onClick={handleDownloadPdf}
-          className="inline-flex h-9 items-center gap-2 rounded-[6px] border border-slate-300 bg-white px-4 text-[13px] font-medium text-[#393740] shadow-xs transition-colors hover:bg-slate-50"
-        >
-          <Download className="size-4 text-slate-500" />
-          Tải Xuống
-        </button>
+        <div className="flex items-center gap-2.5">
+          {plan.status === "Chờ phê duyệt" && (
+            <button
+              onClick={handleApprovePlan}
+              className="inline-flex h-9 items-center gap-1.5 rounded-[6px] bg-[#28c76f] px-4 text-[13px] font-medium text-white shadow-xs transition-colors hover:bg-[#24b263]"
+            >
+              <CheckCircle className="size-4" />
+              Phê duyệt
+            </button>
+          )}
+
+          <button
+            onClick={() => toast.info(`Chỉnh sửa ${plan.id}`)}
+            className="inline-flex h-9 items-center gap-1.5 rounded-[6px] border border-slate-300 bg-white px-3.5 text-[13px] font-medium text-[#2f2b3d] shadow-xs transition-colors hover:bg-slate-50"
+          >
+            <Edit3 className="size-4 text-slate-500" />
+            Chỉnh sửa
+          </button>
+
+          <button
+            onClick={handleDownloadPdf}
+            className="inline-flex h-9 items-center gap-1.5 rounded-[6px] bg-[#ff4c51] px-4 text-[13px] font-medium text-white shadow-xs transition-colors hover:bg-[#e64449]"
+          >
+            <Download className="size-4" />
+            Tải Xuống
+          </button>
+        </div>
       </div>
 
       {/* Subheader info: Số PAKD & Timestamp */}
-      <div className="space-y-1">
-        <p className="text-[15px] font-semibold text-[#2f2b3d]">
-          Số Phương án kinh doanh: {plan.id}
+      <div className="rounded-[6px] border border-slate-200/80 bg-white px-5 py-3 shadow-[0_1px_3px_rgba(47,43,61,0.04)] flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+        <p className="text-[14px] font-semibold text-[#2f2b3d]">
+          Số Phương án kinh doanh: <span className="text-[#3f81ea]">{plan.id}</span>
         </p>
         <p className="text-[12px] text-[#5d586c]">
-          Cập nhật lần cuối: {plan.updatedAt} bởi {plan.updatedBy}
+          Cập nhật lần cuối: <span className="font-medium text-[#2f2b3d]">{plan.updatedAt}</span> bởi <span className="font-medium text-[#2f2b3d]">{plan.updatedBy}</span>
         </p>
       </div>
 
       {/* Top Two-Column Grid: A. Thông tin chung + Xem trước Phương án kinh doanh */}
-      <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         {/* Left Card: A. Thông tin chung */}
-        <div className="flex flex-col rounded-[6px] border border-[#dbdade] bg-white p-5 shadow-[0_2px_6px_rgba(47,43,61,0.08)] h-[460px]">
+        <div className="flex flex-col rounded-[6px] border border-[#dbdade] bg-white p-5 shadow-[0_2px_6px_rgba(47,43,61,0.06)] h-[480px]">
           <h2 className="mb-4 text-[16px] font-bold text-[#2f2b3d]">
             A. Thông tin chung
           </h2>
 
           <div className="custom-scrollbar flex-1 overflow-y-auto divide-y divide-slate-100 text-[13px] pr-2">
-            <div className="grid grid-cols-[220px_1fr] py-3.5 items-center">
+            <div className="grid grid-cols-[200px_1fr] py-3 items-center">
               <span className="text-[#5d586c]">Tên Phương án kinh doanh</span>
               <span className="font-medium text-[#2f2b3d]">{plan.title}</span>
             </div>
-            <div className="grid grid-cols-[220px_1fr] py-3.5 items-center">
+            <div className="grid grid-cols-[200px_1fr] py-3 items-center">
               <span className="text-[#5d586c]">Số Phương án kinh doanh</span>
               <span className="font-medium text-[#2f2b3d]">{plan.code}</span>
             </div>
-            <div className="grid grid-cols-[220px_1fr] py-3.5 items-center">
+            <div className="grid grid-cols-[200px_1fr] py-3 items-center">
               <span className="text-[#5d586c]">Ngày Phương án kinh doanh</span>
               <span className="font-medium text-[#2f2b3d]">{plan.planDate}</span>
             </div>
-            <div className="grid grid-cols-[220px_1fr] py-3.5 items-center">
-              <span className="text-[#5d586c]">Đối tác</span>
+            <div className="grid grid-cols-[200px_1fr] py-3 items-center">
+              <span className="text-[#5d586c]">Đối tác / Khách hàng</span>
               <span className="font-medium text-[#2f2b3d]">{plan.partner}</span>
             </div>
-            <div className="grid grid-cols-[220px_1fr] py-3.5 items-center">
+            <div className="grid grid-cols-[200px_1fr] py-3 items-center">
               <span className="text-[#5d586c]">Thời gian thực hiện Hợp đồng</span>
               <span className="font-medium text-[#2f2b3d]">{plan.executionPeriod}</span>
             </div>
-            <div className="grid grid-cols-[220px_1fr] py-3.5 items-center">
-              <span className="text-[#5d586c]">Tổng giá trị dự kiến</span>
-              <span className="font-semibold text-[#ff4c51]">
+            <div className="grid grid-cols-[200px_1fr] py-3 items-center">
+              <span className="text-[#5d586c]">Tổng giá trị trước thuế</span>
+              <span className="font-semibold text-[#2f2b3d]">
                 {formatCurrency(plan.totalAmount)} VND
               </span>
+            </div>
+            <div className="grid grid-cols-[200px_1fr] py-3 items-center">
+              <span className="text-[#5d586c]">Tổng giá trị có VAT</span>
+              <span className="font-bold text-[#ff4c51]">
+                {formatCurrency(plan.totalAmountWithVat)} VND
+              </span>
+            </div>
+            <div className="grid grid-cols-[200px_1fr] py-3 items-center">
+              <span className="text-[#5d586c]">Người khởi tạo</span>
+              <span className="font-medium text-[#2f2b3d]">{plan.createdBy}</span>
             </div>
           </div>
         </div>
 
-        {/* Right Card: Xem trước Phương án kinh doanh */}
+        {/* Right Card: Xem trước Phương án kinh doanh (Document Canvas Preview) */}
         <div
-          className={`flex flex-col rounded-[6px] border border-[#dbdade] bg-white p-4 shadow-[0_2px_6px_rgba(47,43,61,0.08)] ${
+          className={`flex flex-col rounded-[6px] border border-[#dbdade] bg-white p-4 shadow-[0_2px_6px_rgba(47,43,61,0.06)] ${
             isFullscreen
               ? "fixed inset-4 z-50 overflow-hidden shadow-2xl"
-              : "h-[460px]"
+              : "h-[480px]"
           }`}
         >
           {/* Header & Toolbar */}
@@ -231,13 +325,13 @@ export function BusinessPlanDetailPage({
                   PHÊ DUYỆT
                 </p>
                 <p className="italic text-slate-500 text-[11px] mt-0.5">
-                  Ngày [...] tháng [...] năm [20...]
+                  Ngày {plan.planDate}
                 </p>
                 <p className="mt-1 font-bold text-slate-800 uppercase text-[11px]">
-                  [CHỨC DANH NGƯỜI PHÊ DUYỆT]
+                  {plan.documentContent?.approverTitle || "TỔNG GIÁM ĐỐC"}
                 </p>
                 <p className="mt-6 font-bold uppercase text-slate-900 text-[11px]">
-                  [HỌ VÀ TÊN]
+                  {plan.documentContent?.approverName || "TRẦN MINH QUANG"}
                 </p>
               </div>
 
@@ -249,10 +343,7 @@ export function BusinessPlanDetailPage({
                   TỜ TRÌNH
                 </h3>
                 <p className="font-bold text-slate-800 uppercase text-[12px]">
-                  Về việc đề xuất [MUA SẮM/THUÊ NGOÀI]
-                </p>
-                <p className="font-bold text-slate-800 uppercase text-[12px]">
-                  [TÊN HÀNG HÓA, HỆ THỐNG, PHẦN MỀM HOẶC DỊCH VỤ]
+                  Về việc đề xuất {plan.title}
                 </p>
                 <p className="pt-2 text-center font-semibold text-slate-900 text-[12px]">
                   Kính gửi: Ban Giám đốc Công ty.
@@ -266,23 +357,26 @@ export function BusinessPlanDetailPage({
 
               {/* Legal Basis Body */}
               <div className="space-y-2 text-[11px] text-slate-700 leading-relaxed font-serif">
-                <p>
-                  Căn cứ <em>[QUY CHẾ/QUYẾT ĐỊNH QUẢN LÝ ĐẦU TƯ, MUA SẮM VÀ SỐ/KÝ HIỆU]</em>;
-                </p>
-                <p>
-                  Căn cứ <em>[KẾ HOẠCH/CHỦ TRƯƠNG/DỰ ÁN ĐÃ ĐƯỢC PHÊ DUYỆT]</em>;
-                </p>
-                <p>
-                  Căn cứ chức năng, nhiệm vụ của <em>[TÊN ĐƠN VỊ ĐỀ XUẤT]</em>;
-                </p>
-                <p>
-                  Căn cứ <em>[NHU CẦU THỰC TẾ/KẾ HOẠCH SẢN XUẤT KINH DOANH VÀ CÁC CĂN CỨ KHÁC]</em>;
-                </p>
+                {plan.documentContent?.legalBasis?.map((basis, idx) => (
+                  <p key={idx}>
+                    Căn cứ <em>{basis}</em>
+                  </p>
+                )) || (
+                  <>
+                    <p>Căn cứ <em>Quy chế quản lý đầu tư, mua sắm số 45/QC-VCS</em>;</p>
+                    <p>Căn cứ <em>Kế hoạch sản xuất kinh doanh năm 2026</em>;</p>
+                  </>
+                )}
                 <p className="pt-1">
-                  <strong>[TÊN ĐƠN VỊ ĐỀ XUẤT]</strong> kính trình Ban Giám đốc Công ty phê duyệt đề xuất <strong>[NỘI DUNG ĐỀ XUẤT]</strong>. Nội dung cụ thể như sau:
+                  <strong>{plan.documentContent?.proposingUnit || "ĐƠN VỊ ĐỀ XUẤT"}</strong> kính trình Ban Giám đốc Công ty phê duyệt Phương án kinh doanh: <strong>{plan.title}</strong>.
                 </p>
                 <p className="pt-2 font-bold font-sans text-[12px] uppercase text-slate-900">
                   I. THÔNG TIN CHUNG VỀ ĐỀ XUẤT
+                </p>
+                <p>
+                  - Đối tác thực hiện: {plan.partner}<br />
+                  - Thời gian thực hiện: {plan.executionPeriod}<br />
+                  - Tổng giá trị dự kiến: {formatCurrency(plan.totalAmountWithVat)} VND
                 </p>
               </div>
             </div>
@@ -291,7 +385,7 @@ export function BusinessPlanDetailPage({
       </div>
 
       {/* Collapsible Section 1: Hạng mục đề xuất mua sắm (Figma Node 28141:266383) */}
-      <div className="rounded-[6px] border border-[#dbdade] bg-white shadow-[0_2px_6px_rgba(47,43,61,0.08)]">
+      <div className="rounded-[6px] border border-[#dbdade] bg-white shadow-[0_2px_6px_rgba(47,43,61,0.06)]">
         <button
           onClick={() => setItemsSectionOpen(!itemsSectionOpen)}
           className="flex w-full items-center justify-between p-4 text-left text-[15px] font-bold text-[#2f2b3d] transition-colors hover:bg-slate-50/70"
@@ -309,8 +403,8 @@ export function BusinessPlanDetailPage({
             <div className="overflow-x-auto">
               <table className="w-full min-w-[960px] text-left text-[13px]">
                 <thead>
-                  <tr className="border-b border-slate-200 text-[#5d586c] text-[12px] h-10">
-                    <th className="px-3 py-2 font-semibold w-12">STT</th>
+                  <tr className="border-b border-slate-200 text-[#5d586c] text-[12px] h-10 bg-[#f8f7fa]/60">
+                    <th className="px-3 py-2 font-semibold w-12 text-center">STT</th>
                     <th className="px-3 py-2 font-semibold min-w-[200px]">Tên hàng hóa</th>
                     <th className="px-3 py-2 font-semibold w-24">Đơn vị tính</th>
                     <th className="px-3 py-2 font-semibold w-24 text-center">Số lượng</th>
@@ -322,98 +416,78 @@ export function BusinessPlanDetailPage({
                 </thead>
                 <tbody className="divide-y divide-slate-100">
                   {/* Group I: Hạng mục 1 */}
-                  <tr className="bg-slate-50/70 font-semibold text-[#2f2b3d]">
-                    <td className="px-3 py-3 font-bold">I</td>
-                    <td className="px-3 py-3 font-bold">Hạng mục 1</td>
-                    <td className="px-3 py-3">Bộ</td>
-                    <td className="px-3 py-3 text-center">26</td>
-                    <td className="px-3 py-3 text-right">234.640.000</td>
-                    <td className="px-3 py-3 text-right">6.100.640.000</td>
-                    <td className="px-3 py-3 text-right">466.022.720</td>
-                    <td className="px-3 py-3 text-right">6.546.662.720</td>
-                  </tr>
-                  <tr className="hover:bg-slate-50/50 text-slate-700">
-                    <td className="px-3 py-2.5 text-center text-slate-500">1</td>
-                    <td className="px-3 py-2.5 font-medium">Tên sản phẩm 1</td>
-                    <td className="px-3 py-2.5 text-slate-600">Chiếc</td>
-                    <td className="px-3 py-2.5 text-center font-medium">1</td>
-                    <td className="px-3 py-2.5 text-right text-slate-600">128.766.000</td>
-                    <td className="px-3 py-2.5 text-right text-slate-700">128.766.000</td>
-                    <td className="px-3 py-2.5 text-right text-slate-600">8%</td>
-                    <td className="px-3 py-2.5 text-right text-slate-400">-</td>
-                  </tr>
-                  <tr className="hover:bg-slate-50/50 text-slate-700">
-                    <td className="px-3 py-2.5 text-center text-slate-500">2</td>
-                    <td className="px-3 py-2.5 font-medium">Tên sản phẩm 2</td>
-                    <td className="px-3 py-2.5 text-slate-600">Chiếc</td>
-                    <td className="px-3 py-2.5 text-center font-medium">1</td>
-                    <td className="px-3 py-2.5 text-right text-slate-600">85.668.000</td>
-                    <td className="px-3 py-2.5 text-right text-slate-700">128.766.000</td>
-                    <td className="px-3 py-2.5 text-right text-slate-600">8%</td>
-                    <td className="px-3 py-2.5 text-right text-slate-400">-</td>
-                  </tr>
-                  <tr className="hover:bg-slate-50/50 text-slate-700">
-                    <td className="px-3 py-2.5 text-center text-slate-500">3</td>
-                    <td className="px-3 py-2.5 font-medium">Tên sản phẩm 3</td>
-                    <td className="px-3 py-2.5 text-slate-600">Gói</td>
-                    <td className="px-3 py-2.5 text-center font-medium">1</td>
-                    <td className="px-3 py-2.5 text-right text-slate-600">20.206.000</td>
-                    <td className="px-3 py-2.5 text-right text-slate-700">20.206.000</td>
-                    <td className="px-3 py-2.5 text-right text-slate-600">KCT</td>
-                    <td className="px-3 py-2.5 text-right text-slate-400">-</td>
-                  </tr>
+                  {group1Items.length > 0 && (
+                    <>
+                      <tr className="bg-slate-50/80 font-semibold text-[#2f2b3d]">
+                        <td className="px-3 py-3 font-bold text-center">I</td>
+                        <td className="px-3 py-3 font-bold">Hạng mục 1</td>
+                        <td className="px-3 py-3">Bộ</td>
+                        <td className="px-3 py-3 text-center">{group1Items.reduce((acc, c) => acc + c.quantity, 0)}</td>
+                        <td className="px-3 py-3 text-right">-</td>
+                        <td className="px-3 py-3 text-right">{formatCurrency(group1Total)}</td>
+                        <td className="px-3 py-3 text-right">{formatCurrency(group1Vat)}</td>
+                        <td className="px-3 py-3 text-right font-bold">{formatCurrency(group1TotalWithVat)}</td>
+                      </tr>
+                      {group1Items.map((item, idx) => (
+                        <tr key={item.id} className="hover:bg-slate-50/50 text-slate-700">
+                          <td className="px-3 py-2.5 text-center text-slate-500">{idx + 1}</td>
+                          <td className="px-3 py-2.5 font-medium">
+                            <div>{item.itemName}</div>
+                            {item.specs && <div className="text-[11px] text-slate-400">{item.specs}</div>}
+                          </td>
+                          <td className="px-3 py-2.5 text-slate-600">{item.unit}</td>
+                          <td className="px-3 py-2.5 text-center font-medium">{item.quantity}</td>
+                          <td className="px-3 py-2.5 text-right text-slate-600">{formatCurrency(item.unitPrice)}</td>
+                          <td className="px-3 py-2.5 text-right text-slate-700">{formatCurrency(item.totalAmount)}</td>
+                          <td className="px-3 py-2.5 text-right text-slate-600">{item.vatRate || "8%"}</td>
+                          <td className="px-3 py-2.5 text-right text-slate-700">{formatCurrency(item.totalAmountWithVat)}</td>
+                        </tr>
+                      ))}
+                    </>
+                  )}
 
                   {/* Group II: Hạng mục 2 */}
-                  <tr className="bg-slate-50/70 font-semibold text-[#2f2b3d]">
-                    <td className="px-3 py-3 font-bold">II</td>
-                    <td className="px-3 py-3 font-bold">Hạng mục 2</td>
-                    <td className="px-3 py-3">Bộ</td>
-                    <td className="px-3 py-3 text-center">26</td>
-                    <td className="px-3 py-3 text-right">234.640.000</td>
-                    <td className="px-3 py-3 text-right">6.100.640.000</td>
-                    <td className="px-3 py-3 text-right">466.022.720</td>
-                    <td className="px-3 py-3 text-right">6.546.662.720</td>
-                  </tr>
-                  <tr className="hover:bg-slate-50/50 text-slate-700">
-                    <td className="px-3 py-2.5 text-center text-slate-500">1</td>
-                    <td className="px-3 py-2.5 font-medium">Tên sản phẩm 1</td>
-                    <td className="px-3 py-2.5 text-slate-600">Chiếc</td>
-                    <td className="px-3 py-2.5 text-center font-medium">1</td>
-                    <td className="px-3 py-2.5 text-right text-slate-600">128.766.000</td>
-                    <td className="px-3 py-2.5 text-right text-slate-700">128.766.000</td>
-                    <td className="px-3 py-2.5 text-right text-slate-600">8%</td>
-                    <td className="px-3 py-2.5 text-right text-slate-400">-</td>
-                  </tr>
-                  <tr className="hover:bg-slate-50/50 text-slate-700">
-                    <td className="px-3 py-2.5 text-center text-slate-500">2</td>
-                    <td className="px-3 py-2.5 font-medium">Tên sản phẩm 2</td>
-                    <td className="px-3 py-2.5 text-slate-600">Chiếc</td>
-                    <td className="px-3 py-2.5 text-center font-medium">1</td>
-                    <td className="px-3 py-2.5 text-right text-slate-600">85.668.000</td>
-                    <td className="px-3 py-2.5 text-right text-slate-700">128.766.000</td>
-                    <td className="px-3 py-2.5 text-right text-slate-600">8%</td>
-                    <td className="px-3 py-2.5 text-right text-slate-400">-</td>
-                  </tr>
-                  <tr className="hover:bg-slate-50/50 text-slate-700">
-                    <td className="px-3 py-2.5 text-center text-slate-500">3</td>
-                    <td className="px-3 py-2.5 font-medium">Tên sản phẩm 3</td>
-                    <td className="px-3 py-2.5 text-slate-600">Gói</td>
-                    <td className="px-3 py-2.5 text-center font-medium">1</td>
-                    <td className="px-3 py-2.5 text-right text-slate-600">20.206.000</td>
-                    <td className="px-3 py-2.5 text-right text-slate-700">20.206.000</td>
-                    <td className="px-3 py-2.5 text-right text-slate-600">KCT</td>
-                    <td className="px-3 py-2.5 text-right text-slate-400">-</td>
-                  </tr>
+                  {group2Items.length > 0 && (
+                    <>
+                      <tr className="bg-slate-50/80 font-semibold text-[#2f2b3d]">
+                        <td className="px-3 py-3 font-bold text-center">II</td>
+                        <td className="px-3 py-3 font-bold">Hạng mục 2</td>
+                        <td className="px-3 py-3">Bộ</td>
+                        <td className="px-3 py-3 text-center">{group2Items.reduce((acc, c) => acc + c.quantity, 0)}</td>
+                        <td className="px-3 py-3 text-right">-</td>
+                        <td className="px-3 py-3 text-right">{formatCurrency(group2Total)}</td>
+                        <td className="px-3 py-3 text-right">{formatCurrency(group2Vat)}</td>
+                        <td className="px-3 py-3 text-right font-bold">{formatCurrency(group2TotalWithVat)}</td>
+                      </tr>
+                      {group2Items.map((item, idx) => (
+                        <tr key={item.id} className="hover:bg-slate-50/50 text-slate-700">
+                          <td className="px-3 py-2.5 text-center text-slate-500">{idx + 1}</td>
+                          <td className="px-3 py-2.5 font-medium">
+                            <div>{item.itemName}</div>
+                            {item.specs && <div className="text-[11px] text-slate-400">{item.specs}</div>}
+                          </td>
+                          <td className="px-3 py-2.5 text-slate-600">{item.unit}</td>
+                          <td className="px-3 py-2.5 text-center font-medium">{item.quantity}</td>
+                          <td className="px-3 py-2.5 text-right text-slate-600">{formatCurrency(item.unitPrice)}</td>
+                          <td className="px-3 py-2.5 text-right text-slate-700">{formatCurrency(item.totalAmount)}</td>
+                          <td className="px-3 py-2.5 text-right text-slate-600">{item.vatRate || "8%"}</td>
+                          <td className="px-3 py-2.5 text-right text-slate-700">{formatCurrency(item.totalAmountWithVat)}</td>
+                        </tr>
+                      ))}
+                    </>
+                  )}
 
                   {/* Summary Total Row */}
-                  <tr className="border-t-2 border-slate-300 font-bold text-[#2f2b3d] bg-white">
+                  <tr className="border-t-2 border-slate-300 font-bold text-[#2f2b3d] bg-[#f8f7fa]/50">
                     <td colSpan={5} className="px-3 py-3 text-right">
                       Tổng tiền
                     </td>
-                    <td className="px-3 py-3 text-right">6.100.640.000</td>
-                    <td className="px-3 py-3 text-right">466.022.720</td>
-                    <td className="px-3 py-3 text-right font-bold text-[#2f2b3d]">
-                      6.546.662.720
+                    <td className="px-3 py-3 text-right">{formatCurrency(plan.totalAmount)}</td>
+                    <td className="px-3 py-3 text-right">
+                      {formatCurrency(plan.totalAmountWithVat - plan.totalAmount)}
+                    </td>
+                    <td className="px-3 py-3 text-right font-bold text-[#ff4c51]">
+                      {formatCurrency(plan.totalAmountWithVat)}
                     </td>
                   </tr>
                 </tbody>
@@ -421,14 +495,14 @@ export function BusinessPlanDetailPage({
             </div>
 
             <div className="pt-2 text-[13px] text-[#2f2b3d]">
-              <strong>Bằng chữ:</strong> Mười tám tỷ một trăm bốn mươi mốt triệu sáu trăm linh một nghìn bốn trăm tám mươi đồng chẵn
+              <strong>Bằng chữ:</strong> {plan.amountInWords || "Không đồng"}
             </div>
           </div>
         )}
       </div>
 
       {/* Collapsible Section 2: Hiệu quả phương án kinh doanh (Figma Node 28141:267215) */}
-      <div className="rounded-[6px] border border-[#dbdade] bg-white shadow-[0_2px_6px_rgba(47,43,61,0.08)]">
+      <div className="rounded-[6px] border border-[#dbdade] bg-white shadow-[0_2px_6px_rgba(47,43,61,0.06)]">
         <button
           onClick={() => setFinancialSectionOpen(!financialSectionOpen)}
           className="flex w-full items-center justify-between p-4 text-left text-[15px] font-bold text-[#2f2b3d] transition-colors hover:bg-slate-50/70"
@@ -446,8 +520,8 @@ export function BusinessPlanDetailPage({
             <div className="overflow-x-auto">
               <table className="w-full min-w-[960px] text-left text-[13px]">
                 <thead>
-                  <tr className="border-b border-slate-200 text-[#5d586c] text-[12px] h-10">
-                    <th className="px-3 py-2 font-semibold w-12">STT</th>
+                  <tr className="border-b border-slate-200 text-[#5d586c] text-[12px] h-10 bg-[#f8f7fa]/60">
+                    <th className="px-3 py-2 font-semibold w-12 text-center">STT</th>
                     <th className="px-3 py-2 font-semibold min-w-[280px]">Nội dung</th>
                     <th className="px-3 py-2 font-semibold text-right w-44">Giá trị trước VAT</th>
                     <th className="px-3 py-2 font-semibold text-right w-40">Thuế VAT</th>
@@ -457,46 +531,46 @@ export function BusinessPlanDetailPage({
                 </thead>
                 <tbody className="divide-y divide-slate-100">
                   {/* Row I: DOANH THU DỰ KIẾN */}
-                  <tr className="font-bold text-[#2f2b3d] bg-slate-50/50">
-                    <td className="px-3 py-3">I</td>
+                  <tr className="font-bold text-[#2f2b3d] bg-slate-50/60">
+                    <td className="px-3 py-3 text-center">I</td>
                     <td className="px-3 py-3 uppercase">DOANH THU DỰ KIẾN</td>
-                    <td className="px-3 py-3 text-right">17,022,879,000</td>
-                    <td className="px-3 py-3 text-right">1,139,875,840</td>
-                    <td className="px-3 py-3 text-right">18,162,754,840</td>
+                    <td className="px-3 py-3 text-right">{formatCurrency(plan.financial.revenue)}</td>
+                    <td className="px-3 py-3 text-right">{formatCurrency(plan.financial.revenueVat)}</td>
+                    <td className="px-3 py-3 text-right">{formatCurrency(plan.financial.revenueWithVat)}</td>
                     <td className="px-3 py-2 text-slate-500 font-normal text-[12px]">Chi tiết theo phụ lục 01 đính kèm</td>
                   </tr>
 
                   {/* Row II: CHI PHÍ */}
-                  <tr className="font-bold text-[#2f2b3d] bg-slate-50/50">
-                    <td className="px-3 py-3">II</td>
+                  <tr className="font-bold text-[#2f2b3d] bg-slate-50/60">
+                    <td className="px-3 py-3 text-center">II</td>
                     <td className="px-3 py-3 uppercase">CHI PHÍ</td>
-                    <td className="px-3 py-3 text-right">16,955,279,879</td>
-                    <td className="px-3 py-3 text-right">1,203,344,480</td>
-                    <td className="px-3 py-3 text-right">18,162,754,840</td>
+                    <td className="px-3 py-3 text-right">{formatCurrency(plan.financial.cost)}</td>
+                    <td className="px-3 py-3 text-right">{formatCurrency(plan.financial.costVat)}</td>
+                    <td className="px-3 py-3 text-right">{formatCurrency(plan.financial.costWithVat)}</td>
                     <td className="px-3 py-2 text-slate-500 font-normal text-[12px]">Chi tiết theo phụ lục 02 đính kèm</td>
                   </tr>
                   <tr className="hover:bg-slate-50/50 text-slate-700">
                     <td className="px-3 py-2.5 text-center text-slate-500">1</td>
                     <td className="px-3 py-2.5 font-medium pl-6">Chi phí đầu tư mua sắm</td>
-                    <td className="px-3 py-2.5 text-right">16,938,257,000</td>
-                    <td className="px-3 py-2.5 text-right">1,203,344,480</td>
-                    <td className="px-3 py-2.5 text-right font-medium">18,141,601,480</td>
+                    <td className="px-3 py-2.5 text-right">{formatCurrency(plan.financial.procurementCost)}</td>
+                    <td className="px-3 py-2.5 text-right">{formatCurrency(plan.financial.procurementCostVat)}</td>
+                    <td className="px-3 py-2.5 text-right font-medium">{formatCurrency(plan.financial.procurementCostWithVat)}</td>
                     <td className="px-3 py-2.5" />
                   </tr>
                   <tr className="hover:bg-slate-50/50 text-slate-700">
                     <td className="px-3 py-2.5 text-center text-slate-500">2</td>
                     <td className="px-3 py-2.5 font-medium pl-6">Chi phí quản lý chung</td>
-                    <td className="px-3 py-2.5 text-right">17,022,879</td>
+                    <td className="px-3 py-2.5 text-right">{formatCurrency(plan.financial.generalAdminCost)}</td>
                     <td className="px-3 py-2.5 text-right text-slate-400">-</td>
-                    <td className="px-3 py-2.5 text-right font-medium">17,022,879</td>
+                    <td className="px-3 py-2.5 text-right font-medium">{formatCurrency(plan.financial.generalAdminCost)}</td>
                     <td className="px-3 py-2.5 text-slate-500 text-[12px]">0,1% doanh thu</td>
                   </tr>
 
                   {/* Row III: Lợi nhuận trước thuế */}
                   <tr className="font-semibold text-[#2f2b3d]">
-                    <td className="px-3 py-3">III</td>
+                    <td className="px-3 py-3 text-center">III</td>
                     <td className="px-3 py-3 font-bold">Lợi nhuận trước thuế = I - II</td>
-                    <td className="px-3 py-3 text-right font-bold text-[#3f81ea]">67,599,121</td>
+                    <td className="px-3 py-3 text-right font-bold text-[#3f81ea]">{formatCurrency(plan.financial.grossProfit)}</td>
                     <td className="px-3 py-3" />
                     <td className="px-3 py-3" />
                     <td className="px-3 py-3" />
@@ -504,9 +578,9 @@ export function BusinessPlanDetailPage({
 
                   {/* Row IV: Thuế TNDN (20%) */}
                   <tr className="font-semibold text-[#2f2b3d]">
-                    <td className="px-3 py-3">IV</td>
+                    <td className="px-3 py-3 text-center">IV</td>
                     <td className="px-3 py-3 font-bold">Thuế TNDN (20%)</td>
-                    <td className="px-3 py-3 text-right font-bold text-[#ff4c51]">13,519,824</td>
+                    <td className="px-3 py-3 text-right font-bold text-[#ff4c51]">{formatCurrency(plan.financial.corporateTax)}</td>
                     <td className="px-3 py-3" />
                     <td className="px-3 py-3" />
                     <td className="px-3 py-3" />
@@ -514,9 +588,9 @@ export function BusinessPlanDetailPage({
 
                   {/* Row V: Lợi nhuận sau thuế */}
                   <tr className="font-semibold text-[#2f2b3d]">
-                    <td className="px-3 py-3">V</td>
+                    <td className="px-3 py-3 text-center">V</td>
                     <td className="px-3 py-3 font-bold">Lợi nhuận sau thuế</td>
-                    <td className="px-3 py-3 text-right font-bold text-[#28c76f]">54,079,297</td>
+                    <td className="px-3 py-3 text-right font-bold text-[#28c76f]">{formatCurrency(plan.financial.netProfit)}</td>
                     <td className="px-3 py-3" />
                     <td className="px-3 py-3" />
                     <td className="px-3 py-3" />
@@ -524,9 +598,9 @@ export function BusinessPlanDetailPage({
 
                   {/* Row VI: Tỷ lệ lợi nhuận sau thuế / Chi phí = V / II */}
                   <tr className="font-semibold text-[#2f2b3d]">
-                    <td className="px-3 py-3">VI</td>
+                    <td className="px-3 py-3 text-center">VI</td>
                     <td className="px-3 py-3 font-bold">Tỷ lệ lợi nhuận sau thuế / Chi phí = V / II</td>
-                    <td className="px-3 py-3 text-right font-bold text-[#7367f0]">0,32%</td>
+                    <td className="px-3 py-3 text-right font-bold text-[#7367f0]">{plan.financial.profitOnCostRatio}%</td>
                     <td className="px-3 py-3" />
                     <td className="px-3 py-3" />
                     <td className="px-3 py-3" />
@@ -534,9 +608,9 @@ export function BusinessPlanDetailPage({
 
                   {/* Row VII: Tỷ lệ lợi nhuận trước thuế / Doanh thu = III / I */}
                   <tr className="font-semibold text-[#2f2b3d]">
-                    <td className="px-3 py-3">VII</td>
+                    <td className="px-3 py-3 text-center">VII</td>
                     <td className="px-3 py-3 font-bold">Tỷ lệ lợi nhuận trước thuế / Doanh thu = III / I</td>
-                    <td className="px-3 py-3 text-right font-bold text-[#ff9f43]">0,32%</td>
+                    <td className="px-3 py-3 text-right font-bold text-[#ff9f43]">{plan.financial.profitOnRevenueRatio}%</td>
                     <td className="px-3 py-3" />
                     <td className="px-3 py-3" />
                     <td className="px-3 py-3" />
@@ -546,56 +620,95 @@ export function BusinessPlanDetailPage({
             </div>
 
             <div className="pt-2 text-[13px] text-[#2f2b3d]">
-              <strong>Đánh giá:</strong> Tỷ lệ lợi nhuận / chi phí vốn đạt <strong>0,32%</strong> đảm bảo hiệu quả kinh doanh theo quy định của Công ty.
+              <strong>Đánh giá:</strong> {plan.financial.notes || `Tỷ lệ lợi nhuận / chi phí vốn đạt ${plan.financial.profitOnCostRatio}% đảm bảo hiệu quả kinh doanh theo quy định của Công ty.`}
             </div>
           </div>
         )}
       </div>
 
-      {/* Section 3: Phụ lục đính kèm */}
-      <div className="rounded-[6px] border border-[#dbdade] bg-white p-5 shadow-[0_2px_6px_rgba(47,43,61,0.08)]">
-        <h2 className="mb-4 text-[15px] font-bold text-[#2f2b3d]">
-          Phụ lục đính kèm
-        </h2>
+      {/* Grid: Section 3 (Phụ lục đính kèm) + Section 4 (Nhật ký gần đây) */}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        {/* Section 3: Phụ lục đính kèm */}
+        <div className="rounded-[6px] border border-[#dbdade] bg-white p-5 shadow-[0_2px_6px_rgba(47,43,61,0.06)]">
+          <h2 className="mb-4 text-[15px] font-bold text-[#2f2b3d]">
+            Phụ lục đính kèm ({plan.appendices.length})
+          </h2>
 
-        <div className="space-y-3">
-          {plan.appendices.map((app) => (
-            <div
-              key={app.id}
-              className="flex items-center justify-between rounded-[6px] border border-slate-200 bg-white px-4 py-3 transition-colors hover:bg-slate-50/70"
-            >
-              <div className="flex items-center gap-3">
-                <div className="flex size-9 items-center justify-center rounded bg-red-50 text-[#ff4c51]">
-                  <FileText className="size-5" />
+          <div className="space-y-3">
+            {plan.appendices.length === 0 ? (
+              <p className="py-6 text-center text-[12px] text-slate-400">
+                Chưa có tệp phụ lục nào được đính kèm.
+              </p>
+            ) : (
+              plan.appendices.map((app) => (
+                <div
+                  key={app.id}
+                  className="flex items-center justify-between rounded-[6px] border border-slate-200 bg-white px-4 py-3 transition-colors hover:bg-slate-50/70"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="flex size-9 items-center justify-center rounded bg-red-50 text-[#ff4c51]">
+                      <FileText className="size-5" />
+                    </div>
+                    <div>
+                      <p className="text-[13px] font-medium text-[#2f2b3d]">
+                        {app.name}
+                      </p>
+                      <p className="text-[11px] text-slate-400">
+                        {app.type} &bull; {app.size} &bull; {app.date}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => toast.info(`Đang mở xem tệp ${app.name}`)}
+                      className="rounded p-1.5 text-slate-500 hover:bg-slate-100 hover:text-[#3f81ea]"
+                      title="Xem tài liệu"
+                    >
+                      <Eye className="size-4" />
+                    </button>
+                    <button
+                      onClick={() => handleDownloadAppendix(app.name)}
+                      className="rounded p-1.5 text-slate-500 hover:bg-slate-100 hover:text-[#3f81ea]"
+                      title="Tải xuống"
+                    >
+                      <Download className="size-4" />
+                    </button>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-[13px] font-medium text-[#2f2b3d]">
-                    {app.name}
+              ))
+            )}
+          </div>
+        </div>
+
+        {/* Section 4: Nhật ký gần đây */}
+        <div className="rounded-[6px] border border-[#dbdade] bg-white p-5 shadow-[0_2px_6px_rgba(47,43,61,0.06)]">
+          <div className="mb-4 flex items-center gap-2">
+            <History className="size-4 text-[#ff4c51]" />
+            <h2 className="text-[15px] font-bold text-[#2f2b3d]">
+              Nhật ký gần đây
+            </h2>
+          </div>
+
+          <div className="space-y-4">
+            {plan.activities?.map((act) => (
+              <div key={act.id} className="relative flex gap-3 text-[12px]">
+                <div className="flex size-7 shrink-0 items-center justify-center rounded-full bg-slate-100 font-semibold text-[#ff4c51]">
+                  {act.user.charAt(0)}
+                </div>
+                <div className="flex-1 space-y-0.5">
+                  <p className="font-medium text-[#2f2b3d]">
+                    {act.title}
                   </p>
                   <p className="text-[11px] text-slate-400">
-                    {app.type} &bull; {app.size} &bull; {app.date}
+                    {act.time} &bull; bởi {act.user}
                   </p>
                 </div>
               </div>
-
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => toast.info(`Đang mở xem tệp ${app.name}`)}
-                  className="rounded p-1.5 text-slate-500 hover:bg-slate-100 hover:text-[#3f81ea]"
-                  title="Xem tài liệu"
-                >
-                  <Eye className="size-4" />
-                </button>
-                <button
-                  onClick={() => handleDownloadAppendix(app.name)}
-                  className="rounded p-1.5 text-slate-500 hover:bg-slate-100 hover:text-[#3f81ea]"
-                  title="Tải xuống"
-                >
-                  <Download className="size-4" />
-                </button>
-              </div>
-            </div>
-          ))}
+            )) || (
+              <p className="text-[12px] text-slate-400">Chưa có nhật ký hoạt động.</p>
+            )}
+          </div>
         </div>
       </div>
     </div>
