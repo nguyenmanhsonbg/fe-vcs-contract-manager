@@ -93,7 +93,11 @@ export default function App() {
         setBusinessPlanDetailId(null);
       }
 
-      if (parsed.page === "acceptance" && parsed.subType === "detail" && parsed.docId) {
+      if (
+        (parsed.page === "acceptance" || parsed.page === "reconciliation") &&
+        parsed.subType === "detail" &&
+        parsed.docId
+      ) {
         setContractAcceptanceDetailId(decodeURIComponent(parsed.docId));
         setOpenDoc(null);
         setOriginalDoc(null);
@@ -226,8 +230,8 @@ export default function App() {
       : ["Trang chủ", "Quản trị dữ liệu", "Số hoá tài liệu", "Chi tiết số hóa"]
     : page === "business-plan" && businessPlanDetailId
     ? ["Trang chủ", "Quản lý Phương án kinh doanh", "Chi tiết Phương án kinh doanh"]
-    : page === "acceptance" && contractAcceptanceDetailId
-    ? ["Trang chủ", "Phương án kinh doanh", "Quản lý nghiệm thu", "Chi tiết nghiệm thu Hợp đồng"]
+    : (page === "acceptance" || page === "reconciliation") && contractAcceptanceDetailId
+    ? ["Trang chủ", "Chi tiết Nghiệm thu Hợp đồng"]
     : currentRoute.breadcrumb;
 
   if (currentRoute.key === "login") {
@@ -279,11 +283,11 @@ export default function App() {
                   window.location.hash = "#/business-plans";
                 }}
               />
-            ) : page === "acceptance" && contractAcceptanceDetailId ? (
+            ) : (page === "acceptance" || page === "reconciliation") && contractAcceptanceDetailId ? (
               <ContractAcceptanceDetailPage
                 contractId={contractAcceptanceDetailId}
                 onBack={() => {
-                  window.location.hash = "#/acceptance";
+                  window.location.hash = page === "reconciliation" ? "#/reconciliation" : "#/acceptance";
                 }}
               />
             ) : (

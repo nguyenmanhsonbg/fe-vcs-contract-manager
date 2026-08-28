@@ -47,28 +47,30 @@ export function Pagination({
   }
 
   return (
-    <div className={`flex items-center justify-between text-[13px] text-[#393740] leading-[20px] py-2 flex-wrap gap-3 bg-transparent border-t border-slate-100/80 ${className}`}>
+    <div className={`flex items-center justify-between text-[12px] text-[#5d586c] leading-[20px] pt-4 pb-1 flex-wrap gap-3 bg-transparent border-t border-slate-100 ${className}`}>
       <div className="flex items-center gap-4">
-        <p className="text-[#5d586c] font-normal">
+        <p className="text-[#8f8d95] font-normal text-[12px]">
           {renderSummary ? (
             renderSummary(startIndex + 1, endIndex, totalElements)
           ) : totalElements > 0 ? (
             <>
-              Hiển thị <span className="font-semibold text-[#2f2b3d]">{startIndex + 1} - {endIndex}</span> của <span className="font-semibold text-[#2f2b3d]">{totalElements}</span> kết quả
+              Hiển thị <span className="font-normal">{startIndex + 1} đến {endIndex}</span> trong <span className="font-normal">{totalElements}</span> bản ghi
             </>
           ) : (
-            "Hiển thị 0 kết quả"
+            "Hiển thị 0 bản ghi"
           )}
         </p>
+      </div>
 
+      <div className="flex items-center gap-3">
         {onPageSizeChange && (
-          <div className="flex items-center gap-2 text-xs text-[#5d586c]">
+          <div className="flex items-center gap-2 text-[12px] text-[#5d586c]">
             <span>{pageSizeLabel}</span>
             <div className="relative inline-flex items-center">
               <select
                 value={pageSize}
                 onChange={(e) => onPageSizeChange(Number(e.target.value))}
-                className="h-8 border border-slate-200/90 rounded-[6px] pl-3 pr-7 text-xs bg-white text-[#2f2b3d] outline-none cursor-pointer font-medium appearance-none hover:border-slate-300 focus:border-[#3f81ea] transition-colors"
+                className="h-8 border border-[#dbdade] rounded-[6px] pl-3 pr-7 text-[12px] bg-white text-[#2f2b3d] outline-none cursor-pointer font-normal appearance-none hover:border-slate-300 focus:border-[#3f81ea] transition-colors"
               >
                 {pageSizeOptions.map((opt) => (
                   <option key={opt} value={opt}>
@@ -80,67 +82,89 @@ export function Pagination({
             </div>
           </div>
         )}
-      </div>
 
-      <div className="flex items-center gap-1.5">
-        <button
-          onClick={() => onPageChange(Math.max(1, currentPage - 1))}
-          disabled={currentPage === 1}
-          aria-label="Trang trước"
-          className={`size-8 rounded-[6px] flex items-center justify-center text-xs font-medium transition-colors ${
-            currentPage === 1
-              ? "text-slate-300 bg-transparent cursor-not-allowed"
-              : variant === "blue-bordered"
-              ? "border border-slate-200/80 bg-slate-100/60 text-[#5d586c] hover:bg-slate-200/60"
-              : "border border-slate-200/80 bg-white text-[#5d586c] hover:bg-slate-50"
-          }`}
-        >
-          <ChevronLeft className="size-4" />
-        </button>
+        <div className="flex items-center gap-1.5">
+          {/* First Page Button */}
+          <button
+            onClick={() => onPageChange(1)}
+            disabled={currentPage === 1}
+            aria-label="Trang đầu"
+            className={`size-8 rounded-[6px] flex items-center justify-center text-[12px] font-normal transition-colors ${
+              currentPage === 1
+                ? "bg-[#f1f0f2]/60 text-[#a5a3ae] cursor-not-allowed"
+                : "bg-[#f1f0f2] text-[#5d586c] hover:bg-[#e4e3e7]"
+            }`}
+          >
+            «
+          </button>
 
-        {pageNumbers.map((p, idx) => {
-          if (p === "...") {
+          {/* Previous Page Button */}
+          <button
+            onClick={() => onPageChange(Math.max(1, currentPage - 1))}
+            disabled={currentPage === 1}
+            aria-label="Trang trước"
+            className={`size-8 rounded-[6px] flex items-center justify-center text-[12px] font-normal transition-colors ${
+              currentPage === 1
+                ? "bg-[#f1f0f2]/60 text-[#a5a3ae] cursor-not-allowed"
+                : "bg-[#f1f0f2] text-[#5d586c] hover:bg-[#e4e3e7]"
+            }`}
+          >
+            ‹
+          </button>
+
+          {pageNumbers.map((p, idx) => {
+            if (p === "...") {
+              return (
+                <span key={`dots-${idx}`} className="size-8 flex items-center justify-center text-[12px] text-slate-400">
+                  ...
+                </span>
+              );
+            }
+            const pageNum = Number(p);
+            const isActive = currentPage === pageNum;
             return (
-              <span key={`dots-${idx}`} className="size-8 flex items-center justify-center text-xs text-slate-400">
-                ...
-              </span>
+              <button
+                key={pageNum}
+                onClick={() => onPageChange(pageNum)}
+                className={`size-8 rounded-[6px] text-[12px] font-normal flex items-center justify-center transition-all ${
+                  isActive
+                    ? "bg-white text-[#ff4c51] border border-[#ff4c51] font-semibold"
+                    : "bg-[#f1f0f2] text-[#5d586c] hover:bg-[#e4e3e7]"
+                }`}
+              >
+                {pageNum}
+              </button>
             );
-          }
-          const pageNum = Number(p);
-          const isActive = currentPage === pageNum;
-          return (
-            <button
-              key={pageNum}
-              onClick={() => onPageChange(pageNum)}
-              className={`size-8 rounded-[6px] font-medium flex items-center justify-center text-xs transition-all ${
-                isActive
-                  ? variant === "blue-bordered"
-                    ? "border border-[#3f81ea] bg-white text-[#3f81ea]"
-                    : "bg-[#ff4c51] text-white shadow-2xs"
-                  : variant === "blue-bordered"
-                  ? "border border-slate-200/80 bg-slate-100/60 text-[#5d586c] hover:bg-slate-200/60"
-                  : "border border-slate-200/80 bg-white text-[#5d586c] hover:bg-slate-50"
-              }`}
-            >
-              {pageNum}
-            </button>
-          );
-        })}
+          })}
 
-        <button
-          onClick={() => onPageChange(Math.min(maxPage, currentPage + 1))}
-          disabled={currentPage >= maxPage || totalElements === 0}
-          aria-label="Trang sau"
-          className={`size-8 rounded-[6px] flex items-center justify-center text-xs font-medium transition-colors ${
-            currentPage >= maxPage || totalElements === 0
-              ? "text-slate-300 bg-transparent cursor-not-allowed"
-              : variant === "blue-bordered"
-              ? "border border-slate-200/80 bg-slate-100/60 text-[#5d586c] hover:bg-slate-200/60"
-              : "border border-slate-200/80 bg-white text-[#5d586c] hover:bg-slate-50"
-          }`}
-        >
-          <ChevronRight className="size-4" />
-        </button>
+          {/* Next Page Button */}
+          <button
+            onClick={() => onPageChange(Math.min(maxPage, currentPage + 1))}
+            disabled={currentPage >= maxPage || totalElements === 0}
+            aria-label="Trang sau"
+            className={`size-8 rounded-[6px] flex items-center justify-center text-[12px] font-normal transition-colors ${
+              currentPage >= maxPage || totalElements === 0
+                ? "bg-[#f1f0f2]/60 text-[#a5a3ae] cursor-not-allowed"
+                : "bg-[#f1f0f2] text-[#5d586c] hover:bg-[#e4e3e7]"
+            }`}
+          >
+            ›
+          </button>
+
+          {/* Last Page Button */}
+          <button
+            onClick={() => onPageChange(maxPage)}
+            disabled={currentPage >= maxPage || totalElements === 0}
+            aria-label="Trang cuối"
+            className={`size-8 rounded-[6px] flex items-center justify-center text-[12px] font-normal transition-colors ${
+              currentPage >= maxPage || totalElements === 0
+                ? "bg-[#f1f0f2]/60 text-[#a5a3ae] cursor-not-allowed"
+                : "bg-[#f1f0f2] text-[#5d586c] hover:bg-[#e4e3e7]"
+            }`}
+          >
+            »
+          </button>
+        </div>
       </div>
     </div>
   );

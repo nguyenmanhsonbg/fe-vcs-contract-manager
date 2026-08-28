@@ -17,6 +17,8 @@ import {
 } from "lucide-react";
 import { BusinessPlanItem, sampleBusinessPlans } from "../../data/businessPlanMock";
 import { StatusBadge } from "../common/StatusBadge";
+import { WidgetCard } from "../common/WidgetCard";
+import { RecentActivitiesWidget } from "../common/RecentActivitiesWidget";
 import { docApi } from "../../services/api";
 import { toast } from "sonner";
 
@@ -159,19 +161,19 @@ export function BusinessPlanDetailPage({
       </div>
 
       {/* Subheader info: Số PAKD & Timestamp */}
-      <div className="rounded-[6px] border border-slate-200/80 bg-white px-5 py-3 shadow-[0_1px_3px_rgba(47,43,61,0.04)] flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+      <WidgetCard className="px-5 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
         <p className="text-[14px] font-semibold text-[#2f2b3d]">
           Số Phương án kinh doanh: <span className="text-[#3f81ea]">{plan.id}</span>
         </p>
         <p className="text-[12px] text-[#5d586c]">
           Cập nhật lần cuối: <span className="font-medium text-[#2f2b3d]">{plan.updatedAt}</span> bởi <span className="font-medium text-[#2f2b3d]">{plan.updatedBy}</span>
         </p>
-      </div>
+      </WidgetCard>
 
       {/* Top Two-Column Grid: A. Thông tin chung + Xem trước Phương án kinh doanh */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         {/* Left Card: A. Thông tin chung */}
-        <div className="flex flex-col rounded-[6px] border border-[#dbdade] bg-white p-5 shadow-[0_2px_6px_rgba(47,43,61,0.06)] h-[480px]">
+        <WidgetCard className="flex flex-col p-5 h-[480px]">
           <h2 className="mb-4 text-[16px] font-bold text-[#2f2b3d]">
             A. Thông tin chung
           </h2>
@@ -214,11 +216,11 @@ export function BusinessPlanDetailPage({
               <span className="font-medium text-[#2f2b3d]">{plan.createdBy}</span>
             </div>
           </div>
-        </div>
+        </WidgetCard>
 
         {/* Right Card: Xem trước Phương án kinh doanh (Document Canvas Preview) */}
-        <div
-          className={`flex flex-col rounded-[6px] border border-[#dbdade] bg-white p-4 shadow-[0_2px_6px_rgba(47,43,61,0.06)] ${
+        <WidgetCard
+          className={`flex flex-col p-4 ${
             isFullscreen
               ? "fixed inset-4 z-50 overflow-hidden shadow-2xl"
               : "h-[480px]"
@@ -381,11 +383,11 @@ export function BusinessPlanDetailPage({
               </div>
             </div>
           </div>
-        </div>
+        </WidgetCard>
       </div>
 
       {/* Collapsible Section 1: Hạng mục đề xuất mua sắm (Figma Node 28141:266383) */}
-      <div className="rounded-[6px] border border-[#dbdade] bg-white shadow-[0_2px_6px_rgba(47,43,61,0.06)]">
+      <WidgetCard className="p-0 overflow-hidden">
         <button
           onClick={() => setItemsSectionOpen(!itemsSectionOpen)}
           className="flex w-full items-center justify-between p-4 text-left text-[15px] font-bold text-[#2f2b3d] transition-colors hover:bg-slate-50/70"
@@ -499,10 +501,10 @@ export function BusinessPlanDetailPage({
             </div>
           </div>
         )}
-      </div>
+      </WidgetCard>
 
       {/* Collapsible Section 2: Hiệu quả phương án kinh doanh (Figma Node 28141:267215) */}
-      <div className="rounded-[6px] border border-[#dbdade] bg-white shadow-[0_2px_6px_rgba(47,43,61,0.06)]">
+      <WidgetCard className="p-0 overflow-hidden">
         <button
           onClick={() => setFinancialSectionOpen(!financialSectionOpen)}
           className="flex w-full items-center justify-between p-4 text-left text-[15px] font-bold text-[#2f2b3d] transition-colors hover:bg-slate-50/70"
@@ -624,12 +626,12 @@ export function BusinessPlanDetailPage({
             </div>
           </div>
         )}
-      </div>
+      </WidgetCard>
 
       {/* Grid: Section 3 (Phụ lục đính kèm) + Section 4 (Nhật ký gần đây) */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         {/* Section 3: Phụ lục đính kèm */}
-        <div className="rounded-[6px] border border-[#dbdade] bg-white p-5 shadow-[0_2px_6px_rgba(47,43,61,0.06)]">
+        <WidgetCard className="p-5">
           <h2 className="mb-4 text-[15px] font-bold text-[#2f2b3d]">
             Phụ lục đính kèm ({plan.appendices.length})
           </h2>
@@ -679,37 +681,10 @@ export function BusinessPlanDetailPage({
               ))
             )}
           </div>
-        </div>
+        </WidgetCard>
 
         {/* Section 4: Nhật ký gần đây */}
-        <div className="rounded-[6px] border border-[#dbdade] bg-white p-5 shadow-[0_2px_6px_rgba(47,43,61,0.06)]">
-          <div className="mb-4 flex items-center gap-2">
-            <History className="size-4 text-[#ff4c51]" />
-            <h2 className="text-[15px] font-bold text-[#2f2b3d]">
-              Nhật ký gần đây
-            </h2>
-          </div>
-
-          <div className="space-y-4">
-            {plan.activities?.map((act) => (
-              <div key={act.id} className="relative flex gap-3 text-[12px]">
-                <div className="flex size-7 shrink-0 items-center justify-center rounded-full bg-slate-100 font-semibold text-[#ff4c51]">
-                  {act.user.charAt(0)}
-                </div>
-                <div className="flex-1 space-y-0.5">
-                  <p className="font-medium text-[#2f2b3d]">
-                    {act.title}
-                  </p>
-                  <p className="text-[11px] text-slate-400">
-                    {act.time} &bull; bởi {act.user}
-                  </p>
-                </div>
-              </div>
-            )) || (
-              <p className="text-[12px] text-slate-400">Chưa có nhật ký hoạt động.</p>
-            )}
-          </div>
-        </div>
+        <RecentActivitiesWidget activities={plan.activities || []} />
       </div>
     </div>
   );

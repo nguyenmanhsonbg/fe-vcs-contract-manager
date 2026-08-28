@@ -64,9 +64,9 @@ export const SECTIONS: NavItem[] = [
     label: "Phương án kinh doanh",
     icon: IconPhuongAnKinhDoanh,
     children: [
-      { key: "business-plan", label: "Quản lý phương án kinh doanh" },
-      { key: "acceptance", label: "Quản lý nghiệm thu" },
-      { key: "reconciliation", label: "Đối sánh nghiệm thu" },
+      { key: "acceptance", label: "Quản lý Biên bản nghiệm thu" },
+      { key: "reconciliation", label: "Nghiệm thu theo Hợp đồng" },
+      { key: "business-plan", label: "Quản lý Phương án kinh doanh" },
     ],
   },
   {

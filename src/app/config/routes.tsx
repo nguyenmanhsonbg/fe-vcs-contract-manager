@@ -77,7 +77,7 @@ export const ROUTES: RouteDefinition[] = [
   {
     key: "business-plan",
     hash: "#/business-plans",
-    breadcrumb: ["Trang chủ", "Phương án kinh doanh", "Quản lý phương án kinh doanh"],
+    breadcrumb: ["Trang chủ", "Phương án kinh doanh", "Quản lý Phương án kinh doanh"],
     render: () => (
       <BusinessPlanListPage
         onSelectPlan={(id) => {
@@ -89,7 +89,7 @@ export const ROUTES: RouteDefinition[] = [
   {
     key: "acceptance",
     hash: "#/acceptance",
-    breadcrumb: ["Trang chủ", "Phương án kinh doanh", "Quản lý nghiệm thu"],
+    breadcrumb: ["Trang chủ", "Phương án kinh doanh", "Quản lý Biên bản nghiệm thu"],
     render: () => (
       <AcceptanceListPage
         onSelectContractAcceptance={(id) => {
@@ -104,7 +104,7 @@ export const ROUTES: RouteDefinition[] = [
   {
     key: "reconciliation",
     hash: "#/reconciliation",
-    breadcrumb: ["Trang chủ", "Phương án kinh doanh", "Đối sánh nghiệm thu"],
+    breadcrumb: ["Trang chủ", "Phương án kinh doanh", "Nghiệm thu theo Hợp đồng"],
     render: () => <AcceptanceReconciliationPage />,
   },
 ];

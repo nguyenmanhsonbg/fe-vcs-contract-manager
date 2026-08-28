@@ -46,21 +46,19 @@ export function StatCard({
     return (
       <div
         onClick={onClick}
-        className={`flex items-center gap-4 rounded-[8px] border border-slate-200 bg-white p-4 shadow-2xs ${className}`}
+        className={`flex items-start gap-4 rounded-[6px] bg-white p-5 shadow-[0_2px_8px_rgba(47,43,61,0.08)] transition-all min-h-[96px] ${className}`}
       >
         {Icon && (
-          <div className={`flex size-11 shrink-0 items-center justify-center rounded-[8px] ${iconBgClass}`}>
+          <div className={`flex size-10 shrink-0 items-center justify-center rounded-[6px] ${iconBgClass}`}>
             <Icon className="size-5" />
           </div>
         )}
         <div className="min-w-0 flex-1">
-          <span className="text-xs font-medium text-slate-500 block truncate">{title}</span>
-          <div className="flex items-baseline gap-2 mt-1">
-            <span className={`text-2xl font-bold text-[#2f2b3d] leading-none ${valueClass}`}>
-              {value}
-            </span>
-            {subtext && <span className="text-[11px] text-slate-400 truncate">{subtext}</span>}
+          <span className="text-[13px] font-normal leading-[18px] text-[#5d586c] block truncate">{title}</span>
+          <div className={`text-[24px] font-semibold leading-[32px] text-[#2f2b3d] mt-0.5 ${valueClass}`}>
+            {value}
           </div>
+          {subtext && <div className="text-[11px] font-normal leading-[16px] text-[#8f8d95] mt-0.5 truncate">{subtext}</div>}
         </div>
       </div>
     );

@@ -24,13 +24,13 @@ export function SelectFilter({
   className = "",
 }: SelectFilterProps) {
   return (
-    <label className={`space-y-1.5 text-[12px] font-medium text-[#5d586c] block ${className}`}>
-      {label && <span>{label}</span>}
+    <label className={`space-y-1 text-[12px] font-normal text-[#5d586c] block ${className}`}>
+      {label && <span className="block mb-1">{label}</span>}
       <span className="relative block">
         <select
           value={value}
           onChange={(event) => onChange(event.target.value)}
-          className="h-9 w-full appearance-none rounded-[6px] border border-slate-200 bg-white px-3 pr-8 text-[13px] text-[#393740] outline-none focus:border-[#3f81ea] cursor-pointer"
+          className="h-[38px] w-full appearance-none rounded-[6px] border border-[#dbdade] bg-white px-3 pr-8 text-[13px] text-[#2f2b3d] outline-none focus:border-[#3f81ea] cursor-pointer"
         >
           {options
             ? options.map((opt) => (

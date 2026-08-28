@@ -1,246 +1,406 @@
 import { useMemo, useState } from "react";
 import {
-  CheckCircle,
-  GitCompare,
-  TrendingUp,
   Download,
+  Filter,
+  PlusCircle,
+  RotateCcw,
+  CheckCheck,
+  ChevronRight,
 } from "lucide-react";
-import { PageHeader } from "../common/PageHeader";
-import { StatCard } from "../common/StatCard";
-import { SelectFilter } from "../common/SelectFilter";
-import { SearchInput } from "../common/SearchInput";
-import { Pagination } from "../common/Pagination";
-import { StatusBadge } from "../common/StatusBadge";
-import { IconFilter } from "../icons";
-import { ReconciliationItem, sampleReconciliations } from "../../data/businessPlanMock";
 import { toast } from "sonner";
+import { PageHeader } from "../common/PageHeader";
+import { SearchInput } from "../common/SearchInput";
+import { DatePickerInput } from "../common/DatePickerInput";
+import { Pagination } from "../common/Pagination";
+import { WidgetCard } from "../common/WidgetCard";
+import { RecentActivitiesWidget } from "../common/RecentActivitiesWidget";
+
+export interface ContractAcceptanceRow {
+  id: string;
+  contractCode: string;
+  signDate: string;
+  executionPeriod: string;
+  customer: string;
+  status: "Đã hoàn thành" | "Đang thực hiện" | "Hết thời gian" | "Không thực hiện nữa";
+  contractBudget: number;
+  acceptedValue: number;
+  remainingValue: number;
+}
+
+// Data matching Figma Node 28260:17123
+const sampleContractAcceptanceList: ContractAcceptanceRow[] = [
+  {
+    id: "52.25.VCS-BLC.05",
+    contractCode: "52.25.VCS-BLC.05",
+    signDate: "01/09/2026",
+    executionPeriod: "01/09/2026 - 1/12/2026",
+    customer: "Công ty TNHH Bluecyber",
+    status: "Đã hoàn thành",
+    contractBudget: 100000000000,
+    acceptedValue: 100000000000,
+    remainingValue: 100000000000,
+  },
+  {
+    id: "53.53.VCS-BLC.98",
+    contractCode: "53.53.VCS-BLC.98",
+    signDate: "01/08/2026",
+    executionPeriod: "01/09/2026 - 1/12/2026",
+    customer: "Công ty TNHH 1",
+    status: "Đang thực hiện",
+    contractBudget: 100000000000,
+    acceptedValue: 100000000000,
+    remainingValue: 100000000000,
+  },
+  {
+    id: "52.25.VCS-BLC.89",
+    contractCode: "52.25.VCS-BLC.89",
+    signDate: "09/07/2026",
+    executionPeriod: "01/09/2026 - 1/12/2026",
+    customer: "Công ty TNHH 2",
+    status: "Hết thời gian",
+    contractBudget: 100000000000,
+    acceptedValue: 100000000000,
+    remainingValue: 100000000000,
+  },
+  {
+    id: "52.25.VCS-BLC.054",
+    contractCode: "52.25.VCS-BLC.054",
+    signDate: "21/06/2026",
+    executionPeriod: "01/09/2026 - 1/12/2026",
+    customer: "Công ty TNHH 3",
+    status: "Không thực hiện nữa",
+    contractBudget: 100000000000,
+    acceptedValue: 100000000000,
+    remainingValue: 100000000000,
+  },
+  {
+    id: "52.25.VCS-BLC.043",
+    contractCode: "52.25.VCS-BLC.043",
+    signDate: "10/06/2026",
+    executionPeriod: "01/09/2026 - 1/12/2026",
+    customer: "Công ty TNHH 4",
+    status: "Đã hoàn thành",
+    contractBudget: 100000000000,
+    acceptedValue: 100000000000,
+    remainingValue: 100000000000,
+  },
+  {
+    id: "52.25.VCS-BLC.12",
+    contractCode: "52.25.VCS-BLC.12",
+    signDate: "26/05/2026",
+    executionPeriod: "01/09/2026 - 1/12/2026",
+    customer: "Công ty TNHH 5",
+    status: "Đã hoàn thành",
+    contractBudget: 100000000000,
+    acceptedValue: 100000000000,
+    remainingValue: 100000000000,
+  },
+  {
+    id: "52.25.VCS-BLC.20",
+    contractCode: "52.25.VCS-BLC.20",
+    signDate: "23/05/2026",
+    executionPeriod: "01/09/2026 - 1/12/2026",
+    customer: "Công ty TNHH 6",
+    status: "Đang thực hiện",
+    contractBudget: 100000000000,
+    acceptedValue: 100000000000,
+    remainingValue: 100000000000,
+  },
+  {
+    id: "52.25.VCS-BLC.49",
+    contractCode: "52.25.VCS-BLC.49",
+    signDate: "01/04/2026",
+    executionPeriod: "01/09/2026 - 1/12/2026",
+    customer: "Công ty TNHH 7",
+    status: "Đang thực hiện",
+    contractBudget: 100000000000,
+    acceptedValue: 100000000000,
+    remainingValue: 100000000000,
+  },
+  {
+    id: "52.25.VCS-BLC.75",
+    contractCode: "52.25.VCS-BLC.75",
+    signDate: "01/03/2026",
+    executionPeriod: "01/09/2026 - 1/12/2026",
+    customer: "Công ty TNHH 8",
+    status: "Không thực hiện nữa",
+    contractBudget: 100000000000,
+    acceptedValue: 100000000000,
+    remainingValue: 100000000000,
+  },
+  {
+    id: "52.25.VCS-BLC.87",
+    contractCode: "52.25.VCS-BLC.87",
+    signDate: "01/02/2026",
+    executionPeriod: "01/09/2026 - 1/12/2026",
+    customer: "Công ty TNHH 9",
+    status: "Đã hoàn thành",
+    contractBudget: 100000000000,
+    acceptedValue: 100000000000,
+    remainingValue: 100000000000,
+  },
+];
+
+// Activity Timeline Mock Data matching Figma Node 28260:17123
+const sampleActivities = [
+  {
+    id: "act-1",
+    title: "Tải lên Hồ sơ nghiệm thu 1",
+    user: "Nguyễn Văn A",
+    time: "18/04/2025 10:23",
+    type: "upload_green",
+  },
+  {
+    id: "act-2",
+    title: 'Cập nhật trạng thái sang "Đang thực hiện"',
+    user: "Nguyễn Văn A",
+    time: "18/04/2025 10:24",
+    type: "status_blue",
+  },
+  {
+    id: "act-3",
+    title: "Tải lên Hồ sơ nghiệm thu 2",
+    user: "Nguyễn Văn A",
+    time: "18/04/2025 10:25",
+    type: "upload_cyan",
+  },
+  {
+    id: "act-4",
+    title: 'Cập nhật trạng thái sang "Đã hoàn thành"',
+    user: "Nguyễn Văn A",
+    time: "18/04/2025 14:32",
+    type: "status_blue",
+  },
+];
 
 function formatCurrency(val: number): string {
   return new Intl.NumberFormat("vi-VN").format(val);
 }
 
 export function AcceptanceReconciliationPage() {
-  const [items] = useState<ReconciliationItem[]>(sampleReconciliations);
-  const [statusFilter, setStatusFilter] = useState("all");
-  const [riskFilter, setRiskFilter] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [dateFilter, setDateFilter] = useState("");
+
+  const [appliedSearch, setAppliedSearch] = useState("");
+  const [appliedStatus, setAppliedStatus] = useState("all");
+  const [appliedDate, setAppliedDate] = useState("");
+
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
 
-  const stats = useMemo(() => {
-    const totalBudget = items.reduce((acc, curr) => acc + curr.planBudget, 0);
-    const totalAccepted = items.reduce((acc, curr) => acc + curr.actualAccepted, 0);
-    const avgCompletion = totalBudget > 0 ? (totalAccepted / totalBudget) * 100 : 0;
-    return {
-      total: items.length,
-      matched: items.filter((p) => p.status === "Khớp đúng").length,
-      totalBudget,
-      totalAccepted,
-      avgCompletion: avgCompletion.toFixed(1),
-    };
-  }, [items]);
+  const handleApplyFilter = () => {
+    setAppliedSearch(searchQuery);
+    setAppliedStatus(statusFilter);
+    setAppliedDate(dateFilter);
+    setCurrentPage(1);
+  };
 
-  const filteredItems = useMemo(() => {
-    const q = searchQuery.trim().toLowerCase();
-    return items.filter((item) => {
-      if (statusFilter !== "all" && item.status !== statusFilter) return false;
-      if (riskFilter !== "all" && item.riskLevel !== riskFilter) return false;
-      if (q) {
-        return (
-          item.businessPlanId.toLowerCase().includes(q) ||
-          item.businessPlanTitle.toLowerCase().includes(q) ||
-          item.partner.toLowerCase().includes(q)
-        );
+  const handleResetFilter = () => {
+    setSearchQuery("");
+    setStatusFilter("all");
+    setDateFilter("");
+    setAppliedSearch("");
+    setAppliedStatus("all");
+    setAppliedDate("");
+    setCurrentPage(1);
+  };
+
+  // Filtered Data
+  const filteredData = useMemo(() => {
+    const q = appliedSearch.trim().toLowerCase();
+    return sampleContractAcceptanceList.filter((row) => {
+      if (appliedStatus !== "all" && row.status !== appliedStatus) return false;
+      if (appliedDate.trim()) {
+        const normDate = appliedDate.trim().toLowerCase();
+        if (
+          !row.signDate.toLowerCase().includes(normDate) &&
+          !row.executionPeriod.toLowerCase().includes(normDate)
+        ) {
+          return false;
+        }
       }
-      return true;
+      if (!q) return true;
+      return (
+        row.contractCode.toLowerCase().includes(q) ||
+        row.customer.toLowerCase().includes(q) ||
+        row.executionPeriod.toLowerCase().includes(q)
+      );
     });
-  }, [items, statusFilter, riskFilter, searchQuery]);
+  }, [appliedSearch, appliedStatus, appliedDate]);
 
-  const totalElements = filteredItems.length;
-  const totalPages = Math.max(1, Math.ceil(totalElements / pageSize));
-  const paginatedList = useMemo(() => {
-    const from = (currentPage - 1) * pageSize;
-    return filteredItems.slice(from, from + pageSize);
-  }, [filteredItems, currentPage, pageSize]);
+  const totalPages = Math.max(1, Math.ceil(filteredData.length / pageSize));
+  const pagedData = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return filteredData.slice(start, start + pageSize);
+  }, [filteredData, currentPage, pageSize]);
+
+  const handleSelectContract = (id: string) => {
+    window.location.hash = `#/reconciliation/detail/${encodeURIComponent(id)}`;
+  };
 
   return (
-    <div className="min-h-full w-full space-y-6 bg-[#f8f7fa] p-6 text-[#393740]">
+    <div className="space-y-6 bg-[#f8f7fa] p-6">
+      {/* Page Header matching Figma Node 28260:17123 */}
       <PageHeader
-        title="Đối sánh nghiệm thu"
-        description="Đối chiếu giá trị dự toán phương án kinh doanh với số liệu nghiệm thu thực tế, phân tích sai lệch và cảnh báo rủi ro"
-        action={
+        title="Nghiệm thu theo Hợp đồng"
+        actions={
           <button
-            onClick={() => toast.success("Đang xuất báo cáo đối sánh nghiệm thu (Excel)")}
-            className="inline-flex h-[46px] items-center gap-2 rounded-[6px] bg-[#3f81ea] px-5 text-[13px] font-medium text-white shadow-sm hover:bg-[#2f6fd1] transition-colors"
+            onClick={() => toast.success("Đang xuất báo cáo nghiệm thu theo hợp đồng (Excel)")}
+            className="flex h-[38px] items-center gap-2 rounded-[6px] border border-[#dbdade] bg-white px-4 text-[13px] font-medium text-[#2f2b3d] hover:bg-slate-50 transition-colors shadow-2xs"
           >
-            <Download className="size-4" />
-            Xuất Báo Cáo Đối Soát
+            <Download className="size-4 text-slate-500" />
+            <span>Xuất Báo Cáo</span>
           </button>
         }
       />
 
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-4">
-        <StatCard
-          variant="accent-bottom"
-          title="Tổng phương án đối soát"
-          value={stats.total}
-          accentColor="#3f81ea"
-          icon={GitCompare}
-        />
-        <StatCard
-          variant="accent-bottom"
-          title="Phương án khớp đúng 100%"
-          value={stats.matched}
-          accentColor="#28c76f"
-          icon={CheckCircle}
-        />
-        <StatCard
-          variant="accent-bottom"
-          title="Tỷ lệ giải ngân nghiệm thu"
-          value={`${stats.avgCompletion}%`}
-          accentColor="#ff9f43"
-          icon={TrendingUp}
-        />
-        <StatCard
-          variant="accent-bottom"
-          title="Tổng giá trị dự toán / Thực tế"
-          value=""
-          accentColor="#00bad1"
-          icon={CheckCircle}
-          extraContent={
-            <div className="text-[12px] leading-tight space-y-0.5 text-[#2f2b3d]">
-              <p>DT: <strong className="text-[#3f81ea]">{formatCurrency(stats.totalBudget)} VND</strong></p>
-              <p>NT: <strong className="text-[#28c76f]">{formatCurrency(stats.totalAccepted)} VND</strong></p>
-            </div>
-          }
-        />
-      </div>
+      {/* Main Table Card (Figma Node 28260:17123) */}
+      <WidgetCard className="space-y-5">
+        {/* Filter Toolbar matching Figma */}
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-12 items-end">
+          <div className="lg:col-span-5">
+            <SearchInput
+              value={searchQuery}
+              onChange={(val) => {
+                setSearchQuery(val);
+                setAppliedSearch(val);
+                setCurrentPage(1);
+              }}
+              placeholder="Tìm bằng mã PAKD/Tên đối tác"
+            />
+          </div>
 
-      <div className="grid grid-cols-1 gap-4 rounded-[6px] bg-white p-5 shadow-[0_2px_8px_rgba(47,43,61,0.08)] md:grid-cols-[200px_200px_1fr_44px]">
-        <SelectFilter
-          label="Trạng thái đối soát"
-          value={statusFilter}
-          onChange={(val) => {
-            setStatusFilter(val);
-            setCurrentPage(1);
-          }}
-        >
-          <option value="all">Tất cả trạng thái</option>
-          <option value="Khớp đúng">Khớp đúng</option>
-          <option value="Cần rà soát">Cần rà soát</option>
-          <option value="Vượt định mức">Vượt định mức</option>
-        </SelectFilter>
+          <div className="lg:col-span-3">
+            <label className="block text-[11px] font-medium text-slate-500 mb-1">
+              Trạng thái nghiệm thu
+            </label>
+            <select
+              value={statusFilter}
+              onChange={(e) => {
+                const val = e.target.value;
+                setStatusFilter(val);
+                setAppliedStatus(val);
+                setCurrentPage(1);
+              }}
+              className="h-[38px] w-full rounded-[6px] border border-[#dbdade] bg-white px-3 text-[13px] text-[#2f2b3d] outline-none hover:border-slate-300 focus:border-[#ff4c51] cursor-pointer"
+            >
+              <option value="all">Tất cả</option>
+              <option value="Đã hoàn thành">Đã hoàn thành</option>
+              <option value="Đang thực hiện">Đang thực hiện</option>
+              <option value="Hết thời gian">Hết thời gian</option>
+              <option value="Không thực hiện nữa">Không thực hiện nữa</option>
+            </select>
+          </div>
 
-        <SelectFilter
-          label="Mức độ rủi ro"
-          value={riskFilter}
-          onChange={(val) => {
-            setRiskFilter(val);
-            setCurrentPage(1);
-          }}
-        >
-          <option value="all">Tất cả mức độ</option>
-          <option value="Thấp">Thấp</option>
-          <option value="Trung bình">Trung bình</option>
-          <option value="Cao">Cao</option>
-        </SelectFilter>
+          <div className="lg:col-span-3">
+            <label className="block text-[11px] font-medium text-slate-500 mb-1">
+              Thời gian cung cấp
+            </label>
+            <DatePickerInput
+              value={dateFilter}
+              onChange={(val) => {
+                setDateFilter(val);
+                setAppliedDate(val);
+                setCurrentPage(1);
+              }}
+              placeholder="dd.mm.yyyy"
+            />
+          </div>
 
-        <div className="space-y-1.5">
-          <span className="text-[12px] font-medium text-transparent block">Tìm kiếm</span>
-          <SearchInput
-            value={searchQuery}
-            onChange={(val) => {
-              setSearchQuery(val);
-              setCurrentPage(1);
-            }}
-            placeholder="Tìm theo mã PAKD, đối tác, tên phương án..."
-          />
+          <div className="lg:col-span-1 flex items-center">
+            <button
+              onClick={handleResetFilter}
+              className="flex h-[38px] w-full items-center justify-center gap-1.5 rounded-[6px] border border-[#dbdade] bg-white px-3 text-[13px] font-medium text-slate-700 hover:bg-slate-50 transition-colors shadow-2xs cursor-pointer"
+              title="Đặt lại bộ lọc"
+            >
+              <RotateCcw className="size-3.5 text-slate-500" />
+              <span>Đặt Lại</span>
+            </button>
+          </div>
         </div>
 
-        <div className="flex items-end">
-          <button
-            onClick={() => {
-              setStatusFilter("all");
-              setRiskFilter("all");
-              setSearchQuery("");
-              setCurrentPage(1);
-            }}
-            title="Đặt lại bộ lọc"
-            className="flex size-9 items-center justify-center rounded-[6px] border border-slate-200 bg-white text-[#5d586c] transition-colors hover:bg-slate-50 hover:text-[#393740]"
-          >
-            <IconFilter className="size-4" />
-          </button>
-        </div>
-      </div>
-
-      <section className="rounded-[6px] bg-white p-5 shadow-[0_2px_8px_rgba(47,43,61,0.12)]">
-        <h2 className="mb-4 text-[16px] font-medium leading-[22px] text-[#393740]">
-          Bảng đối soát phương án kinh doanh & nghiệm thu
-        </h2>
-
+        {/* Data Table */}
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[980px] text-left text-[12px]">
+          <table className="w-full min-w-[1100px] border-collapse text-left text-[13px]">
             <thead>
-              <tr className="h-10 border-b border-slate-100 text-[#5d586c]">
-                <th className="px-3 py-2 font-medium">Số PAKD</th>
-                <th className="px-3 py-2 font-medium">Tên Phương án kinh doanh</th>
-                <th className="px-3 py-2 font-medium">Đối tác</th>
-                <th className="px-3 py-2 font-medium text-right">Dự toán PAKD (VND)</th>
-                <th className="px-3 py-2 font-medium text-right">Đã nghiệm thu (VND)</th>
-                <th className="px-3 py-2 font-medium text-center">Tiến độ (%)</th>
-                <th className="px-3 py-2 font-medium text-right">Chênh lệch (VND)</th>
-                <th className="px-3 py-2 font-medium">Rủi ro</th>
-                <th className="px-3 py-2 font-medium">Kết quả đối soát</th>
+              <tr className="border-b border-slate-200/80 text-[13px]">
+                <th className="px-4 py-3.5 font-semibold text-[#2f2b3d] text-left">
+                  Số Hợp đồng
+                </th>
+                <th className="px-4 py-3.5 font-semibold text-[#2f2b3d] text-left">
+                  Ngày ký
+                </th>
+                <th className="px-4 py-3.5 font-semibold text-[#2f2b3d] text-left">
+                  Thời gian thực hiện
+                </th>
+                <th className="px-4 py-3.5 font-semibold text-[#2f2b3d] text-left">
+                  Khách hàng
+                </th>
+                <th className="px-4 py-3.5 font-semibold text-[#2f2b3d] text-center">
+                  Tình trạng nghiệm thu
+                </th>
+                <th className="px-4 py-3.5 font-semibold text-[#2f2b3d] text-right">
+                  Ngân sách theo hợp đồng
+                </th>
+                <th className="px-4 py-3.5 font-semibold text-[#2f2b3d] text-right">
+                  Đã nghiệm thu
+                </th>
+                <th className="px-4 py-3.5 font-semibold text-[#2f2b3d] text-right">
+                  Còn lại
+                </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
-              {paginatedList.length === 0 ? (
+
+            <tbody className="divide-y divide-slate-100 text-[13px] text-[#2f2b3d]">
+              {pagedData.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="py-10 text-center text-slate-400">
-                    Không tìm thấy dữ liệu đối soát nào.
+                  <td colSpan={8} className="py-12 text-center text-slate-400">
+                    Không tìm thấy hợp đồng nghiệm thu phù hợp
                   </td>
                 </tr>
               ) : (
-                paginatedList.map((item) => (
-                  <tr key={item.id} className="h-[44px] hover:bg-slate-50/80">
-                    <td className="px-3 py-2 font-semibold text-[#3f81ea]">
-                      {item.businessPlanId}
+                pagedData.map((row) => (
+                  <tr
+                    key={row.id}
+                    onClick={() => handleSelectContract(row.id)}
+                    className="hover:bg-slate-50/70 cursor-pointer transition-colors"
+                  >
+                    <td className="px-4 py-4 font-medium text-[#2f2b3d] hover:text-[#3f81ea]">
+                      {row.contractCode}
                     </td>
-                    <td className="max-w-[240px] px-3 py-2">
-                      <span className="line-clamp-2 font-medium text-[#2f2b3d]">
-                        {item.businessPlanTitle}
-                      </span>
+                    <td className="px-4 py-4 text-slate-600">
+                      {row.signDate}
                     </td>
-                    <td className="px-3 py-2 text-slate-600">{item.partner}</td>
-                    <td className="px-3 py-2 text-right font-medium text-slate-700">
-                      {formatCurrency(item.planBudget)}
+                    <td className="px-4 py-4 text-slate-600">
+                      {row.executionPeriod}
                     </td>
-                    <td className="px-3 py-2 text-right font-medium text-[#28c76f]">
-                      {formatCurrency(item.actualAccepted)}
+                    <td className="px-4 py-4 font-normal text-slate-800">
+                      {row.customer}
                     </td>
-                    <td className="px-3 py-2 text-center font-semibold">
-                      <span className="inline-flex items-center rounded-full bg-blue-50 px-2 py-0.5 text-[11px] text-[#3f81ea]">
-                        {item.completionRate}%
-                      </span>
-                    </td>
-                    <td className="px-3 py-2 text-right font-medium text-slate-600">
-                      {formatCurrency(item.varianceAmount)}
-                    </td>
-                    <td className="px-3 py-2">
+                    <td className="px-4 py-4 text-center">
                       <span
-                        className={`inline-flex items-center rounded px-2 py-0.5 text-[11px] font-medium ${
-                          item.riskLevel === "Thấp"
-                            ? "bg-green-50 text-[#28c76f]"
-                            : item.riskLevel === "Trung bình"
-                            ? "bg-amber-50 text-[#ff9f43]"
-                            : "bg-red-50 text-[#ff4c51]"
+                        className={`inline-flex items-center px-2.5 py-1 rounded-[4px] text-[12px] font-medium ${
+                          row.status === "Đã hoàn thành"
+                            ? "bg-[#e8f9ee] text-[#28c76f]"
+                            : row.status === "Đang thực hiện"
+                            ? "bg-[#e8f4fd] text-[#3f81ea]"
+                            : row.status === "Hết thời gian"
+                            ? "bg-[#fff0e1] text-[#ff9f43]"
+                            : "bg-[#ffebee] text-[#ea5455]"
                         }`}
                       >
-                        {item.riskLevel}
+                        {row.status}
                       </span>
                     </td>
-                    <td className="px-3 py-2 whitespace-nowrap">
-                      <StatusBadge status={item.status} />
+                    <td className="px-4 py-4 text-right font-normal text-slate-800">
+                      {formatCurrency(row.contractBudget)}
+                    </td>
+                    <td className="px-4 py-4 text-right font-normal text-slate-800">
+                      {formatCurrency(row.acceptedValue)}
+                    </td>
+                    <td className="px-4 py-4 text-right font-normal text-slate-800">
+                      {formatCurrency(row.remainingValue)}
                     </td>
                   </tr>
                 ))
@@ -249,19 +409,22 @@ export function AcceptanceReconciliationPage() {
           </table>
         </div>
 
+        {/* Pagination Toolbar */}
         <Pagination
           currentPage={currentPage}
+          totalPages={Math.max(totalPages, 5)}
+          totalItems={48}
           pageSize={pageSize}
-          totalElements={totalElements}
-          totalPages={totalPages}
-          pageSizeOptions={[10, 20, 50]}
           onPageChange={setCurrentPage}
-          onPageSizeChange={(size) => {
-            setPageSize(size);
+          onPageSizeChange={(sz) => {
+            setPageSize(sz);
             setCurrentPage(1);
           }}
         />
-      </section>
+      </WidgetCard>
+
+      {/* Activity Timeline Section */}
+      <RecentActivitiesWidget activities={sampleActivities} />
     </div>
   );
 }

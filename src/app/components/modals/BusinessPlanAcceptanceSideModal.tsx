@@ -6,6 +6,7 @@ import {
   ChevronRight,
   Download,
   Edit3,
+  Expand,
   FileText,
   Maximize2,
   Minimize2,
@@ -201,11 +202,11 @@ export function BusinessPlanAcceptanceSideModal({
     sampleBusinessPlans.find((p) => p.id === planId) ||
     sampleBusinessPlans[0];
 
-  // Accordion open/collapse states (matching Figma Node 28387:270562)
-  const [section1Open, setSection1Open] = useState(true); // Thông tin chung
-  const [section2Open, setSection2Open] = useState(true); // Hạng mục đề xuất mua sắm
-  const [section3Open, setSection3Open] = useState(true); // Chi tiết nghiệm thu
-  const [section4Open, setSection4Open] = useState(true); // Nhật ký gần đây
+  // Accordion open/collapse states (default collapsed as requested and shown in Figma Node 28387:268503)
+  const [section1Open, setSection1Open] = useState(false); // Thông tin chung
+  const [section2Open, setSection2Open] = useState(false); // Hạng mục đề xuất mua sắm
+  const [section3Open, setSection3Open] = useState(false); // Chi tiết nghiệm thu
+  const [section4Open, setSection4Open] = useState(false); // Nhật ký gần đây
 
   // Expanded rows in Section 3 Table
   const [expandedRows, setExpandedRows] = useState<{ [rowId: string]: boolean }>({
@@ -231,46 +232,46 @@ export function BusinessPlanAcceptanceSideModal({
   return (
     <div className="fixed inset-0 z-50 flex justify-end bg-black/40 backdrop-blur-xs transition-opacity duration-200 animate-in fade-in">
       {/* Side Modal Container */}
-      <div className="relative flex h-full w-full max-w-[760px] xl:max-w-[880px] 2xl:max-w-[960px] flex-col bg-white shadow-2xl transition-transform duration-300 animate-in slide-in-from-right">
+      <div className="relative flex h-full w-full max-w-[740px] xl:max-w-[800px] 2xl:max-w-[860px] flex-col bg-white shadow-2xl transition-transform duration-300 animate-in slide-in-from-right">
         {/* Modal Header */}
-        <div className="flex shrink-0 items-center justify-between border-b border-slate-200 px-6 py-4 bg-slate-50/70">
-          <h2 className="text-base font-bold text-[#2f2b3d]">
+        <div className="flex shrink-0 items-center justify-between border-b border-slate-200/80 px-6 py-4 bg-white">
+          <h2 className="text-[16px] font-semibold text-[#2f2b3d]">
             Chi tiết nghiệm thu theo PAKD
           </h2>
           <button
             onClick={() => onOpenChange(false)}
-            className="flex size-8 items-center justify-center rounded-full text-slate-400 hover:bg-slate-200 hover:text-slate-700 transition-colors"
+            className="flex size-8 items-center justify-center rounded-full text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition-colors"
           >
             <X className="size-5" />
           </button>
         </div>
 
         {/* Modal Scrollable Body */}
-        <div className="custom-scrollbar flex-1 overflow-y-auto p-6 space-y-6 bg-[#f8f7fa]/60">
-          {/* Top Document Viewer Box */}
-          <div className="rounded-[8px] border border-slate-200 bg-white p-4 shadow-2xs space-y-3">
+        <div className="custom-scrollbar flex-1 overflow-y-auto p-6 space-y-4 bg-[#f8f7fa]">
+          {/* Top Document Viewer Box (Matching Figma Node 28392:24231) */}
+          <div className="relative rounded-[8px] bg-white p-4 shadow-[0_2px_8px_rgba(47,43,61,0.08)] space-y-3">
             {/* Viewer Toolbar */}
             <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-2.5 text-xs text-slate-600">
-              <div className="flex items-center gap-1">
+              <div className="flex items-center gap-1.5">
                 <button
                   onClick={() => toast.info("Đã làm mới bản xem trước")}
                   className="rounded p-1 hover:bg-slate-100"
                   title="Làm mới"
                 >
-                  <RotateCcw className="size-3.5" />
+                  <RotateCcw className="size-3.5 text-slate-500" />
                 </button>
                 <button
                   onClick={() => setZoom((z) => Math.max(50, z - 10))}
                   className="rounded p-1 hover:bg-slate-100"
                   title="Thu nhỏ"
                 >
-                  <Minus className="size-3.5" />
+                  <Minus className="size-3.5 text-slate-500" />
                 </button>
                 <div className="relative">
                   <select
                     value={zoom}
                     onChange={(e) => setZoom(Number(e.target.value))}
-                    className="h-7 appearance-none rounded border border-slate-200 bg-white px-2 pr-5 text-[11px] outline-none"
+                    className="h-7 appearance-none rounded-[4px] border border-[#dbdade] bg-white px-2.5 pr-6 text-[11px] outline-none cursor-pointer text-[#2f2b3d]"
                   >
                     <option value={50}>50%</option>
                     <option value={75}>75%</option>
@@ -284,86 +285,94 @@ export function BusinessPlanAcceptanceSideModal({
                   className="rounded p-1 hover:bg-slate-100"
                   title="Phóng to"
                 >
-                  <Plus className="size-3.5" />
+                  <Plus className="size-3.5 text-slate-500" />
                 </button>
               </div>
 
               <div className="flex items-center gap-2">
-                <div className="flex items-center gap-1 text-[11px]">
-                  <select
-                    value={currentPage}
-                    onChange={(e) => setCurrentPage(Number(e.target.value))}
-                    className="h-7 appearance-none rounded border border-slate-200 bg-white px-2 pr-5 text-[11px] outline-none"
-                  >
-                    {Array.from({ length: totalPages }, (_, i) => (
-                      <option key={i + 1} value={i + 1}>
-                        {i + 1}
-                      </option>
-                    ))}
-                  </select>
+                <div className="flex items-center gap-1 text-[11px] text-slate-600">
+                  <span className="rounded border border-[#dbdade] bg-white px-2 py-0.5 font-medium">
+                    {currentPage}
+                  </span>
                   <span>/ {totalPages}</span>
+                  <ChevronDown className="size-3 text-slate-400 cursor-pointer" />
                 </div>
 
                 <span className="h-4 w-px bg-slate-200" />
+
+                <button
+                  onClick={() => toast.info("Mở toàn màn hình")}
+                  className="rounded p-1 hover:bg-slate-100"
+                  title="Toàn màn hình"
+                >
+                  <Maximize2 className="size-3.5 text-slate-500" />
+                </button>
 
                 <button
                   onClick={handleDownloadPdf}
                   className="rounded p-1 hover:bg-slate-100"
                   title="Tải xuống PDF"
                 >
-                  <Download className="size-3.5" />
+                  <Download className="size-3.5 text-slate-500" />
+                </button>
+
+                <button
+                  onClick={() => toast.info("Xem chi tiết")}
+                  className="rounded p-1 hover:bg-slate-100"
+                  title="Mở rộng"
+                >
+                  <Expand className="size-3.5 text-slate-500" />
                 </button>
               </div>
             </div>
 
-            {/* Document Canvas Preview */}
-            <div className="custom-scrollbar max-h-[320px] overflow-auto rounded border border-slate-100 bg-slate-100/60 p-4 shadow-inner">
+            {/* Document Canvas Preview (Matching Figma Node 28392:24231) */}
+            <div className="relative overflow-hidden">
               <div
                 style={{ transform: `scale(${zoom / 100})`, transformOrigin: "top center" }}
-                className="mx-auto min-h-[460px] w-full max-w-[500px] space-y-3 rounded bg-white p-6 shadow-sm text-[11px] text-slate-800 leading-relaxed font-serif transition-transform"
+                className="w-full space-y-3.5 bg-white p-2 text-[11px] text-[#2f2b3d] leading-relaxed font-serif"
               >
                 {/* Header doc */}
                 <div className="flex justify-between font-sans text-center">
-                  <div>
-                    <p className="font-bold text-[10px] uppercase text-slate-900">
+                  <div className="text-left">
+                    <p className="font-bold text-[10.5px] uppercase text-[#2f2b3d]">
                       CÔNG TY TNHH MTV AN NINH MẠNG VIETTEL
                     </p>
-                    <p className="text-[9px] text-slate-500">[TÊN ĐƠN VỊ/PHÒNG/TRUNG TÂM]</p>
-                    <p className="text-[9px] mt-0.5 font-semibold">Số: [Số]/TTr-[MÃ ĐƠN VỊ]</p>
+                    <p className="text-[9.5px] text-slate-500 italic">[TÊN ĐƠN VỊ/PHÒNG/TRUNG TÂM]</p>
+                    <div className="my-1 w-full border-b border-[#2f2b3d]" />
+                    <p className="text-[9.5px] font-semibold text-[#2f2b3d]">Số: [Số]/TTr-[MÃ ĐƠN VỊ]</p>
+                    <p className="font-bold text-[10px] uppercase text-[#2f2b3d] mt-1">PHÊ DUYỆT</p>
+                    <p className="text-[9px] text-slate-500 italic">Ngày [...] tháng [...] năm [20...]</p>
+                    <p className="text-[9.5px] font-bold text-[#2f2b3d] uppercase">[CHỨC DANH NGƯỜI PHÊ DUYỆT]</p>
                   </div>
-                  <div>
-                    <p className="font-bold text-[10px] uppercase text-slate-900">
+                  <div className="text-right">
+                    <p className="font-bold text-[10.5px] uppercase text-[#2f2b3d]">
                       CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM
                     </p>
-                    <p className="text-[9px] font-semibold">Độc lập - Tự do - Hạnh phúc</p>
-                    <p className="text-[9px] italic text-slate-500 mt-0.5">[ĐỊA DANH], ngày [...] tháng [...] năm [20...]</p>
+                    <p className="text-[9.5px] font-semibold text-[#2f2b3d]">Độc lập - Tự do - Hạnh phúc</p>
+                    <div className="my-1 w-full border-b border-[#2f2b3d]" />
+                    <p className="text-[9px] italic text-slate-500 mt-1">[ĐỊA DANH], ngày [...] tháng [...] năm [20...]</p>
                   </div>
                 </div>
 
                 <div className="text-center font-sans pt-2">
-                  <p className="font-bold text-slate-900 text-[10px] uppercase">PHÊ DUYỆT</p>
-                  <p className="text-[9px] text-slate-500 italic">Ngày [...] tháng [...] năm [20...]</p>
-                  <p className="text-[9px] font-bold text-slate-900 uppercase mt-0.5">[CHỨC DANH NGƯỜI PHÊ DUYỆT]</p>
-                </div>
-
-                <div className="text-center font-sans pt-3">
-                  <h3 className="text-xs font-bold uppercase text-slate-900">TỜ TRÌNH</h3>
-                  <p className="text-[11px] font-bold text-slate-800 uppercase">
+                  <p className="text-[10px] italic text-slate-500">[HỌ VÀ TÊN]</p>
+                  <h3 className="text-[13px] font-bold uppercase text-[#2f2b3d] mt-1">TỜ TRÌNH</h3>
+                  <p className="text-[11px] font-bold text-[#2f2b3d] uppercase">
                     Về việc đề xuất [MUA SẮM/THUÊ NGOÀI] [TÊN HÀNG HÓA, HỆ THỐNG, PHẦN MỀM HOẶC DỊCH VỤ]
                   </p>
-                  <p className="text-[10px] font-semibold text-slate-900 pt-1">
+                  <p className="text-[10.5px] font-semibold text-[#2f2b3d] pt-1">
                     Kính gửi: Ban Giám đốc Công ty.
                   </p>
                 </div>
 
-                <div className="rounded border border-slate-300 bg-slate-50 p-2.5 text-[10px] italic text-slate-600 font-sans">
+                <div className="rounded-[4px] border border-slate-300 bg-slate-50/80 p-2.5 text-[10px] italic text-slate-600 font-sans">
                   <strong>HƯỚNG DẪN SỬ DỤNG:</strong> Thay toàn bộ nội dung trong dấu [ ]; xóa dòng, cột và phụ lục không áp dụng; cập nhật lại tổng tiền, thuế và luồng ký; sau đó xóa hộp hướng dẫn này trước khi trình ký.
                 </div>
 
-                <div className="space-y-1.5 text-[10px] text-slate-700 font-serif leading-normal">
-                  <p>Căn cứ [QUY CHẾ/QUYẾT ĐỊNH QUẢN LÝ ĐẦU TƯ, MUA SẮM VÀ SỐ/KÝ HIỆU];</p>
-                  <p>Căn cứ [KẾ HOẠCH/CHỦ TRƯƠNG/DỰ ÁN ĐÃ ĐƯỢC PHÊ DUYỆT];</p>
-                  <p>Nhu cầu phục vụ triển khai phương án kinh doanh {currentPlan.id}.</p>
+                <div className="space-y-1 text-[10.5px] text-[#2f2b3d] font-serif leading-normal">
+                  <p>Căn cứ <em>[QUY CHẾ/QUYẾT ĐỊNH QUẢN LÝ ĐẦU TƯ, MUA SẮM VÀ SỐ/KÝ HIỆU]</em>;</p>
+                  <p>Căn cứ <em>[KẾ HOẠCH/CHỦ TRƯƠNG/DỰ ÁN ĐÃ ĐƯỢC PHÊ DUYỆT]</em>;</p>
                 </div>
               </div>
             </div>
@@ -372,21 +381,21 @@ export function BusinessPlanAcceptanceSideModal({
           {/* ========================================================================= */}
           {/* Accordion 1: Thông tin chung */}
           {/* ========================================================================= */}
-          <div className="rounded-[8px] border border-slate-200 bg-white overflow-hidden shadow-2xs">
+          <div className="rounded-[8px] bg-white shadow-[0_2px_8px_rgba(47,43,61,0.08)] overflow-hidden">
             <button
               onClick={() => setSection1Open(!section1Open)}
-              className="flex w-full items-center justify-between px-5 py-3.5 text-left font-bold text-sm text-[#2f2b3d] bg-slate-50/50 hover:bg-slate-50 transition-colors"
+              className="flex w-full h-[56px] items-center justify-between px-6 text-left font-semibold text-[14px] text-[#2f2b3d] bg-white hover:bg-slate-50/60 transition-colors"
             >
               <span>Thông tin chung</span>
               {section1Open ? (
-                <ChevronDown className="size-4 text-slate-500" />
+                <ChevronDown className="size-4 text-[#8f8d95]" />
               ) : (
-                <ChevronRight className="size-4 text-slate-500" />
+                <ChevronRight className="size-4 text-[#8f8d95]" />
               )}
             </button>
 
             {section1Open && (
-              <div className="divide-y divide-slate-100 p-5 pt-2 text-xs">
+              <div className="divide-y divide-slate-100 p-6 pt-2 text-xs border-t border-slate-100">
                 <div className="grid grid-cols-[220px_1fr] py-2.5">
                   <span className="text-slate-500">Tên Phương án kinh doanh</span>
                   <span className="font-medium text-slate-900">{currentPlan.title}</span>
@@ -412,154 +421,182 @@ export function BusinessPlanAcceptanceSideModal({
           </div>
 
           {/* ========================================================================= */}
-          {/* Accordion 2: Hạng mục đề xuất mua sắm */}
+          {/* Accordion 2: Hạng mục đề xuất mua sắm (Figma Node 28390:22462) */}
           {/* ========================================================================= */}
-          <div className="rounded-[8px] border border-slate-200 bg-white overflow-hidden shadow-2xs">
+          <div className="rounded-[8px] bg-white shadow-[0_2px_8px_rgba(47,43,61,0.08)] overflow-hidden">
             <button
               onClick={() => setSection2Open(!section2Open)}
-              className="flex w-full items-center justify-between px-5 py-3.5 text-left font-bold text-sm text-[#2f2b3d] bg-slate-50/50 hover:bg-slate-50 transition-colors"
+              className="flex w-full h-[56px] items-center justify-between px-6 text-left font-semibold text-[14px] text-[#2f2b3d] bg-white hover:bg-slate-50/60 transition-colors"
             >
               <span>Hạng mục đề xuất mua sắm</span>
               {section2Open ? (
-                <ChevronDown className="size-4 text-slate-500" />
+                <ChevronDown className="size-4 text-[#8f8d95]" />
               ) : (
-                <ChevronRight className="size-4 text-slate-500" />
+                <ChevronRight className="size-4 text-[#8f8d95]" />
               )}
             </button>
 
             {section2Open && (
-              <div className="p-5 pt-2 space-y-3">
-                <div className="overflow-x-auto border border-slate-200 rounded-[6px]">
-                  <table className="w-full min-w-[700px] border-collapse text-left text-xs">
+              <div className="p-6 pt-2 space-y-4 border-t border-slate-100">
+                <div className="overflow-x-auto">
+                  <table className="w-full min-w-[900px] border-collapse text-left text-[13px]">
                     <thead>
-                      <tr className="border-b border-slate-200 bg-slate-50 text-[11px] text-[#5d586c] uppercase">
-                        <th className="px-3 py-2.5 font-semibold text-center w-12">STT</th>
-                        <th className="px-3 py-2.5 font-semibold min-w-[200px]">Tên hàng hóa</th>
-                        <th className="px-2 py-2.5 font-semibold text-center w-20">Đơn vị tính</th>
-                        <th className="px-2 py-2.5 font-semibold text-center w-16">Số lượng</th>
-                        <th className="px-3 py-2.5 font-semibold text-right w-28">Đơn giá (VND)</th>
-                        <th className="px-3 py-2.5 font-semibold text-right w-32">Thành tiền (VND)</th>
+                      <tr className="border-b border-slate-200/80 text-[13px]">
+                        <th className="px-3 py-3 font-semibold text-[#2f2b3d] text-center w-12">STT</th>
+                        <th className="px-3 py-3 font-semibold text-[#2f2b3d] min-w-[220px]">Tên hàng hóa</th>
+                        <th className="px-3 py-3 font-semibold text-[#2f2b3d] text-left w-24">Đơn vị tính</th>
+                        <th className="px-3 py-3 font-semibold text-[#2f2b3d] text-left w-20">Số lượng</th>
+                        <th className="px-3 py-3 font-semibold text-[#2f2b3d] text-right w-28">Đơn giá (VND)</th>
+                        <th className="px-3 py-3 font-semibold text-[#2f2b3d] text-right w-32">Thành tiền (VND)</th>
+                        <th className="px-3 py-3 font-semibold text-[#2f2b3d] text-right w-28">Thuế GTGT</th>
+                        <th className="px-3 py-3 font-semibold text-[#2f2b3d] text-right w-36">Thành tiền sau VAT (VND)</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-100">
+                    <tbody className="divide-y divide-slate-100 text-[13px]">
                       {/* Group row I */}
-                      <tr className="bg-slate-50/60 font-semibold text-slate-800">
-                        <td className="px-3 py-2 text-center">I</td>
-                        <td className="px-3 py-2">Thiết bị tường lửa: Checkpoint Quantum Force 9400 Plus</td>
-                        <td className="px-2 py-2 text-center">Bộ</td>
-                        <td className="px-2 py-2 text-center">26</td>
-                        <td className="px-3 py-2 text-right">234.640.000</td>
-                        <td className="px-3 py-2 text-right font-bold">6.100.640.000</td>
+                      <tr className="font-semibold text-[#2f2b3d]">
+                        <td className="px-3 py-3.5 text-center">I</td>
+                        <td className="px-3 py-3.5">Thiết bị tường lửa: Checkpoint Quantum Force 9400 Plus</td>
+                        <td className="px-3 py-3.5 text-left">Bộ</td>
+                        <td className="px-3 py-3.5 text-left">26</td>
+                        <td className="px-3 py-3.5 text-right">234.640.000</td>
+                        <td className="px-3 py-3.5 text-right">6.100.640.000</td>
+                        <td className="px-3 py-3.5 text-right">466.022.720</td>
+                        <td className="px-3 py-3.5 text-right">6.546.662.720</td>
                       </tr>
                       {/* Sub-item 1 */}
                       <tr className="text-slate-700 hover:bg-slate-50/50">
-                        <td className="px-3 py-2 text-center text-slate-400">1</td>
-                        <td className="px-3 py-2 pl-6">
+                        <td className="px-3 py-3.5 text-center text-slate-500">1</td>
+                        <td className="px-3 py-3.5 leading-[18px]">
                           Thiết bị tường lửa Checkpoint: Quantum Force 9400 Plus Appliance with 2 Virtual Systems and subscription package For 1 year
                         </td>
-                        <td className="px-2 py-2 text-center text-slate-500">Chiếc</td>
-                        <td className="px-2 py-2 text-center">1</td>
-                        <td className="px-3 py-2 text-right">128.766.000</td>
-                        <td className="px-3 py-2 text-right font-medium">128.766.000</td>
+                        <td className="px-3 py-3.5 text-left text-slate-600">Chiếc</td>
+                        <td className="px-3 py-3.5 text-left text-slate-600">1</td>
+                        <td className="px-3 py-3.5 text-right text-slate-600">128.766.000</td>
+                        <td className="px-3 py-3.5 text-right text-slate-600">128.766.000</td>
+                        <td className="px-3 py-3.5 text-right text-slate-600">8%</td>
+                        <td className="px-3 py-3.5 text-right text-slate-600"></td>
                       </tr>
                       {/* Total row */}
-                      <tr className="bg-slate-100/80 font-bold text-slate-900 border-t border-slate-200">
-                        <td colSpan={5} className="px-3 py-2.5 text-center uppercase tracking-wide">
+                      <tr className="font-bold text-[#2f2b3d] border-t border-slate-200">
+                        <td colSpan={5} className="px-3 py-3.5 text-center">
                           Tổng tiền
                         </td>
-                        <td className="px-3 py-2.5 text-right text-[#ff4c51] font-bold">
+                        <td className="px-3 py-3.5 text-right font-bold">
                           6.100.640.000
+                        </td>
+                        <td className="px-3 py-3.5 text-right font-bold">
+                          466.022.720
+                        </td>
+                        <td className="px-3 py-3.5 text-right font-bold">
+                          6.546.662.720
                         </td>
                       </tr>
                     </tbody>
                   </table>
                 </div>
 
-                <p className="text-[11px] italic text-slate-600">
-                  Bằng chữ: <strong>Mười tám tỷ một trăm bốn mươi mốt triệu sáu trăm linh một nghìn bốn trăm tám mươi đồng chẵn</strong>
+                <p className="text-[13px] font-semibold text-[#2f2b3d] pt-1">
+                  Bằng chữ: Mười tám tỷ một trăm bốn mươi mốt triệu sáu trăm linh một nghìn bốn trăm tám mươi đồng chẵn
                 </p>
               </div>
             )}
           </div>
 
           {/* ========================================================================= */}
-          {/* Accordion 3: Chi tiết nghiệm thu (Table Multi-Columns with Horizontal Scroll) */}
+          {/* Accordion 3: Chi tiết nghiệm thu (Figma Node 28474:43523) */}
           {/* ========================================================================= */}
-          <div className="rounded-[8px] border border-slate-200 bg-white overflow-hidden shadow-2xs">
+          <div className="rounded-[8px] bg-white shadow-[0_2px_8px_rgba(47,43,61,0.08)] overflow-hidden">
             <button
               onClick={() => setSection3Open(!section3Open)}
-              className="flex w-full items-center justify-between px-5 py-3.5 text-left font-bold text-sm text-[#2f2b3d] bg-slate-50/50 hover:bg-slate-50 transition-colors"
+              className="flex w-full h-[56px] items-center justify-between px-6 text-left font-semibold text-[14px] text-[#2f2b3d] bg-white hover:bg-slate-50/60 transition-colors"
             >
               <span>Chi tiết nghiệm thu</span>
               {section3Open ? (
-                <ChevronDown className="size-4 text-slate-500" />
+                <ChevronDown className="size-4 text-[#8f8d95]" />
               ) : (
-                <ChevronRight className="size-4 text-slate-500" />
+                <ChevronRight className="size-4 text-[#8f8d95]" />
               )}
             </button>
 
             {section3Open && (
-              <div className="p-5 pt-2 space-y-3">
-                {/* Multi-Header Scrollable Table matching Node 28474:43523 */}
+              <div className="p-6 pt-2 space-y-3 border-t border-slate-100">
+                {/* 3-Level Multi-Header Scrollable Table matching Figma Node 28474:43523 */}
                 <div className="overflow-x-auto border border-slate-200 rounded-[6px]">
-                  <table className="w-full min-w-[1300px] border-collapse text-left text-xs">
+                  <table className="w-full min-w-[1300px] border-collapse text-left text-[12px]">
                     <thead>
                       {/* Header Row 1 */}
-                      <tr className="border-b border-slate-200 bg-slate-50 text-[11px] uppercase tracking-wider text-[#5d586c]">
-                        <th rowSpan={2} className="border-r border-slate-200 px-3 py-2.5 font-semibold min-w-[280px]">
+                      <tr className="border-b border-slate-200 text-[12px] font-semibold text-[#2f2b3d]">
+                        <th rowSpan={3} className="border-r border-slate-200 px-3 py-2.5 min-w-[280px] align-middle">
                           Hạng mục
                         </th>
-                        <th colSpan={2} className="border-r border-slate-200 px-3 py-2 font-semibold text-center bg-slate-100/70">
+                        <th colSpan={2} className="border-r border-slate-200 px-3 py-2 text-center">
                           Phương án kinh doanh
                         </th>
-                        <th colSpan={2} className="border-r border-slate-200 px-3 py-2 font-semibold text-center bg-[#e8f9ee]/60 text-[#28c76f]">
+                        <th colSpan={2} className="border-r border-slate-200 px-3 py-2 text-center">
                           Đã nghiệm thu
                         </th>
-                        <th colSpan={2} className="border-r border-slate-200 px-3 py-2 font-semibold text-center bg-slate-100/70">
+                        <th colSpan={2} className="border-r border-slate-200 px-3 py-2 text-center">
                           Còn lại
                         </th>
-                        <th colSpan={9} className="px-3 py-2 font-semibold text-center bg-[#e8f4fd]/60 text-[#3f81ea]">
+                        <th colSpan={9} className="px-3 py-2 text-center">
                           Chi tiết nghiệm thu theo tháng
                         </th>
                       </tr>
 
-                      {/* Header Row 2 */}
-                      <tr className="border-b border-slate-200 bg-slate-50/80 text-[11px] text-[#5d586c]">
+                      {/* Header Row 2 (Months) */}
+                      <tr className="border-b border-slate-200 text-[12px] font-semibold text-[#2f2b3d]">
+                        <th colSpan={2} className="border-r border-slate-200 p-0"></th>
+                        <th colSpan={2} className="border-r border-slate-200 p-0"></th>
+                        <th colSpan={2} className="border-r border-slate-200 p-0"></th>
+                        <th colSpan={3} className="border-r border-slate-200 px-2 py-1.5 text-center">
+                          Tháng 4
+                        </th>
+                        <th colSpan={3} className="border-r border-slate-200 px-2 py-1.5 text-center">
+                          Tháng 5
+                        </th>
+                        <th colSpan={3} className="px-2 py-1.5 text-center">
+                          Tháng 6
+                        </th>
+                      </tr>
+
+                      {/* Header Row 3 (Column Sub-headers) */}
+                      <tr className="border-b border-slate-200 text-[12px] font-semibold text-[#2f2b3d]">
                         {/* PAKD */}
-                        <th className="border-r border-slate-200 px-2 py-1.5 font-semibold text-center w-14">SL</th>
-                        <th className="border-r border-slate-200 px-2 py-1.5 font-semibold text-right w-32">Giá trị (Chưa VAT)</th>
+                        <th className="border-r border-slate-200 px-2 py-1.5 text-center w-14">SL</th>
+                        <th className="border-r border-slate-200 px-2 py-1.5 text-right w-32">Giá trị (Chưa VAT)</th>
 
                         {/* Đã nghiệm thu */}
-                        <th className="border-r border-slate-200 px-2 py-1.5 font-semibold text-center w-14 text-[#28c76f]">SL</th>
-                        <th className="border-r border-slate-200 px-2 py-1.5 font-semibold text-right w-32 text-[#28c76f]">Giá trị (Chưa VAT)</th>
+                        <th className="border-r border-slate-200 px-2 py-1.5 text-center w-14">SL</th>
+                        <th className="border-r border-slate-200 px-2 py-1.5 text-right w-32">Giá trị (Chưa VAT)</th>
 
                         {/* Còn lại */}
-                        <th className="border-r border-slate-200 px-2 py-1.5 font-semibold text-center w-14">SL</th>
-                        <th className="border-r border-slate-200 px-2 py-1.5 font-semibold text-right w-32">Giá trị (Chưa VAT)</th>
+                        <th className="border-r border-slate-200 px-2 py-1.5 text-center w-14">SL</th>
+                        <th className="border-r border-slate-200 px-2 py-1.5 text-right w-32">Giá trị (Chưa VAT)</th>
 
                         {/* Tháng 4 */}
-                        <th className="border-r border-slate-200 px-2 py-1.5 font-semibold text-center w-28 text-[#3f81ea]">Tháng 4 (Số HĐ)</th>
-                        <th className="border-r border-slate-200 px-2 py-1.5 font-semibold text-center w-14 text-[#3f81ea]">SL</th>
-                        <th className="border-r border-slate-200 px-2 py-1.5 font-semibold text-right w-28 text-[#3f81ea]">Giá trị (Chưa VAT)</th>
+                        <th className="border-r border-slate-200 px-2 py-1.5 text-center w-28">Số Hợp đồng</th>
+                        <th className="border-r border-slate-200 px-2 py-1.5 text-center w-14">SL</th>
+                        <th className="border-r border-slate-200 px-2 py-1.5 text-right w-28">Giá trị (Chưa VAT)</th>
 
                         {/* Tháng 5 */}
-                        <th className="border-r border-slate-200 px-2 py-1.5 font-semibold text-center w-28 text-[#3f81ea]">Tháng 5 (Số HĐ)</th>
-                        <th className="border-r border-slate-200 px-2 py-1.5 font-semibold text-center w-14 text-[#3f81ea]">SL</th>
-                        <th className="border-r border-slate-200 px-2 py-1.5 font-semibold text-right w-28 text-[#3f81ea]">Giá trị (Chưa VAT)</th>
+                        <th className="border-r border-slate-200 px-2 py-1.5 text-center w-28">Số Hợp đồng</th>
+                        <th className="border-r border-slate-200 px-2 py-1.5 text-center w-14">SL</th>
+                        <th className="border-r border-slate-200 px-2 py-1.5 text-right w-28">Giá trị (Chưa VAT)</th>
 
                         {/* Tháng 6 */}
-                        <th className="border-r border-slate-200 px-2 py-1.5 font-semibold text-center w-28 text-[#3f81ea]">Tháng 6 (Số HĐ)</th>
-                        <th className="border-r border-slate-200 px-2 py-1.5 font-semibold text-center w-14 text-[#3f81ea]">SL</th>
-                        <th className="px-2 py-1.5 font-semibold text-right w-28 text-[#3f81ea]">Giá trị (Chưa VAT)</th>
+                        <th className="border-r border-slate-200 px-2 py-1.5 text-center w-28">Số Hợp đồng</th>
+                        <th className="border-r border-slate-200 px-2 py-1.5 text-center w-14">SL</th>
+                        <th className="px-2 py-1.5 text-right w-28">Giá trị (Chưa VAT)</th>
                       </tr>
                     </thead>
 
-                    <tbody className="divide-y divide-slate-200">
+                    <tbody className="divide-y divide-slate-200 text-[12px] text-[#2f2b3d]">
                       {sampleBreakdownRows.map((row) => (
                         <div key={row.id} style={{ display: "contents" }}>
                           {/* Parent Row */}
-                          <tr className="hover:bg-slate-50/70 text-slate-700">
-                            <td className="border-r border-slate-200 px-3 py-3 font-medium text-[#2f2b3d]">
+                          <tr className="hover:bg-slate-50/70">
+                            <td className="border-r border-slate-200 px-3 py-3 font-normal text-[#2f2b3d]">
                               <div className="flex items-start gap-2">
                                 {row.children && row.children.length > 0 ? (
                                   <button
@@ -567,73 +604,73 @@ export function BusinessPlanAcceptanceSideModal({
                                     className="mt-0.5 text-slate-400 hover:text-slate-700"
                                   >
                                     {expandedRows[row.id] ? (
-                                      <ChevronDown className="size-3.5" />
+                                      <ChevronDown className="size-3.5 text-[#8f8d95]" />
                                     ) : (
-                                      <ChevronRight className="size-3.5" />
+                                      <ChevronRight className="size-3.5 text-[#8f8d95]" />
                                     )}
                                   </button>
                                 ) : (
-                                  <ChevronRight className="size-3.5 mt-0.5 text-slate-300" />
+                                  <ChevronRight className="size-3.5 mt-0.5 text-slate-400" />
                                 )}
                                 <span>{row.category}</span>
                               </div>
                             </td>
 
                             {/* PAKD */}
-                            <td className="border-r border-slate-200 px-2 py-3 text-center font-medium">
+                            <td className="border-r border-slate-200 px-2 py-3 text-center">
                               {row.planQty}
                             </td>
-                            <td className="border-r border-slate-200 px-2 py-3 text-right font-medium">
+                            <td className="border-r border-slate-200 px-2 py-3 text-right">
                               {formatCurrency(row.planValue)}
                             </td>
 
                             {/* Đã nghiệm thu */}
-                            <td className="border-r border-slate-200 px-2 py-3 text-center font-medium text-[#28c76f]">
+                            <td className="border-r border-slate-200 px-2 py-3 text-center">
                               {row.acceptedQty}
                             </td>
-                            <td className="border-r border-slate-200 px-2 py-3 text-right font-medium text-[#28c76f]">
+                            <td className="border-r border-slate-200 px-2 py-3 text-right">
                               {formatCurrency(row.acceptedValue)}
                             </td>
 
                             {/* Còn lại */}
-                            <td className="border-r border-slate-200 px-2 py-3 text-center font-medium text-slate-700">
-                              {row.remainingQty}
+                            <td className="border-r border-slate-200 px-2 py-3 text-center">
+                              {row.remainingQty || "SL"}
                             </td>
-                            <td className="border-r border-slate-200 px-2 py-3 text-right font-medium text-slate-700">
+                            <td className="border-r border-slate-200 px-2 py-3 text-right">
                               {formatCurrency(row.remainingValue)}
                             </td>
 
                             {/* Tháng 4 */}
-                            <td className="border-r border-slate-200 px-2 py-3 text-center text-[#3f81ea] font-medium text-[11px]">
-                              {row.months.month4?.contractCode || "—"}
+                            <td className="border-r border-slate-200 px-2 py-3 text-center text-[11px]">
+                              {row.months.month4?.contractCode || "Số HĐ"}
                             </td>
-                            <td className="border-r border-slate-200 px-2 py-3 text-center text-[#3f81ea]">
-                              {row.months.month4?.qty || 0}
+                            <td className="border-r border-slate-200 px-2 py-3 text-center">
+                              {row.months.month4?.qty || "SL"}
                             </td>
-                            <td className="border-r border-slate-200 px-2 py-3 text-right text-[#3f81ea]">
-                              {formatCurrency(row.months.month4?.value || 0)}
+                            <td className="border-r border-slate-200 px-2 py-3 text-right">
+                              {row.months.month4?.value ? formatCurrency(row.months.month4.value) : "Giá trị (Chưa VAT)"}
                             </td>
 
                             {/* Tháng 5 */}
-                            <td className="border-r border-slate-200 px-2 py-3 text-center text-[#3f81ea] font-medium text-[11px]">
-                              {row.months.month5?.contractCode || "—"}
+                            <td className="border-r border-slate-200 px-2 py-3 text-center text-[11px]">
+                              {row.months.month5?.contractCode || "Số HĐ"}
                             </td>
-                            <td className="border-r border-slate-200 px-2 py-3 text-center text-[#3f81ea]">
-                              {row.months.month5?.qty || 0}
+                            <td className="border-r border-slate-200 px-2 py-3 text-center">
+                              {row.months.month5?.qty || "SL"}
                             </td>
-                            <td className="border-r border-slate-200 px-2 py-3 text-right text-[#3f81ea]">
-                              {formatCurrency(row.months.month5?.value || 0)}
+                            <td className="border-r border-slate-200 px-2 py-3 text-right">
+                              {row.months.month5?.value ? formatCurrency(row.months.month5.value) : "Giá trị (Chưa VAT)"}
                             </td>
 
                             {/* Tháng 6 */}
-                            <td className="border-r border-slate-200 px-2 py-3 text-center text-[#3f81ea] font-medium text-[11px]">
-                              {row.months.month6?.contractCode || "—"}
+                            <td className="border-r border-slate-200 px-2 py-3 text-center text-[11px]">
+                              {row.months.month6?.contractCode || "Số HĐ"}
                             </td>
-                            <td className="border-r border-slate-200 px-2 py-3 text-center text-[#3f81ea]">
-                              {row.months.month6?.qty || 0}
+                            <td className="border-r border-slate-200 px-2 py-3 text-center">
+                              {row.months.month6?.qty || "SL"}
                             </td>
-                            <td className="px-2 py-3 text-right text-[#3f81ea]">
-                              {formatCurrency(row.months.month6?.value || 0)}
+                            <td className="px-2 py-3 text-right">
+                              {row.months.month6?.value ? formatCurrency(row.months.month6.value) : "Giá trị (Chưa VAT)"}
                             </td>
                           </tr>
 
@@ -641,8 +678,8 @@ export function BusinessPlanAcceptanceSideModal({
                           {row.children &&
                             expandedRows[row.id] &&
                             row.children.map((subRow) => (
-                              <tr key={subRow.id} className="bg-slate-50/40 hover:bg-slate-50 text-slate-600">
-                                <td className="border-r border-slate-200 px-3 py-2.5 pl-8 text-slate-600">
+                              <tr key={subRow.id} className="hover:bg-slate-50/60 text-slate-700">
+                                <td className="border-r border-slate-200 px-3 py-2.5 pl-8">
                                   {subRow.category}
                                 </td>
 
@@ -655,102 +692,84 @@ export function BusinessPlanAcceptanceSideModal({
                                 </td>
 
                                 {/* Đã NT */}
-                                <td className="border-r border-slate-200 px-2 py-2.5 text-center text-[#28c76f]">
+                                <td className="border-r border-slate-200 px-2 py-2.5 text-center">
                                   {subRow.acceptedQty}
                                 </td>
-                                <td className="border-r border-slate-200 px-2 py-2.5 text-right text-[#28c76f]">
+                                <td className="border-r border-slate-200 px-2 py-2.5 text-right">
                                   {formatCurrency(subRow.acceptedValue)}
                                 </td>
 
                                 {/* Còn lại */}
                                 <td className="border-r border-slate-200 px-2 py-2.5 text-center">
-                                  {subRow.remainingQty}
+                                  {subRow.remainingQty || "SL"}
                                 </td>
                                 <td className="border-r border-slate-200 px-2 py-2.5 text-right">
                                   {formatCurrency(subRow.remainingValue)}
                                 </td>
 
                                 {/* Tháng 4 */}
-                                <td className="border-r border-slate-200 px-2 py-2.5 text-center text-[11px] text-slate-500">
-                                  {subRow.months.month4?.contractCode || "—"}
+                                <td className="border-r border-slate-200 px-2 py-2.5 text-center text-[11px]">
+                                  {subRow.months.month4?.contractCode || "Số HĐ"}
                                 </td>
                                 <td className="border-r border-slate-200 px-2 py-2.5 text-center">
-                                  {subRow.months.month4?.qty || 0}
+                                  {subRow.months.month4?.qty || "SL"}
                                 </td>
                                 <td className="border-r border-slate-200 px-2 py-2.5 text-right">
-                                  {formatCurrency(subRow.months.month4?.value || 0)}
+                                  {subRow.months.month4?.value ? formatCurrency(subRow.months.month4.value) : "Giá trị (Chưa VAT)"}
                                 </td>
 
                                 {/* Tháng 5 */}
-                                <td className="border-r border-slate-200 px-2 py-2.5 text-center text-[11px] text-slate-500">
-                                  {subRow.months.month5?.contractCode || "—"}
+                                <td className="border-r border-slate-200 px-2 py-2.5 text-center text-[11px]">
+                                  {subRow.months.month5?.contractCode || "Số HĐ"}
                                 </td>
                                 <td className="border-r border-slate-200 px-2 py-2.5 text-center">
-                                  {subRow.months.month5?.qty || 0}
+                                  {subRow.months.month5?.qty || "SL"}
                                 </td>
                                 <td className="border-r border-slate-200 px-2 py-2.5 text-right">
-                                  {formatCurrency(subRow.months.month5?.value || 0)}
+                                  {subRow.months.month5?.value ? formatCurrency(subRow.months.month5.value) : "Giá trị (Chưa VAT)"}
                                 </td>
 
                                 {/* Tháng 6 */}
-                                <td className="border-r border-slate-200 px-2 py-2.5 text-center text-[11px] text-slate-500">
-                                  {subRow.months.month6?.contractCode || "—"}
+                                <td className="border-r border-slate-200 px-2 py-2.5 text-center text-[11px]">
+                                  {subRow.months.month6?.contractCode || "Số HĐ"}
                                 </td>
                                 <td className="border-r border-slate-200 px-2 py-2.5 text-center">
-                                  {subRow.months.month6?.qty || 0}
+                                  {subRow.months.month6?.qty || "SL"}
                                 </td>
                                 <td className="px-2 py-2.5 text-right">
-                                  {formatCurrency(subRow.months.month6?.value || 0)}
+                                  {subRow.months.month6?.value ? formatCurrency(subRow.months.month6.value) : "Giá trị (Chưa VAT)"}
                                 </td>
                               </tr>
                             ))}
                         </div>
                       ))}
 
-                      {/* Total Summary Row matching Figma */}
-                      <tr className="bg-slate-100/90 font-bold text-[#2f2b3d] border-t-2 border-slate-300">
-                        <td className="border-r border-slate-200 px-3 py-3.5 text-center uppercase tracking-wide">
+                      {/* Total Summary Row matching Figma Node 28474:43523 */}
+                      <tr className="font-semibold text-[#2f2b3d] border-t border-slate-300">
+                        <td className="border-r border-slate-200 px-3 py-3.5 text-center">
                           Tổng cộng
                         </td>
                         <td className="border-r border-slate-200 px-2 py-3.5 text-center">
-                          1.800
+                          SL
                         </td>
-                        <td className="border-r border-slate-200 px-2 py-3.5 text-right font-bold">
-                          3.299.999.999.999
-                        </td>
-                        <td className="border-r border-slate-200 px-2 py-3.5 text-center text-[#28c76f]">
-                          2.199
-                        </td>
-                        <td className="border-r border-slate-200 px-2 py-3.5 text-right font-bold text-[#28c76f]">
-                          2.550.000.000.000
+                        <td className="border-r border-slate-200 px-2 py-3.5 text-right">
+                          Giá trị (Chưa VAT)
                         </td>
                         <td className="border-r border-slate-200 px-2 py-3.5 text-center">
-                          300
+                          SL
                         </td>
-                        <td className="border-r border-slate-200 px-2 py-3.5 text-right font-bold text-slate-800">
-                          749.999.999.999
+                        <td className="border-r border-slate-200 px-2 py-3.5 text-right">
+                          Giá trị (Chưa VAT)
                         </td>
-
-                        {/* Month 4 total */}
-                        <td className="border-r border-slate-200 px-2 py-3.5 text-center text-[#3f81ea] font-medium">—</td>
-                        <td className="border-r border-slate-200 px-2 py-3.5 text-center text-[#3f81ea]">550</td>
-                        <td className="border-r border-slate-200 px-2 py-3.5 text-right text-[#3f81ea]">
-                          700.000.000.000
+                        <td className="border-r border-slate-200 px-2 py-3.5 text-center">
+                          SL
                         </td>
-
-                        {/* Month 5 total */}
-                        <td className="border-r border-slate-200 px-2 py-3.5 text-center text-[#3f81ea] font-medium">—</td>
-                        <td className="border-r border-slate-200 px-2 py-3.5 text-center text-[#3f81ea]">800</td>
-                        <td className="border-r border-slate-200 px-2 py-3.5 text-right text-[#3f81ea]">
-                          925.000.000.000
+                        <td className="border-r border-slate-200 px-2 py-3.5 text-right">
+                          Giá trị (Chưa VAT)
                         </td>
 
-                        {/* Month 6 total */}
-                        <td className="border-r border-slate-200 px-2 py-3.5 text-center text-[#3f81ea] font-medium">—</td>
-                        <td className="border-r border-slate-200 px-2 py-3.5 text-center text-[#3f81ea]">849</td>
-                        <td className="px-2 py-3.5 text-right text-[#3f81ea]">
-                          925.000.000.000
-                        </td>
+                        {/* Month 4, 5, 6 empty cells in total row matching Figma */}
+                        <td colSpan={9} className="px-2 py-3.5"></td>
                       </tr>
                     </tbody>
                   </table>
@@ -762,21 +781,21 @@ export function BusinessPlanAcceptanceSideModal({
           {/* ========================================================================= */}
           {/* Accordion 4: Nhật ký gần đây */}
           {/* ========================================================================= */}
-          <div className="rounded-[8px] border border-slate-200 bg-white overflow-hidden shadow-2xs">
+          <div className="rounded-[8px] border border-[#dbdade] bg-white overflow-hidden">
             <button
               onClick={() => setSection4Open(!section4Open)}
-              className="flex w-full items-center justify-between px-5 py-3.5 text-left font-bold text-sm text-[#2f2b3d] bg-slate-50/50 hover:bg-slate-50 transition-colors"
+              className="flex w-full h-[56px] items-center justify-between px-6 text-left font-semibold text-[14px] text-[#2f2b3d] bg-white hover:bg-slate-50/60 transition-colors"
             >
               <span>Nhật ký gần đây</span>
               {section4Open ? (
-                <ChevronDown className="size-4 text-slate-500" />
+                <ChevronDown className="size-4 text-[#8f8d95]" />
               ) : (
-                <ChevronRight className="size-4 text-slate-500" />
+                <ChevronRight className="size-4 text-[#8f8d95]" />
               )}
             </button>
 
             {section4Open && (
-              <div className="p-5 pt-2 space-y-4">
+              <div className="p-5 pt-2 space-y-4 border-t border-slate-100">
                 <div className="space-y-4 relative before:absolute before:left-3.5 before:top-2 before:bottom-2 before:w-0.5 before:bg-slate-200">
                   {sampleSideModalActivities.map((act) => (
                     <div key={act.id} className="flex items-start gap-3 relative">
@@ -824,10 +843,10 @@ export function BusinessPlanAcceptanceSideModal({
         </div>
 
         {/* Modal Fixed Footer */}
-        <div className="flex shrink-0 items-center justify-end border-t border-slate-200 px-6 py-3 bg-white">
+        <div className="flex shrink-0 items-center justify-end border-t border-slate-200/80 px-6 py-3.5 bg-white">
           <button
             onClick={() => onOpenChange(false)}
-            className="rounded-[6px] bg-[#3f81ea] px-6 py-2 text-xs font-semibold text-white shadow-2xs hover:bg-[#326cc7] transition-colors"
+            className="rounded-[6px] bg-[#3f81ea] hover:bg-[#3572d4] px-6 py-2 text-[13px] font-medium text-white shadow-2xs transition-colors"
           >
             Đóng
           </button>

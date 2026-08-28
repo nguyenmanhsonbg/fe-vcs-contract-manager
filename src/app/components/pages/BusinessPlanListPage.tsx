@@ -1,16 +1,4 @@
 import { useMemo, useState } from "react";
-import {
-  CheckCheck,
-  Clock,
-  Download,
-  Edit3,
-  Eye,
-  FileText,
-  Filter,
-  Plus,
-  RotateCcw,
-  TrendingUp,
-} from "lucide-react";
 import { PageHeader } from "../common/PageHeader";
 import { StatCard } from "../common/StatCard";
 import { SearchInput } from "../common/SearchInput";
@@ -18,13 +6,41 @@ import { SelectFilter } from "../common/SelectFilter";
 import { DatePickerInput } from "../common/DatePickerInput";
 import { StatusBadge } from "../common/StatusBadge";
 import { Pagination } from "../common/Pagination";
-import { BusinessPlanItem, sampleBusinessPlans } from "../../data/businessPlanMock";
-import { CreateBusinessPlanModal } from "../modals/CreateBusinessPlanModal";
+import { WidgetCard } from "../common/WidgetCard";
+import { RecentActivitiesWidget } from "../common/RecentActivitiesWidget";
+import {
+  IconPakdBag,
+  IconTrendingUp,
+  IconCalendarClock,
+  IconUploadPakd,
+  IconActivityDoc,
+  IconActivityDocPlus,
+  IconActivityDocUpload,
+  IconEye,
+  IconDownload,
+  IconFilter,
+  IconRefreshSpin,
+} from "../icons";
+import { BusinessPlanItem } from "../../data/businessPlanMock";
+import { UploadModal } from "../modals/UploadModal";
 import { BusinessPlanAcceptanceSideModal } from "../modals/BusinessPlanAcceptanceSideModal";
 import { toast } from "sonner";
 
+// Checkmark square for completed stat
+const IconCheckSquareStat = ({ className = "size-5" }: { className?: string }) => (
+  <svg className={className} width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M9 11L12 14L22 4" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M21 12V19C21 20.1046 20.1046 21 19 21H5C3.89543 21 3 20.1046 3 19V5C3 3.89543 3.89543 3 5 3H16" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+);
+
 interface BusinessPlanListPageProps {
   onSelectPlan: (id: string) => void;
+}
+
+function formatCurrency(val?: number): string {
+  if (val === undefined || val === null) return "0";
+  return new Intl.NumberFormat("vi-VN").format(val);
 }
 
 // 10 mock items matching Figma Node 28013:13071
@@ -241,34 +257,35 @@ const figmaBusinessPlans: BusinessPlanItem[] = [
   },
 ];
 
+// 4 Activity Items matching Figma Node 28013:13071
 const sampleFigmaActivities = [
   {
     id: "act-1",
     title: "Tải lên Phương án kinh doanh 144/TTr-TTKDMB",
     user: "Nguyễn Văn A",
-    time: "18/04/2025 10:23",
+    time: "18/04/2025  10:23",
     type: "upload_green",
   },
   {
     id: "act-2",
     title: 'Cập nhật trạng thái sang "Đang thực hiện"',
     user: "Nguyễn Văn A",
-    time: "18/04/2025 10:24",
+    time: "18/04/2025  10:24",
     type: "status_blue",
   },
   {
     id: "act-3",
     title: "Tải lên Phương án kinh doanh 144/TTr-TTKDMB",
     user: "Nguyễn Văn A",
-    time: "18/04/2025 10:25",
+    time: "18/04/2025  10:25",
     type: "upload_cyan",
   },
   {
     id: "act-4",
     title: 'Cập nhật trạng thái sang "Đã hoàn thành"',
     user: "Nguyễn Văn A",
-    time: "18/04/2025 14:32",
-    type: "status_check",
+    time: "18/04/2025  14:32",
+    type: "status_blue",
   },
 ];
 
@@ -284,7 +301,7 @@ export function BusinessPlanListPage({ onSelectPlan }: BusinessPlanListPageProps
 
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
-  const [createModalOpen, setCreateModalOpen] = useState(false);
+  const [uploadModalOpen, setUploadModalOpen] = useState(false);
   const [sideModalOpen, setSideModalOpen] = useState(false);
   const [selectedPlanForSideModal, setSelectedPlanForSideModal] = useState<string>("144/TTr-TTKDMB");
 
@@ -346,17 +363,17 @@ export function BusinessPlanListPage({ onSelectPlan }: BusinessPlanListPageProps
         action={
           <div className="flex items-center gap-3">
             <button
-              onClick={() => setCreateModalOpen(true)}
-              className="inline-flex h-9 items-center gap-1.5 rounded-[6px] bg-[#ff4c51] px-4 text-xs font-semibold text-white shadow-2xs hover:bg-[#e64449] transition-colors"
+              onClick={() => setUploadModalOpen(true)}
+              className="inline-flex h-[38px] items-center gap-2 rounded-[6px] bg-[#ff4c51] px-4 text-[13px] font-medium text-white shadow-2xs hover:bg-[#e64449] transition-colors"
             >
-              <Plus className="size-4" />
-              + Upload PAKD
+              <IconUploadPakd className="size-4 text-white" />
+              Upload PAKD
             </button>
             <button
               onClick={handleExportExcel}
-              className="inline-flex h-9 items-center gap-1.5 rounded-[6px] border border-slate-300 bg-white px-3.5 text-xs font-medium text-slate-700 shadow-2xs hover:bg-slate-50 transition-colors"
+              className="inline-flex h-[38px] items-center gap-2 rounded-[6px] border border-[#dbdade] bg-white px-4 text-[13px] font-medium text-[#5d586c] shadow-2xs hover:bg-slate-50 transition-colors"
             >
-              <Download className="size-3.5 text-slate-500" />
+              <IconDownload className="size-4 text-[#5d586c]" />
               Xuất Excel
             </button>
           </div>
@@ -369,7 +386,7 @@ export function BusinessPlanListPage({ onSelectPlan }: BusinessPlanListPageProps
           variant="horizontal"
           title="Tổng PAKD"
           value={48}
-          icon={FileText}
+          icon={IconPakdBag}
           iconBgClass="bg-[#ffeae9] text-[#ff4c51]"
         />
         <StatCard
@@ -377,7 +394,7 @@ export function BusinessPlanListPage({ onSelectPlan }: BusinessPlanListPageProps
           title="Đang thực hiện"
           value={22}
           subtext="37,50% tổng số PAKD"
-          icon={TrendingUp}
+          icon={IconTrendingUp}
           iconBgClass="bg-[#e8f4fd] text-[#3f81ea]"
         />
         <StatCard
@@ -385,7 +402,7 @@ export function BusinessPlanListPage({ onSelectPlan }: BusinessPlanListPageProps
           title="Đã hoàn thành"
           value={18}
           subtext="45,83% tổng số PAKD"
-          icon={CheckCheck}
+          icon={IconCheckSquareStat}
           iconBgClass="bg-[#e8f9ee] text-[#28c76f]"
         />
         <StatCard
@@ -393,241 +410,195 @@ export function BusinessPlanListPage({ onSelectPlan }: BusinessPlanListPageProps
           title="Tạm dừng"
           value={8}
           subtext="16,67% tổng số PAKD"
-          icon={Clock}
+          icon={IconCalendarClock}
           iconBgClass="bg-[#fff5e8] text-[#ff9f43]"
         />
       </div>
 
-      {/* Main Table Card: Danh sách Phương án kinh doanh */}
-      <div className="rounded-[8px] border border-slate-200 bg-white p-5 shadow-2xs space-y-4">
-        <h2 className="text-base font-bold text-[#2f2b3d]">
+      {/* Main Table Card: Danh sách Phương án kinh doanh (Figma Node 28013:13128) */}
+      <WidgetCard className="space-y-5">
+        <h2 className="text-[16px] font-semibold text-[#2f2b3d]">
           Danh sách Phương án kinh doanh
         </h2>
 
-        {/* Filter Toolbar (Reusing SearchInput, SelectFilter, DatePickerInput) */}
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_180px_200px_auto_auto] items-end">
-          <SearchInput
-            value={searchQuery}
-            onChange={setSearchQuery}
-            placeholder="Tìm bằng mã PAKD/Tên đối tác"
-            className="w-full"
-          />
+        {/* Filter bar */}
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          {/* Left filters: Search + Select + Date */}
+          <div className="flex flex-wrap items-center gap-3 flex-1 min-w-[280px]">
+            <div className="w-full sm:w-64">
+              <SearchInput
+                value={searchQuery}
+                onChange={(val) => {
+                  setSearchQuery(val);
+                  setAppliedSearch(val);
+                  setCurrentPage(1);
+                }}
+                placeholder="Tìm bằng mã PAKD/Tên đối tác"
+              />
+            </div>
 
-          <SelectFilter
-            label="Trạng thái"
-            value={statusFilter}
-            onChange={setStatusFilter}
-            options={[
-              { value: "all", label: "Tất cả" },
-              { value: "Đang thực hiện", label: "Đang thực hiện" },
-              { value: "Đã hoàn thành", label: "Đã hoàn thành" },
-              { value: "Tạm dừng", label: "Tạm dừng" },
-              { value: "Chờ phê duyệt", label: "Chờ phê duyệt" },
-              { value: "Lưu nháp", label: "Lưu nháp" },
-            ]}
-          />
+            <div className="w-full sm:w-48">
+              <SelectFilter
+                value={statusFilter}
+                onChange={(val) => {
+                  setStatusFilter(val);
+                  setAppliedStatus(val);
+                  setCurrentPage(1);
+                }}
+              >
+                <option value="all">Tất cả trạng thái</option>
+                <option value="Đang thực hiện">Đang thực hiện</option>
+                <option value="Đã hoàn thành">Đã hoàn thành</option>
+                <option value="Tạm dừng">Tạm dừng</option>
+              </SelectFilter>
+            </div>
 
-          <DatePickerInput
-            label="Khoảng thời gian"
-            value={dateFilter}
-            onChange={setDateFilter}
-            placeholder="dd.mm.yyyy"
-          />
+            <div className="w-full sm:w-44">
+              <DatePickerInput
+                value={dateFilter}
+                onChange={(val) => {
+                  setDateFilter(val);
+                  setAppliedDate(val);
+                  setCurrentPage(1);
+                }}
+                placeholder="dd/mm/yyyy"
+              />
+            </div>
+          </div>
 
-          <button
-            onClick={handleApplyFilter}
-            className="inline-flex h-9 items-center gap-1.5 rounded-[6px] border border-[#ff4c51] px-4 text-xs font-medium text-[#ff4c51] transition-colors hover:bg-[#ff4c51]/10"
-          >
-            <Filter className="size-3.5" />
-            Lọc
-          </button>
-
-          <button
-            onClick={handleResetFilter}
-            className="inline-flex h-9 items-center gap-1.5 rounded-[6px] border border-slate-300 px-4 text-xs font-medium text-slate-700 transition-colors hover:bg-slate-50"
-          >
-            <RotateCcw className="size-3.5 text-slate-500" />
-            Đặt Lại
-          </button>
+          {/* Right action button: Đặt lại */}
+          <div className="flex items-center">
+            <button
+              onClick={handleResetFilter}
+              className="inline-flex h-[38px] items-center gap-1.5 rounded-[6px] border border-[#dbdade] bg-white px-3.5 text-[13px] font-medium text-[#5d586c] shadow-2xs hover:bg-slate-50 transition-colors cursor-pointer"
+              title="Đặt lại bộ lọc"
+            >
+              <IconRefreshSpin className="size-3.5 text-[#5d586c]" />
+              Đặt Lại
+            </button>
+          </div>
         </div>
 
         {/* Data Table */}
-        <div className="overflow-x-auto border border-slate-200 rounded-[6px]">
-          <table className="w-full min-w-[1100px] border-collapse text-left text-xs">
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[1000px] border-collapse text-left text-[13px]">
             <thead>
-              <tr className="border-b border-slate-200 bg-slate-50/90 text-[#5d586c] text-[11px]">
-                <th className="px-3 py-3 font-semibold text-slate-700 w-32">Số PAKD</th>
-                <th className="px-3 py-3 font-semibold text-slate-700 min-w-[200px]">Tên PAKD</th>
-                <th className="px-3 py-3 font-semibold text-slate-700 text-center w-24">Ngày ký</th>
-                <th className="px-3 py-3 font-semibold text-slate-700 min-w-[200px]">Khách hàng</th>
-                <th className="px-3 py-3 font-semibold text-slate-700 text-center min-w-[160px]">Thời gian thực hiện</th>
-                <th className="px-3 py-3 font-semibold text-slate-700 text-right w-28">Tổng giá trị mua sắm</th>
-                <th className="px-3 py-3 font-semibold text-slate-700 text-right w-28">Nghiệm thu</th>
-                <th className="px-3 py-3 font-semibold text-slate-700 text-right w-24">Còn lại</th>
-                <th className="px-3 py-3 font-semibold text-slate-700 text-center w-32">Trạng thái</th>
-                <th className="px-3 py-3 font-semibold text-slate-700 text-center w-20">Thao tác</th>
+              <tr className="border-b border-slate-200/80 text-[13px]">
+                <th className="px-3 py-3.5 font-semibold text-[#2f2b3d] text-left">
+                  Số PAKD
+                </th>
+                <th className="px-3 py-3.5 font-semibold text-[#2f2b3d] text-left">
+                  Ngày ký
+                </th>
+                <th className="px-3 py-3.5 font-semibold text-[#2f2b3d] text-left">
+                  Thời gian thực hiện
+                </th>
+                <th className="px-3 py-3.5 font-semibold text-[#2f2b3d] text-left">
+                  Khách hàng
+                </th>
+                <th className="px-3 py-3.5 font-semibold text-[#2f2b3d] text-right">
+                  Tổng ngân sách
+                </th>
+                <th className="px-3 py-3.5 font-semibold text-[#2f2b3d] text-right">
+                  Đã nghiệm thu
+                </th>
+                <th className="px-3 py-3.5 font-semibold text-[#2f2b3d] text-right">
+                  Còn lại
+                </th>
+                <th className="px-3 py-3.5 font-semibold text-[#2f2b3d] text-center">
+                  Trạng thái
+                </th>
+                <th className="px-3 py-3.5 font-semibold text-[#2f2b3d] text-center">
+                  Thao tác
+                </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-200">
+
+            <tbody className="divide-y divide-slate-100 text-[13px] text-[#2f2b3d]">
               {paginatedPlans.length === 0 ? (
                 <tr>
-                  <td colSpan={10} className="py-10 text-center text-slate-400">
-                    Không tìm thấy phương án kinh doanh nào phù hợp.
+                  <td colSpan={9} className="py-12 text-center text-slate-400">
+                    Không tìm thấy phương án kinh doanh nào phù hợp
                   </td>
                 </tr>
               ) : (
-                paginatedPlans.map((row) => (
-                  <tr
-                    key={row.id}
-                    className="hover:bg-slate-50/70 text-slate-700 transition-colors cursor-pointer"
-                    onClick={() => {
-                      setSelectedPlanForSideModal(row.id);
-                      setSideModalOpen(true);
-                    }}
-                  >
-                    <td className="px-3 py-3 font-semibold text-[#2f2b3d] text-xs">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setSelectedPlanForSideModal(row.id);
-                          setSideModalOpen(true);
-                        }}
-                        className="text-left font-semibold text-[#3f81ea] hover:underline"
-                      >
-                        {row.id}
-                      </button>
-                    </td>
-                    <td className="px-3 py-3 font-medium text-slate-800">
-                      {row.title}
-                    </td>
-                    <td className="px-3 py-3 text-center text-slate-600">
-                      {row.planDate}
-                    </td>
-                    <td className="px-3 py-3 text-slate-700 font-medium">
-                      {row.partner}
-                    </td>
-                    <td className="px-3 py-3 text-center text-slate-600">
-                      {row.executionPeriod}
-                    </td>
-                    <td className="px-3 py-3 text-right font-medium text-slate-800">
-                      {row.procurementCost !== undefined
-                        ? `${row.procurementCost},00`
-                        : "320,00"}
-                    </td>
-                    <td className="px-3 py-3 text-right font-medium text-slate-800">
-                      {row.acceptedAmount !== undefined
-                        ? `${row.acceptedAmount},00`
-                        : "320,00"}
-                    </td>
-                    <td className="px-3 py-3 text-right font-medium text-slate-800">
-                      {row.remainingAmount !== undefined
-                        ? `${row.remainingAmount},00`
-                        : "320,00"}
-                    </td>
-                    <td className="px-3 py-3 text-center">
-                      {/* Reusing shared StatusBadge */}
-                      <StatusBadge status={row.status} />
-                    </td>
-                    <td
-                      className="px-3 py-3 text-center"
-                      onClick={(e) => e.stopPropagation()}
+                paginatedPlans.map((plan) => {
+                  const total = (plan as any).totalBudget || 100000000000;
+                  const accepted = (plan as any).acceptedAmount || 100000000000;
+                  const remaining = (plan as any).remainingBudget ?? 100000000000;
+
+                  return (
+                    <tr
+                      key={plan.id}
+                      className="hover:bg-slate-50/60 transition-colors"
                     >
-                      <button
-                        onClick={() => {
-                          setSelectedPlanForSideModal(row.id);
-                          setSideModalOpen(true);
-                        }}
-                        className="inline-flex size-7 items-center justify-center rounded-full text-[#3f81ea] hover:bg-[#3f81ea]/10 transition-colors"
-                        title="Xem chi tiết nghiệm thu theo PAKD"
-                      >
-                        <Eye className="size-4" />
-                      </button>
-                    </td>
-                  </tr>
-                ))
+                      <td className="px-3 py-4 font-normal text-[#2f2b3d] max-w-[140px] truncate">
+                        {plan.code}
+                      </td>
+                      <td className="px-3 py-4 text-[#2f2b3d]">
+                        {plan.planDate}
+                      </td>
+                      <td className="px-3 py-4 text-[#2f2b3d]">
+                        {plan.executionPeriod}
+                      </td>
+                      <td className="px-3 py-4 text-[#2f2b3d] max-w-[200px] leading-[18px]">
+                        {plan.partner}
+                      </td>
+                      <td className="px-3 py-4 text-right text-[#2f2b3d]">
+                        {formatCurrency(total)}
+                      </td>
+                      <td className="px-3 py-4 text-right text-[#2f2b3d]">
+                        {formatCurrency(accepted)}
+                      </td>
+                      <td className="px-3 py-4 text-right text-[#2f2b3d]">
+                        {formatCurrency(remaining)}
+                      </td>
+                      <td className="px-3 py-4 text-center">
+                        <StatusBadge status={plan.status} />
+                      </td>
+                      <td className="px-3 py-4 text-center">
+                        <button
+                          onClick={() => {
+                            setSelectedPlanForSideModal(plan.id);
+                            setSideModalOpen(true);
+                          }}
+                          className="inline-flex size-7 items-center justify-center rounded text-[#3f81ea] hover:bg-[#3f81ea]/10 transition-colors cursor-pointer"
+                          title="Xem chi tiết nghiệm thu theo PAKD"
+                        >
+                          <IconEye className="size-4" />
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>
         </div>
 
-        {/* Pagination Footer (Reusing shared Pagination component) */}
+        {/* Pagination Toolbar */}
         <Pagination
           currentPage={currentPage}
-          pageSize={pageSize}
-          totalElements={totalElements}
           totalPages={totalPages}
-          pageSizeOptions={[10, 20, 50]}
-          pageSizeLabel="Hiển thị"
+          totalItems={totalElements}
+          pageSize={pageSize}
           onPageChange={setCurrentPage}
-          onPageSizeChange={(size) => {
-            setPageSize(size);
+          onPageSizeChange={(sz) => {
+            setPageSize(sz);
             setCurrentPage(1);
           }}
-          renderSummary={(start, end, total) => (
-            <>
-              Hiển thị {start} đến {end} trong {total} bản ghi
-            </>
-          )}
         />
-      </div>
+      </WidgetCard>
 
       {/* Recent Activities Card */}
-      <div className="rounded-[8px] border border-slate-200 bg-white p-5 shadow-2xs space-y-3">
-        <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-          <h3 className="text-sm font-bold text-[#2f2b3d]">
-            Nhật ký gần đây
-          </h3>
-          <button
-            onClick={() => toast.info("Đang mở toàn bộ lịch sử hoạt động...")}
-            className="text-xs font-medium text-[#3f81ea] hover:underline"
-          >
-            Xem tất cả nhật ký &gt;
-          </button>
-        </div>
+      <RecentActivitiesWidget activities={sampleFigmaActivities} />
 
-        <div className="divide-y divide-slate-100">
-          {sampleFigmaActivities.map((act) => (
-            <div key={act.id} className="flex items-center justify-between py-3">
-              <div className="flex items-center gap-3">
-                <div
-                  className={`flex size-8 shrink-0 items-center justify-center rounded-md ${
-                    act.type === "upload_green"
-                      ? "bg-[#e8f9ee] text-[#28c76f]"
-                      : act.type === "status_blue"
-                      ? "bg-[#e8f4fd] text-[#3f81ea]"
-                      : act.type === "upload_cyan"
-                      ? "bg-[#e0f7fa] text-[#00bad1]"
-                      : "bg-[#e8f4fd] text-[#3f81ea]"
-                  }`}
-                >
-                  {act.type.includes("upload") ? (
-                    <FileText className="size-4" />
-                  ) : act.type === "status_check" ? (
-                    <CheckCheck className="size-4" />
-                  ) : (
-                    <Edit3 className="size-4" />
-                  )}
-                </div>
-                <div>
-                  <p className="text-xs font-semibold text-slate-800">{act.title}</p>
-                  <p className="text-[11px] text-slate-400">{act.user}</p>
-                </div>
-              </div>
-
-              <span className="text-[11px] text-slate-400 font-mono">
-                {act.time}
-              </span>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Create / Upload Modal */}
-      <CreateBusinessPlanModal
-        open={createModalOpen}
-        onOpenChange={setCreateModalOpen}
+      {/* Upload Document Modal (Shared across system) */}
+      <UploadModal
+        open={uploadModalOpen}
+        onOpenChange={setUploadModalOpen}
         onSuccess={() => {
-          toast.success("Tạo mới phương án kinh doanh thành công!");
+          toast.success("Tải lên PAKD thành công!");
         }}
       />
 
