@@ -16,26 +16,16 @@ import {
   IconEye,
   IconDownload,
   IconRefreshSpin,
+  IconCheckSquareStat,
 } from "../../components/icons";
 import { BusinessPlanItem } from "../../core/types/businessPlan.types";
 import { UploadModal } from "../DocumentDigitization/components/UploadModal";
 import { BusinessPlanAcceptanceSideModal } from "./components/BusinessPlanAcceptanceSideModal";
 import { toast } from "sonner";
-
-const IconCheckSquareStat = ({ className = "size-5" }: { className?: string }) => (
-  <svg className={className} width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <path d="M9 11L12 14L22 4" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" />
-    <path d="M21 12V19C21 20.1046 20.1046 21 19 21H5C3.89543 21 3 20.1046 3 19V5C3 3.89543 3.89543 3 5 3H16" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" />
-  </svg>
-);
+import { formatCurrency } from "../../core/utils/formatters";
 
 interface BusinessPlanListPageProps {
   onSelectPlan: (id: string) => void;
-}
-
-function formatCurrency(val?: number): string {
-  if (val === undefined || val === null) return "0";
-  return new Intl.NumberFormat("vi-VN").format(val);
 }
 
 const figmaBusinessPlans: BusinessPlanItem[] = [
