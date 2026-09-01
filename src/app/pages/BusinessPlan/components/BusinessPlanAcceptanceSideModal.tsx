@@ -15,6 +15,7 @@ import {
   Layers,
 } from "lucide-react";
 import { BusinessPlanItem } from "../../../core/types/businessPlan.types";
+import { formatCurrency } from "../../../core/utils/formatters";
 import { sampleBusinessPlans } from "../../../api/mocks/businessPlanMock";
 import { toast } from "sonner";
 
@@ -23,11 +24,6 @@ interface BusinessPlanAcceptanceSideModalProps {
   onOpenChange: (open: boolean) => void;
   planId?: string;
   plan?: BusinessPlanItem | null;
-}
-
-function formatCurrency(val?: number): string {
-  if (val === undefined || val === null) return "0";
-  return new Intl.NumberFormat("vi-VN").format(val);
 }
 
 interface BreakdownMonthRecord {

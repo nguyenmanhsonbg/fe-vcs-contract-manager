@@ -20,16 +20,12 @@ import { StatusBadge } from "../../components/common/StatusBadge";
 import { WidgetCard } from "../../components/common/WidgetCard";
 import { RecentActivitiesWidget } from "../../components/common/RecentActivitiesWidget";
 import { businessPlanApi } from "../../api/businessPlanApi";
+import { formatCurrency } from "../../core/utils/formatters";
 import { toast } from "sonner";
 
 interface BusinessPlanDetailPageProps {
   planId?: string;
   onBack: () => void;
-}
-
-function formatCurrency(val?: number): string {
-  if (val === undefined || val === null) return "0";
-  return new Intl.NumberFormat("vi-VN").format(val);
 }
 
 export function BusinessPlanDetailPage({
@@ -97,16 +93,20 @@ export function BusinessPlanDetailPage({
     }
   };
 
-  const group1Items = plan.lineItems.filter((i) => i.group === "I" || !i.group);
-  const group2Items = plan.lineItems.filter((i) => i.group === "II");
+  const lineItems = plan.lineItems || plan.items || [];
+  const group1Items = lineItems.filter((i) => i.group === "I" || !i.group);
+  const group2Items = lineItems.filter((i) => i.group === "II");
 
-  const group1Total = group1Items.reduce((acc, cur) => acc + cur.totalAmount, 0);
+  const group1Total = group1Items.reduce((acc, cur) => acc + (cur.totalAmount || 0), 0);
   const group1Vat = group1Items.reduce((acc, cur) => acc + (cur.vatAmount || 0), 0);
-  const group1TotalWithVat = group1Items.reduce((acc, cur) => acc + (cur.totalAmountWithVat || cur.totalAmount), 0);
+  const group1TotalWithVat = group1Items.reduce((acc, cur) => acc + (cur.totalAmountWithVat || cur.totalAmount || 0), 0);
 
-  const group2Total = group2Items.reduce((acc, cur) => acc + cur.totalAmount, 0);
+  const group2Total = group2Items.reduce((acc, cur) => acc + (cur.totalAmount || 0), 0);
   const group2Vat = group2Items.reduce((acc, cur) => acc + (cur.vatAmount || 0), 0);
-  const group2TotalWithVat = group2Items.reduce((acc, cur) => acc + (cur.totalAmountWithVat || cur.totalAmount), 0);
+  const group2TotalWithVat = group2Items.reduce((acc, cur) => acc + (cur.totalAmountWithVat || cur.totalAmount || 0), 0);
+
+  const financial = plan.financial;
+  const appendices = plan.appendices || [];
 
   return (
     <div className="min-h-full w-full space-y-6 bg-[#f8f7fa] p-6 text-[#393740]">
@@ -416,7 +416,7 @@ export function BusinessPlanDetailPage({
                         <td className="px-3 py-3 font-bold text-center">I</td>
                         <td className="px-3 py-3 font-bold">Hạng mục 1</td>
                         <td className="px-3 py-3">Bộ</td>
-                        <td className="px-3 py-3 text-center">{group1Items.reduce((acc, c) => acc + c.quantity, 0)}</td>
+                        <td className="px-3 py-3 text-center">{group1Items.reduce((acc, c) => acc + (c.quantity || 0), 0)}</td>
                         <td className="px-3 py-3 text-right">-</td>
                         <td className="px-3 py-3 text-right">{formatCurrency(group1Total)}</td>
                         <td className="px-3 py-3 text-right">{formatCurrency(group1Vat)}</td>
@@ -446,7 +446,7 @@ export function BusinessPlanDetailPage({
                         <td className="px-3 py-3 font-bold text-center">II</td>
                         <td className="px-3 py-3 font-bold">Hạng mục 2</td>
                         <td className="px-3 py-3">Bộ</td>
-                        <td className="px-3 py-3 text-center">{group2Items.reduce((acc, c) => acc + c.quantity, 0)}</td>
+                        <td className="px-3 py-3 text-center">{group2Items.reduce((acc, c) => acc + (c.quantity || 0), 0)}</td>
                         <td className="px-3 py-3 text-right">-</td>
                         <td className="px-3 py-3 text-right">{formatCurrency(group2Total)}</td>
                         <td className="px-3 py-3 text-right">{formatCurrency(group2Vat)}</td>
@@ -476,7 +476,7 @@ export function BusinessPlanDetailPage({
                     </td>
                     <td className="px-3 py-3 text-right">{formatCurrency(plan.totalAmount)}</td>
                     <td className="px-3 py-3 text-right">
-                      {formatCurrency(plan.totalAmountWithVat - plan.totalAmount)}
+                      {formatCurrency((plan.totalAmountWithVat ?? 0) - (plan.totalAmount ?? 0))}
                     </td>
                     <td className="px-3 py-3 text-right font-bold text-[#ff4c51]">
                       {formatCurrency(plan.totalAmountWithVat)}
@@ -525,41 +525,41 @@ export function BusinessPlanDetailPage({
                   <tr className="font-bold text-[#2f2b3d] bg-slate-50/60">
                     <td className="px-3 py-3 text-center">I</td>
                     <td className="px-3 py-3 uppercase">DOANH THU DỰ KIẾN</td>
-                    <td className="px-3 py-3 text-right">{formatCurrency(plan.financial.revenue)}</td>
-                    <td className="px-3 py-3 text-right">{formatCurrency(plan.financial.revenueVat)}</td>
-                    <td className="px-3 py-3 text-right">{formatCurrency(plan.financial.revenueWithVat)}</td>
+                    <td className="px-3 py-3 text-right">{formatCurrency(financial?.revenue)}</td>
+                    <td className="px-3 py-3 text-right">{formatCurrency(financial?.revenueVat)}</td>
+                    <td className="px-3 py-3 text-right">{formatCurrency(financial?.revenueWithVat)}</td>
                     <td className="px-3 py-2 text-slate-500 font-normal text-[12px]">Chi tiết theo phụ lục 01 đính kèm</td>
                   </tr>
 
                   <tr className="font-bold text-[#2f2b3d] bg-slate-50/60">
                     <td className="px-3 py-3 text-center">II</td>
                     <td className="px-3 py-3 uppercase">CHI PHÍ</td>
-                    <td className="px-3 py-3 text-right">{formatCurrency(plan.financial.cost)}</td>
-                    <td className="px-3 py-3 text-right">{formatCurrency(plan.financial.costVat)}</td>
-                    <td className="px-3 py-3 text-right">{formatCurrency(plan.financial.costWithVat)}</td>
+                    <td className="px-3 py-3 text-right">{formatCurrency(financial?.cost)}</td>
+                    <td className="px-3 py-3 text-right">{formatCurrency(financial?.costVat)}</td>
+                    <td className="px-3 py-3 text-right">{formatCurrency(financial?.costWithVat)}</td>
                     <td className="px-3 py-2 text-slate-500 font-normal text-[12px]">Chi tiết theo phụ lục 02 đính kèm</td>
                   </tr>
                   <tr className="hover:bg-slate-50/50 text-slate-700">
                     <td className="px-3 py-2.5 text-center text-slate-500">1</td>
                     <td className="px-3 py-2.5 font-medium pl-6">Chi phí đầu tư mua sắm</td>
-                    <td className="px-3 py-2.5 text-right">{formatCurrency(plan.financial.procurementCost)}</td>
-                    <td className="px-3 py-2.5 text-right">{formatCurrency(plan.financial.procurementCostVat)}</td>
-                    <td className="px-3 py-2.5 text-right font-medium">{formatCurrency(plan.financial.procurementCostWithVat)}</td>
+                    <td className="px-3 py-2.5 text-right">{formatCurrency(financial?.procurementCost)}</td>
+                    <td className="px-3 py-2.5 text-right">{formatCurrency(financial?.procurementCostVat)}</td>
+                    <td className="px-3 py-2.5 text-right font-medium">{formatCurrency(financial?.procurementCostWithVat)}</td>
                     <td className="px-3 py-2.5" />
                   </tr>
                   <tr className="hover:bg-slate-50/50 text-slate-700">
                     <td className="px-3 py-2.5 text-center text-slate-500">2</td>
                     <td className="px-3 py-2.5 font-medium pl-6">Chi phí quản lý chung</td>
-                    <td className="px-3 py-2.5 text-right">{formatCurrency(plan.financial.generalAdminCost)}</td>
+                    <td className="px-3 py-2.5 text-right">{formatCurrency(financial?.generalAdminCost)}</td>
                     <td className="px-3 py-2.5 text-right text-slate-400">-</td>
-                    <td className="px-3 py-2.5 text-right font-medium">{formatCurrency(plan.financial.generalAdminCost)}</td>
+                    <td className="px-3 py-2.5 text-right font-medium">{formatCurrency(financial?.generalAdminCost)}</td>
                     <td className="px-3 py-2.5 text-slate-500 text-[12px]">0,1% doanh thu</td>
                   </tr>
 
                   <tr className="font-semibold text-[#2f2b3d]">
                     <td className="px-3 py-3 text-center">III</td>
                     <td className="px-3 py-3 font-bold">Lợi nhuận trước thuế = I - II</td>
-                    <td className="px-3 py-3 text-right font-bold text-[#3f81ea]">{formatCurrency(plan.financial.grossProfit)}</td>
+                    <td className="px-3 py-3 text-right font-bold text-[#3f81ea]">{formatCurrency(financial?.grossProfit)}</td>
                     <td className="px-3 py-3" />
                     <td className="px-3 py-3" />
                     <td className="px-3 py-3" />
@@ -568,7 +568,7 @@ export function BusinessPlanDetailPage({
                   <tr className="font-semibold text-[#2f2b3d]">
                     <td className="px-3 py-3 text-center">IV</td>
                     <td className="px-3 py-3 font-bold">Thuế TNDN (20%)</td>
-                    <td className="px-3 py-3 text-right font-bold text-[#ff4c51]">{formatCurrency(plan.financial.corporateTax)}</td>
+                    <td className="px-3 py-3 text-right font-bold text-[#ff4c51]">{formatCurrency(financial?.corporateTax)}</td>
                     <td className="px-3 py-3" />
                     <td className="px-3 py-3" />
                     <td className="px-3 py-3" />
@@ -577,7 +577,7 @@ export function BusinessPlanDetailPage({
                   <tr className="font-semibold text-[#2f2b3d]">
                     <td className="px-3 py-3 text-center">V</td>
                     <td className="px-3 py-3 font-bold">Lợi nhuận sau thuế</td>
-                    <td className="px-3 py-3 text-right font-bold text-[#28c76f]">{formatCurrency(plan.financial.netProfit)}</td>
+                    <td className="px-3 py-3 text-right font-bold text-[#28c76f]">{formatCurrency(financial?.netProfit)}</td>
                     <td className="px-3 py-3" />
                     <td className="px-3 py-3" />
                     <td className="px-3 py-3" />
@@ -586,7 +586,7 @@ export function BusinessPlanDetailPage({
                   <tr className="font-semibold text-[#2f2b3d]">
                     <td className="px-3 py-3 text-center">VI</td>
                     <td className="px-3 py-3 font-bold">Tỷ lệ lợi nhuận sau thuế / Chi phí = V / II</td>
-                    <td className="px-3 py-3 text-right font-bold text-[#7367f0]">{plan.financial.profitOnCostRatio}%</td>
+                    <td className="px-3 py-3 text-right font-bold text-[#7367f0]">{financial?.profitOnCostRatio ?? 0}%</td>
                     <td className="px-3 py-3" />
                     <td className="px-3 py-3" />
                     <td className="px-3 py-3" />
@@ -595,7 +595,7 @@ export function BusinessPlanDetailPage({
                   <tr className="font-semibold text-[#2f2b3d]">
                     <td className="px-3 py-3 text-center">VII</td>
                     <td className="px-3 py-3 font-bold">Tỷ lệ lợi nhuận trước thuế / Doanh thu = III / I</td>
-                    <td className="px-3 py-3 text-right font-bold text-[#ff9f43]">{plan.financial.profitOnRevenueRatio}%</td>
+                    <td className="px-3 py-3 text-right font-bold text-[#ff9f43]">{financial?.profitOnRevenueRatio ?? 0}%</td>
                     <td className="px-3 py-3" />
                     <td className="px-3 py-3" />
                     <td className="px-3 py-3" />
@@ -605,7 +605,7 @@ export function BusinessPlanDetailPage({
             </div>
 
             <div className="pt-2 text-[13px] text-[#2f2b3d]">
-              <strong>Đánh giá:</strong> {plan.financial.notes || `Tỷ lệ lợi nhuận / chi phí vốn đạt ${plan.financial.profitOnCostRatio}% đảm bảo hiệu quả kinh doanh theo quy định của Công ty.`}
+              <strong>Đánh giá:</strong> {financial?.notes || `Tỷ lệ lợi nhuận / chi phí vốn đạt ${financial?.profitOnCostRatio ?? 0}% đảm bảo hiệu quả kinh doanh theo quy định của Công ty.`}
             </div>
           </div>
         )}
@@ -615,16 +615,16 @@ export function BusinessPlanDetailPage({
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <WidgetCard className="p-5">
           <h2 className="mb-4 text-[15px] font-bold text-[#2f2b3d]">
-            Phụ lục đính kèm ({plan.appendices.length})
+            Phụ lục đính kèm ({appendices.length})
           </h2>
 
           <div className="space-y-3">
-            {plan.appendices.length === 0 ? (
+            {appendices.length === 0 ? (
               <p className="py-6 text-center text-[12px] text-slate-400">
                 Chưa có tệp phụ lục nào được đính kèm.
               </p>
             ) : (
-              plan.appendices.map((app) => (
+              appendices.map((app) => (
                 <div
                   key={app.id}
                   className="flex items-center justify-between rounded-[6px] border border-slate-200 bg-white px-4 py-3 transition-colors hover:bg-slate-50/70"
