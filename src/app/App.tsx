@@ -1,16 +1,16 @@
 import { Component, ErrorInfo, ReactNode, useState, useEffect } from "react";
-import { Sidebar, PageKey } from "./components/Sidebar";
-import { TopBar } from "./components/TopBar";
-import { DocumentDetailPage } from "./components/pages/DocumentDetailPage";
-import { ProposalDetailPage } from "./components/pages/ProposalDetailPage";
-import { BusinessPlanDetailPage } from "./components/pages/BusinessPlanDetailPage";
-import { ContractAcceptanceDetailPage } from "./components/pages/ContractAcceptanceDetailPage";
-import { OriginalDocView } from "./components/pages/OriginalDocView";
-import { UploadModal } from "./components/modals/UploadModal";
-import { DigitizedDoc } from "./data/models";
-import { docApi } from "./services/api";
+import { Sidebar, PageKey } from "./components/layout/Sidebar";
+import { TopBar } from "./components/layout/TopBar";
+import { DocumentDetailPage } from "./pages/DocumentDigitization/DocumentDetailPage";
+import { ProposalDetailPage } from "./pages/Proposal/ProposalDetailPage";
+import { BusinessPlanDetailPage } from "./pages/BusinessPlan/BusinessPlanDetailPage";
+import { ContractAcceptanceDetailPage } from "./pages/Acceptance/ContractAcceptanceDetailPage";
+import { OriginalDocView } from "./pages/DocumentDigitization/OriginalDocView";
+import { UploadModal } from "./pages/DocumentDigitization/components/UploadModal";
+import { DigitizedDoc } from "./core/types/document.types";
+import { docApi } from "./api/docApi";
 import { Toaster } from "./components/ui/sonner";
-import { getDocumentRoutePrefix, getRouteByKey, parseHashRoute } from "./config/routes";
+import { getDocumentRoutePrefix, getRouteByKey, parseHashRoute } from "./Router/routes";
 
 interface ErrorBoundaryProps {
   children: ReactNode;
@@ -70,7 +70,6 @@ export default function App() {
   const [uploadModalOpen, setUploadModalOpen] = useState(false);
   const [documentRefreshToken, setDocumentRefreshToken] = useState(0);
 
-  // Sync state from Hash URL (supplying support for direct links & reload on sub-pages)
   useEffect(() => {
     async function syncStateFromHash() {
       const parsed = parseHashRoute(window.location.hash);
@@ -112,7 +111,6 @@ export default function App() {
           if (apiDoc) {
             setOpenDoc(apiDoc);
           } else if (parsed.page === "proposal") {
-            // Fallback for proposal detail direct route
             setOpenDoc({
               id: parsed.docId,
               fileName: "TT-2025-028",
@@ -250,10 +248,8 @@ export default function App() {
 
   return (
     <div className="flex h-screen w-full overflow-hidden bg-[#f8f7fa] text-foreground font-sans">
-      {/* Sidebar navigation */}
       <Sidebar active={page} onNavigate={navigate} onUploadClick={() => setUploadModalOpen(true)} />
 
-      {/* Main Application Area */}
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
         <TopBar breadcrumb={breadcrumb} />
 
@@ -302,7 +298,6 @@ export default function App() {
         </main>
       </div>
 
-      {/* Upload Modal */}
       <UploadModal
         open={uploadModalOpen}
         onOpenChange={setUploadModalOpen}

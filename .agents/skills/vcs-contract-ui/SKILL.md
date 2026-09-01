@@ -16,25 +16,35 @@ Mọi file mới được thêm vào dự án PHẢI tuân theo đúng vị trí
 ```
 src/
 ├── app/
-│   ├── components/
-│   │   ├── common/         # Widgets dùng chung toàn ứng dụng (PageHeader, StatCard, SearchInput, SelectFilter...)
-│   │   ├── modals/         # Dialogs, Popups (UploadModal, TaskDetailModal...)
-│   │   ├── pages/          # Giao diện các trang chính (OverviewReportPage, DocumentListPage, ContractListPage...)
+│   ├── api/                # Services gọi API theo từng domain nghiệp vụ + Mock data & Fallbacks
+│   │   ├── http.ts         # Base HTTP client cấu hình chung
+│   │   ├── docApi.ts       # API số hóa tài liệu
+│   │   ├── proposalApi.ts  # API tờ trình
+│   │   ├── contractApi.ts  # API hợp đồng
+│   │   ├── businessPlanApi.ts # API phương án kinh doanh
+│   │   ├── acceptanceApi.ts   # API nghiệm thu
+│   │   ├── productApi.ts   # API tìm kiếm sản phẩm & lịch sử
+│   │   └── mocks/          # Mock data tương ứng từng domain
+│   ├── components/         # Shared UI Components toàn ứng dụng
+│   │   ├── common/         # Widgets dùng chung (PageHeader, StatCard, SearchInput, SelectFilter, Pagination...)
+│   │   ├── layout/         # Layout components (Sidebar.tsx, TopBar.tsx)
 │   │   ├── ui/             # Radix / Tailwind UI primitives (button, dialog, collapsible, sonner, utils)
-│   │   ├── Sidebar.tsx     # Navigation sidebar chính
-│   │   ├── TopBar.tsx      # Top bar tiêu đề & thông báo
-│   │   ├── DocumentCanvas.tsx # Xem canvas tài liệu
 │   │   └── icons.tsx       # TẬP TRUNG TOÀN BỘ SVG icons dùng trong ứng dụng (KHÔNG viết SVG inline)
-│   ├── config/
+│   ├── core/               # Core domain types & Shared utilities
+│   │   ├── types/          # TypeScript models, DTOs & Interfaces phân loại theo domain
+│   │   └── utils/          # Hàm tiện ích format tiền tệ, ngày tháng...
+│   ├── pages/              # Module hoá theo từng nghiệp vụ (Feature-based structure)
+│   │   ├── Auth/           # Đăng nhập & Xác thực người dùng (LoginPage)
+│   │   ├── Dashboard/      # Báo cáo tổng quan KPI (OverviewReportPage)
+│   │   ├── DocumentDigitization/ # Số hoá & Xem tài liệu (DocumentListPage, DocumentDetailPage, OriginalDocView, components/...)
+│   │   ├── Proposal/       # Quản lý tờ trình (ProposalListPage, ProposalDetailPage)
+│   │   ├── Contract/       # Quản lý hợp đồng (ContractListPage, ContractCreatePage, components/...)
+│   │   ├── BusinessPlan/   # Quản lý PAKD (BusinessPlanListPage, BusinessPlanDetailPage, components/...)
+│   │   ├── Acceptance/     # Biên bản nghiệm thu (AcceptanceListPage, AcceptanceReconciliationPage, ContractAcceptanceDetailPage, components/...)
+│   │   └── ProductLookup/  # Tra cứu sản phẩm & AI Search (ProductLookupPage)
+│   ├── Router/
 │   │   └── routes.tsx      # Khai báo Hash route & Navigation routing map
-│   ├── data/
-│   │   ├── models.ts       # TypeScript Data Interfaces chính (DigitizedDoc, DocType, DocStatus...)
-│   │   ├── apiModels.ts    # DTOs & Search Params models
-│   │   └── contractMock.ts # Mock data cho hợp đồng & hợp đồng mẫu
-│   ├── hooks/              # Custom React Hooks
-│   ├── services/
-│   │   └── api.ts          # Backend API client (docApi) & Fallbacks
-│   └── App.tsx             # Root Layout, Routing Provider & State management
+│   └── App.tsx             # Root Layout, Routing Provider & Error Boundary
 ├── imports/                # Assets/Hình ảnh import từ Figma
 └── styles/
     └── index.css           # CSS quy chuẩn & Token Tailwind CSS
@@ -97,9 +107,9 @@ Khi xây dựng màn hình mới hoặc nâng cấp giao diện, **BẮT BUỘC*
 
 - Sử dụng **Hash Routing** (`#/overview`, `#/documents`, `#/products`, `#/proposals`, `#/contracts`, `#/doc/:id`).
 - Khi cần bổ sung route mới:
-  1. Đăng ký path và key tương ứng trong [routes.tsx](file:///home/quocnm/workspace/vcs-produce/vcs-contract-manager-ui/src/app/config/routes.tsx).
-  2. Khai báo menu item tương ứng trong [Sidebar.tsx](file:///home/quocnm/workspace/vcs-produce/vcs-contract-manager-ui/src/app/components/Sidebar.tsx).
-  3. Xử lý render trang chính trong [App.tsx](file:///home/quocnm/workspace/vcs-produce/vcs-contract-manager-ui/src/app/App.tsx).
+  1. Đăng ký path và key tương ứng trong [routes.tsx](file:///Users/tinlq1/code/pdt_vcs/fe-vcs-contract-manager/src/app/Router/routes.tsx).
+  2. Khai báo menu item tương ứng trong [Sidebar.tsx](file:///Users/tinlq1/code/pdt_vcs/fe-vcs-contract-manager/src/app/components/layout/Sidebar.tsx).
+  3. Xử lý render trang chính trong [App.tsx](file:///Users/tinlq1/code/pdt_vcs/fe-vcs-contract-manager/src/app/App.tsx).
 
 ---
 
@@ -107,13 +117,13 @@ Khi xây dựng màn hình mới hoặc nâng cấp giao diện, **BẮT BUỘC*
 
 Để đảm bảo khi chuyển giao kết nối Backend RESTful API (Spring Boot/Node.js) không cần phải refactor lại giao diện FE, tất cả trang và component trong dự án PHẢI tuân thủ các quy tắc sau:
 
-### 7.1. Tập trung hóa Service Layer (`src/app/services/`)
+### 7.1. Tập trung hóa API Layer (`src/app/api/`)
 - Mọi thao tác gọi dữ liệu (HTTP GET, POST, PUT, DELETE) **KHÔNG** được viết `fetch`/`axios` trực tiếp trong file JSX/TSX của trang.
-- Định nghĩa tất cả API method bên trong [api.ts](file:///home/quocnm/workspace/vcs-produce/vcs-contract-manager-ui/src/app/services/api.ts).
+- Định nghĩa tất cả API method bên trong các module API tương ứng tại `src/app/api/` (`docApi.ts`, `proposalApi.ts`, `contractApi.ts`, `businessPlanApi.ts`, `acceptanceApi.ts`, `productApi.ts`).
 - Đảm bảo sử dụng `API_BASE = import.meta.env.VITE_API_BASE_URL || "/api/v1"` và hỗ trợ fallback dữ liệu khi chưa bật server backend.
 
-### 7.2. Định nghĩa DTO & Models thống nhất (`src/app/data/`)
-- Khai báo đầy đủ TypeScript Interface cho Request Payload & Response Body trong [models.ts](file:///home/quocnm/workspace/vcs-produce/vcs-contract-manager-ui/src/app/data/models.ts) hoặc [apiModels.ts](file:///home/quocnm/workspace/vcs-produce/vcs-contract-manager-ui/src/app/data/apiModels.ts).
+### 7.2. Định nghĩa DTO & Models thống nhất (`src/app/core/types/`)
+- Khai báo đầy đủ TypeScript Interface cho Request Payload & Response Body trong `src/app/core/types/` (`document.types.ts`, `proposal.types.ts`, `contract.types.ts`, `businessPlan.types.ts`, `acceptance.types.ts`, `product.types.ts`, `common.types.ts`).
 - Sử dụng kiểu dữ liệu chuẩn RESTful PageResponse:
   ```typescript
   export interface PageResponse<T> {

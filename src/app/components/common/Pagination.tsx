@@ -4,7 +4,8 @@ import { ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
 export interface PaginationProps {
   currentPage: number;
   pageSize: number;
-  totalElements: number;
+  totalElements?: number;
+  totalItems?: number;
   totalPages: number;
   onPageChange: (page: number) => void;
   onPageSizeChange?: (pageSize: number) => void;
@@ -18,7 +19,8 @@ export interface PaginationProps {
 export function Pagination({
   currentPage,
   pageSize,
-  totalElements,
+  totalElements: totalElementsProp,
+  totalItems,
   totalPages,
   onPageChange,
   onPageSizeChange,
@@ -28,6 +30,7 @@ export function Pagination({
   className = "",
   renderSummary,
 }: PaginationProps) {
+  const totalElements = totalElementsProp ?? totalItems ?? 0;
   const startIndex = totalElements > 0 ? (currentPage - 1) * pageSize : 0;
   const endIndex = Math.min(startIndex + pageSize, totalElements);
   const maxPage = Math.max(1, totalPages);
